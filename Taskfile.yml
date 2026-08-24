@@ -31,6 +31,34 @@ tasks:
     cmds:
       - ./build/dev/src/dashboard/holonight-dashboard
 
+  run-windowed:
+    desc: Run at the target logical geometry in a development window
+    deps: [build]
+    cmds:
+      - ./build/dev/src/dashboard/holonight-dashboard --windowed --width 1480 --height 320
+
+  test-asan:
+    desc: Build and run tests with AddressSanitizer
+    cmds:
+      - cmake --preset asan
+      - cmake --build --preset asan
+      - ctest --preset asan
+
+  test-ubsan:
+    desc: Build and run tests with UndefinedBehaviorSanitizer
+    cmds:
+      - cmake --preset ubsan
+      - cmake --build --preset ubsan
+      - ctest --preset ubsan
+
+  test-pi:
+    desc: Synchronize to a dedicated Raspberry Pi directory and run native tests
+    requires:
+      vars: [PI_HOST, PI_PATH]
+    cmds:
+      - rsync -az --exclude .git --exclude build ./ '{{.PI_HOST}}:{{.PI_PATH}}/'
+      - ssh '{{.PI_HOST}}' 'cd {{.PI_PATH}} && task test'
+
   format:
     desc: Format C++ sources
     cmds:
@@ -40,4 +68,3 @@ tasks:
     desc: Remove local build outputs
     cmds:
       - cmake -E remove_directory build
-

@@ -1,13 +1,12 @@
-qt_add_executable(holonight-dashboard
-    main.cpp
-)
+qt_add_library(holonight-dashboard-qml STATIC)
 
 set_source_files_properties(qml/Theme.qml PROPERTIES
     QT_QML_SINGLETON_TYPE TRUE
 )
 
-qt_add_qml_module(holonight-dashboard
+qt_add_qml_module(holonight-dashboard-qml
     URI HoloNight.Dashboard
+    OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/HoloNight/Dashboard
     QML_FILES
         qml/DashboardPage.qml
         qml/Main.qml
@@ -20,14 +19,30 @@ qt_add_qml_module(holonight-dashboard
         qml/icons/weather.svg
 )
 
+target_link_libraries(holonight-dashboard-qml
+    PRIVATE
+        Qt6::Quick
+)
+
+qt_add_executable(holonight-dashboard
+    MANUAL_FINALIZATION
+    main.cpp
+)
+
 target_link_libraries(holonight-dashboard
     PRIVATE
         HoloNightDashboard::protocol
+        holonight-dashboard-qml
+        holonight-dashboard-qmlplugin
+        holonight-dashboard-qmlplugin_init
         Qt6::Gui
         Qt6::Network
         Qt6::Qml
         Qt6::Quick
 )
+
+qt_import_qml_plugins(holonight-dashboard)
+qt_finalize_executable(holonight-dashboard)
 
 set_target_properties(holonight-dashboard PROPERTIES
     WIN32_EXECUTABLE TRUE

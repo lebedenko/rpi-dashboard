@@ -1,4 +1,4 @@
-find_package(Qt6 6.8 REQUIRED COMPONENTS Test)
+find_package(Qt6 6.8 REQUIRED COMPONENTS QuickTest Test)
 
 qt_add_executable(device_snapshot_test
     device_snapshot_test.cpp
@@ -34,6 +34,39 @@ target_link_libraries(dashboard_startup_test
 )
 
 add_test(NAME dashboard_startup_test COMMAND dashboard_startup_test)
+
+qt_add_executable(dashboard_qml_test
+    MANUAL_FINALIZATION
+    dashboard_qml_test.cpp
+)
+
+target_sources(dashboard_qml_test
+    PRIVATE
+        tst_Main.qml
+)
+
+target_compile_definitions(dashboard_qml_test
+    PRIVATE
+        QUICK_TEST_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
+)
+
+set_property(TARGET dashboard_qml_test PROPERTY
+    QT_QML_IMPORT_PATH ${CMAKE_BINARY_DIR}/src/dashboard
+)
+
+target_link_libraries(dashboard_qml_test
+    PRIVATE
+        holonight-dashboard-qml
+        Qt6::QuickTest
+)
+
+qt_import_qml_plugins(dashboard_qml_test)
+qt_finalize_executable(dashboard_qml_test)
+
+add_test(NAME dashboard_qml_test COMMAND dashboard_qml_test -platform offscreen)
+set_tests_properties(dashboard_qml_test PROPERTIES
+    ENVIRONMENT "QT_SCALE_FACTOR=1;QT_QUICK_BACKEND=software"
+)
 
 add_test(
     NAME kiosk_launcher_test

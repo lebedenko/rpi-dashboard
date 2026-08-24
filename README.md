@@ -21,6 +21,7 @@ On Raspberry Pi OS/Debian, the relevant Qt packages are normally `qt6-base-dev`,
 task build
 task test
 task run
+task run-windowed
 ```
 
 Without Task:
@@ -33,6 +34,16 @@ ctest --preset dev
 ```
 
 Use `task check` for the clang-tidy build. If Qt is installed outside the system prefix, set `CMAKE_PREFIX_PATH` or `Qt6_ROOT` when configuring.
+
+For exact-geometry laptop UI work, `task run-windowed` opens a normal 1480×320 window; production launches remain fullscreen. `task test-asan` and `task test-ubsan` run separate sanitizer builds. `QT_SCALE_FACTOR` may be varied for extra DPI robustness checks, but the primary geometry is scale 1 at logical 1480×320.
+
+To run the complete suite natively on an SSH-accessible ARM64 Raspberry Pi, choose a dedicated remote source/build directory and run:
+
+```sh
+task test-pi PI_HOST=dashboard-pi.local PI_PATH=/home/dashboard/rpi-dashboard-test
+```
+
+The task synchronizes source files without deleting remote files, excludes local build output, and invokes `task test` on the Pi. It does not replace the physical graphics and input checks below.
 
 ## Raspberry Pi TTY kiosk
 

@@ -12,6 +12,22 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(ENABLE_CLANG_TIDY "Run clang-tidy while compiling" OFF)
+option(ENABLE_ADDRESS_SANITIZER "Build with AddressSanitizer" OFF)
+option(ENABLE_UNDEFINED_SANITIZER "Build with UndefinedBehaviorSanitizer" OFF)
+
+if(ENABLE_ADDRESS_SANITIZER AND ENABLE_UNDEFINED_SANITIZER)
+    message(FATAL_ERROR "Enable only one sanitizer configuration at a time")
+endif()
+
+if(ENABLE_ADDRESS_SANITIZER)
+    add_compile_options(-fsanitize=address -fno-omit-frame-pointer)
+    add_link_options(-fsanitize=address)
+endif()
+
+if(ENABLE_UNDEFINED_SANITIZER)
+    add_compile_options(-fsanitize=undefined -fno-omit-frame-pointer)
+    add_link_options(-fsanitize=undefined)
+endif()
 
 find_package(Qt6 6.8 REQUIRED COMPONENTS Core Gui Network Qml Quick)
 qt_standard_project_setup(REQUIRES 6.8)
@@ -30,4 +46,3 @@ add_subdirectory(src/agent)
 if(BUILD_TESTING)
     add_subdirectory(tests)
 endif()
-

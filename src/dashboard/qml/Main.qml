@@ -7,14 +7,20 @@ import QtQuick.Shapes
 ApplicationWindow {
     id: root
 
+    property bool windowed: false
+    property int windowWidth: 1480
+    property int windowHeight: 320
+    readonly property alias currentPageIndex: pageStack.currentIndex
+    readonly property bool currentPageHasFocus: root.currentPlaceholder.activeFocus
+
     readonly property var currentPlaceholder: pageStack.currentIndex === 0 ? overviewPage.placeholder
                                                : pageStack.currentIndex === 1 ? systemsPage.placeholder
                                                : pageStack.currentIndex === 2 ? projectsPage.placeholder
                                                : weatherPage.placeholder
 
-    width: 1480
-    height: 320
-    visibility: Window.FullScreen
+    width: root.windowWidth
+    height: root.windowHeight
+    visibility: root.windowed ? Window.Windowed : Window.FullScreen
     color: Theme.background
     title: qsTr("HoloNight Dashboard")
 
@@ -65,6 +71,7 @@ ApplicationWindow {
                 spacing: Theme.spacingMedium
 
                 SidebarButton {
+                    objectName: "overviewButton"
                     width: Theme.touchTarget
                     height: Theme.touchTarget
                     selected: pageStack.currentIndex === 0
@@ -74,6 +81,7 @@ ApplicationWindow {
                 }
 
                 SidebarButton {
+                    objectName: "systemsButton"
                     width: Theme.touchTarget
                     height: Theme.touchTarget
                     selected: pageStack.currentIndex === 1
@@ -83,6 +91,7 @@ ApplicationWindow {
                 }
 
                 SidebarButton {
+                    objectName: "projectsButton"
                     width: Theme.touchTarget
                     height: Theme.touchTarget
                     selected: pageStack.currentIndex === 2
@@ -92,6 +101,7 @@ ApplicationWindow {
                 }
 
                 SidebarButton {
+                    objectName: "weatherButton"
                     width: Theme.touchTarget
                     height: Theme.touchTarget
                     selected: pageStack.currentIndex === 3
@@ -104,15 +114,16 @@ ApplicationWindow {
 
         StackLayout {
             id: pageStack
+            objectName: "pageStack"
 
             currentIndex: 0
             Layout.fillWidth: true
             Layout.fillHeight: true
 
-            DashboardPage { id: overviewPage; heading: qsTr("Overview") }
-            DashboardPage { id: systemsPage; heading: qsTr("Systems") }
-            DashboardPage { id: projectsPage; heading: qsTr("Projects") }
-            DashboardPage { id: weatherPage; heading: qsTr("Weather") }
+            DashboardPage { id: overviewPage; objectName: "overviewPage"; heading: qsTr("Overview") }
+            DashboardPage { id: systemsPage; objectName: "systemsPage"; heading: qsTr("Systems") }
+            DashboardPage { id: projectsPage; objectName: "projectsPage"; heading: qsTr("Projects") }
+            DashboardPage { id: weatherPage; objectName: "weatherPage"; heading: qsTr("Weather") }
         }
     }
 }

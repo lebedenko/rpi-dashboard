@@ -34,12 +34,32 @@
         "CMAKE_BUILD_TYPE": "Release",
         "BUILD_TESTING": "OFF"
       }
+    },
+    {
+      "name": "asan",
+      "displayName": "Development with AddressSanitizer",
+      "inherits": "dev",
+      "binaryDir": "${sourceDir}/build/asan",
+      "cacheVariables": {
+        "ENABLE_ADDRESS_SANITIZER": "ON"
+      }
+    },
+    {
+      "name": "ubsan",
+      "displayName": "Development with UndefinedBehaviorSanitizer",
+      "inherits": "dev",
+      "binaryDir": "${sourceDir}/build/ubsan",
+      "cacheVariables": {
+        "ENABLE_UNDEFINED_SANITIZER": "ON"
+      }
     }
   ],
   "buildPresets": [
     { "name": "dev", "configurePreset": "dev" },
     { "name": "tidy", "configurePreset": "tidy" },
-    { "name": "release", "configurePreset": "release" }
+    { "name": "release", "configurePreset": "release" },
+    { "name": "asan", "configurePreset": "asan" },
+    { "name": "ubsan", "configurePreset": "ubsan" }
   ],
   "testPresets": [
     {
@@ -51,7 +71,19 @@
       "name": "tidy",
       "configurePreset": "tidy",
       "output": { "outputOnFailure": true }
+    },
+    {
+      "name": "asan",
+      "configurePreset": "asan",
+      "environment": {
+        "ASAN_OPTIONS": "detect_leaks=0"
+      },
+      "output": { "outputOnFailure": true }
+    },
+    {
+      "name": "ubsan",
+      "configurePreset": "ubsan",
+      "output": { "outputOnFailure": true }
     }
   ]
 }
-
