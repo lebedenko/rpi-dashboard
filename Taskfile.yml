@@ -1,0 +1,43 @@
+version: '3'
+
+tasks:
+  configure:
+    desc: Configure the development build
+    cmds:
+      - cmake --preset dev
+
+  build:
+    desc: Build the development configuration
+    deps: [configure]
+    cmds:
+      - cmake --build --preset dev
+
+  test:
+    desc: Build and run all tests
+    deps: [build]
+    cmds:
+      - ctest --preset dev
+
+  check:
+    desc: Build with clang-tidy and run tests
+    cmds:
+      - cmake --preset tidy
+      - cmake --build --preset tidy
+      - ctest --preset tidy
+
+  run:
+    desc: Run the dashboard locally
+    deps: [build]
+    cmds:
+      - ./build/dev/src/dashboard/holonight-dashboard
+
+  format:
+    desc: Format C++ sources
+    cmds:
+      - find src tests -type f \( -name '*.cpp' -o -name '*.h' \) -print0 | xargs -0 clang-format -i
+
+  clean:
+    desc: Remove local build outputs
+    cmds:
+      - cmake -E remove_directory build
+

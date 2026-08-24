@@ -1,0 +1,34 @@
+# OS
+.DS_Store
+Desktop.ini
+Thumbs.db
+
+# Editor
+*.swo
+*.swp
+*~
+
+# Environment
+*.key
+*.pem
+.env*
+secrets.json
+
+# C / C++
+*.a
+*.o
+*.out
+*.so
+cmake-build-*/
+
+# Build
+/.cache/
+/.qt/
+/build/
+compile_commands.json
+
+# Project
+.claude/
+.codex/
+AGENTS.md
+CLAUDE.md
