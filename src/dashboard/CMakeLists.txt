@@ -9,8 +9,8 @@ set_source_files_properties(qml/Theme.qml PROPERTIES
 qt_add_qml_module(holonight-dashboard
     URI HoloNight.Dashboard
     QML_FILES
+        qml/DashboardPage.qml
         qml/Main.qml
-        qml/MetricCard.qml
         qml/Theme.qml
 )
 
@@ -27,4 +27,3 @@ set_target_properties(holonight-dashboard PROPERTIES
     WIN32_EXECUTABLE TRUE
     MACOSX_BUNDLE TRUE
 )
-

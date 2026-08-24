@@ -6,79 +6,110 @@ import QtQuick.Layouts
 ApplicationWindow {
     id: window
 
+    readonly property var currentPlaceholder: pageStack.currentIndex === 0 ? overviewPage.placeholder
+                                               : pageStack.currentIndex === 1 ? systemsPage.placeholder
+                                               : pageStack.currentIndex === 2 ? projectsPage.placeholder
+                                               : weatherPage.placeholder
+
     width: 1480
     height: 320
-    minimumWidth: 960
-    minimumHeight: 240
-    visible: true
+    visibility: Window.FullScreen
     color: Theme.background
     title: qsTr("HoloNight Dashboard")
 
-    Shortcut { sequence: "Home"; onActivated: pageTabs.currentIndex = 0 }
-    Shortcut { sequence: "Left"; onActivated: pageTabs.decrementCurrentIndex() }
-    Shortcut { sequence: "Right"; onActivated: pageTabs.incrementCurrentIndex() }
-    Shortcut { sequence: "F5"; onActivated: refreshFeedback.restart() }
-
-    Timer {
-        id: refreshFeedback
-        interval: 1000
+    function selectPreviousPage(): void {
+        pageStack.currentIndex = Math.max(0, pageStack.currentIndex - 1)
     }
+
+    function selectNextPage(): void {
+        pageStack.currentIndex = Math.min(pageStack.count - 1, pageStack.currentIndex + 1)
+    }
+
+    Shortcut { sequence: "Home"; onActivated: pageStack.currentIndex = 0 }
+    Shortcut { sequence: "Left"; onActivated: window.selectPreviousPage() }
+    Shortcut { sequence: "Right"; onActivated: window.selectNextPage() }
+    Shortcut { sequence: "F5"; onActivated: window.currentPlaceholder.forceActiveFocus() }
 
     RowLayout {
         anchors.fill: parent
-        anchors.margins: Theme.spacingMedium
-        spacing: Theme.spacingMedium
+        spacing: 0
 
         Rectangle {
-            Layout.preferredWidth: 72
+            Layout.preferredWidth: 184
             Layout.fillHeight: true
             color: Theme.surface
-            border.color: Theme.outline
+            border.color: Theme.passiveBorder
 
             ColumnLayout {
                 anchors.fill: parent
-                anchors.margins: Theme.spacingSmall
+                anchors.margins: Theme.spacingMedium
                 spacing: Theme.spacingSmall
 
-                Text {
-                    Layout.alignment: Qt.AlignHCenter
-                    text: "⌁"
-                    color: Theme.interactive
-                    font.pixelSize: 32
-                    Accessible.ignored: true
+                Label {
+                    Layout.fillWidth: true
+                    Layout.bottomMargin: Theme.spacingSmall
+                    text: qsTr("Dashboard")
+                    color: Theme.textPrimary
+                    font.pixelSize: 21
+                    font.weight: Font.DemiBold
                 }
 
                 Repeater {
-                    model: [qsTr("Overview"), qsTr("Systems"), qsTr("Projects"), qsTr("Weather")]
+                    model: [
+                        { "mark": "O", "label": qsTr("Overview") },
+                        { "mark": "S", "label": qsTr("Systems") },
+                        { "mark": "P", "label": qsTr("Projects") },
+                        { "mark": "W", "label": qsTr("Weather") }
+                    ]
 
                     delegate: Button {
                         id: navigationButton
 
-                        required property string modelData
+                        required property var modelData
                         required property int index
+                        readonly property bool selected: pageStack.currentIndex === navigationButton.index
 
                         Layout.fillWidth: true
                         Layout.preferredHeight: Theme.touchTarget
-                        text: modelData.slice(0, 1)
-                        Accessible.name: modelData
-                        flat: true
-                        onClicked: pageTabs.currentIndex = navigationButton.index
+                        activeFocusOnTab: true
+                        Accessible.name: navigationButton.modelData.label
+                        onClicked: pageStack.currentIndex = navigationButton.index
 
-                        contentItem: Text {
-                            text: navigationButton.text
-                            color: pageTabs.currentIndex === navigationButton.index
-                                   ? Theme.interactive : Theme.textSecondary
-                            horizontalAlignment: Text.AlignHCenter
-                            verticalAlignment: Text.AlignVCenter
-                            font.pixelSize: 20
+                        contentItem: RowLayout {
+                            spacing: Theme.spacingSmall
+
+                            Label {
+                                Layout.preferredWidth: 32
+                                text: navigationButton.modelData.mark
+                                color: navigationButton.selected ? Theme.primaryAccent : Theme.textMuted
+                                horizontalAlignment: Text.AlignHCenter
+                                font.pixelSize: 18
+                                font.weight: Font.DemiBold
+                                Accessible.ignored: true
+                            }
+
+                            Label {
+                                Layout.fillWidth: true
+                                text: navigationButton.modelData.label
+                                color: navigationButton.selected ? Theme.textPrimary : Theme.textSecondary
+                                font.pixelSize: 16
+                                Accessible.ignored: true
+                            }
                         }
 
                         background: Rectangle {
-                            color: pageTabs.currentIndex === navigationButton.index
-                                   ? Theme.surfaceRaised : "transparent"
-                            border.color: pageTabs.currentIndex === navigationButton.index
-                                          ? Theme.interactive : "transparent"
-                            radius: 3
+                            color: navigationButton.selected ? Theme.surfaceRaised : "transparent"
+                            border.width: navigationButton.activeFocus ? 2 : 0
+                            border.color: Theme.focusAccent
+                            radius: 6
+
+                            Rectangle {
+                                width: 4
+                                height: parent.height
+                                color: navigationButton.selected ? Theme.primaryAccent : "transparent"
+                                radius: 2
+                                Accessible.ignored: true
+                            }
                         }
                     }
                 }
@@ -87,85 +118,17 @@ ApplicationWindow {
             }
         }
 
-        ColumnLayout {
+        StackLayout {
+            id: pageStack
+
             Layout.fillWidth: true
             Layout.fillHeight: true
-            spacing: Theme.spacingMedium
+            currentIndex: 0
 
-            RowLayout {
-                Layout.fillWidth: true
-
-                Text {
-                    text: pageTabs.currentItem ? pageTabs.currentItem.objectName : ""
-                    color: Theme.textPrimary
-                    font.pixelSize: 24
-                    font.weight: Font.DemiBold
-                }
-
-                Item { Layout.fillWidth: true }
-
-                Text {
-                    text: refreshFeedback.running ? qsTr("Refreshing…") : qsTr("● Online")
-                    color: refreshFeedback.running ? Theme.interactive : Theme.healthy
-                    font.pixelSize: 16
-                }
-            }
-
-            SwipeView {
-                id: pageTabs
-
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                interactive: true
-
-                RowLayout {
-                    objectName: qsTr("Overview")
-                    spacing: Theme.spacingMedium
-
-                    MetricCard {
-                        Layout.fillWidth: true
-                        Layout.fillHeight: true
-                        label: qsTr("CPU")
-                        value: qsTr("34%")
-                        detail: qsTr("58°C")
-                    }
-                    MetricCard {
-                        Layout.fillWidth: true
-                        Layout.fillHeight: true
-                        label: qsTr("Memory")
-                        value: qsTr("62%")
-                        detail: qsTr("4.1 / 8.0 GB")
-                        accent: Theme.secondary
-                    }
-                    MetricCard {
-                        Layout.fillWidth: true
-                        Layout.fillHeight: true
-                        label: qsTr("Systems")
-                        value: qsTr("3 online")
-                        detail: qsTr("All nominal")
-                        accent: Theme.healthy
-                    }
-                    MetricCard {
-                        Layout.fillWidth: true
-                        Layout.fillHeight: true
-                        label: qsTr("Build")
-                        value: qsTr("Passed")
-                        detail: qsTr("project-alpha")
-                    }
-                    MetricCard {
-                        Layout.fillWidth: true
-                        Layout.fillHeight: true
-                        label: qsTr("Weather")
-                        value: qsTr("18°C")
-                        detail: qsTr("Lviv · Partly cloudy")
-                        accent: Theme.secondary
-                    }
-                }
-
-                Item { objectName: qsTr("Systems") }
-                Item { objectName: qsTr("Projects") }
-                Item { objectName: qsTr("Weather") }
-            }
+            DashboardPage { id: overviewPage; heading: qsTr("Overview") }
+            DashboardPage { id: systemsPage; heading: qsTr("Systems") }
+            DashboardPage { id: projectsPage; heading: qsTr("Projects") }
+            DashboardPage { id: weatherPage; heading: qsTr("Weather") }
         }
     }
 }
