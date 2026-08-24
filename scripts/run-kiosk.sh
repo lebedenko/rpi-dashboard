@@ -4,6 +4,7 @@ set -eu
 
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 dashboard_binary=${1:-"$script_dir/../build/release/src/dashboard/holonight-dashboard"}
+session_helper="$script_dir/run-dashboard-session.sh"
 
 if ! command -v cage >/dev/null 2>&1; then
     echo "run-kiosk: Cage is not installed or not available in PATH" >&2
@@ -12,6 +13,11 @@ fi
 
 if [ ! -x "$dashboard_binary" ]; then
     echo "run-kiosk: dashboard executable not found or not executable: $dashboard_binary" >&2
+    exit 126
+fi
+
+if [ ! -x "$session_helper" ]; then
+    echo "run-kiosk: session helper not found or not executable: $session_helper" >&2
     exit 126
 fi
 
@@ -24,4 +30,4 @@ fi
 export QT_QPA_PLATFORM=wayland
 export QT_FORCE_STDERR_LOGGING=1
 
-exec cage -s -d -- "$dashboard_binary"
+exec cage -s -d -- "$session_helper" "$dashboard_binary"

@@ -13,7 +13,7 @@ The repository currently provides the project foundation: a landscape dashboard 
 - [Task](https://taskfile.dev/) for the convenience commands
 - clang-tidy and clang-format for `task check` and `task format`
 
-On Raspberry Pi OS/Debian, the relevant Qt packages are normally `qt6-base-dev`, `qt6-declarative-dev`, and `qt6-wayland`. Running directly from a TTY also requires [Cage](https://github.com/cage-kiosk/cage).
+On Raspberry Pi OS/Debian, the relevant Qt packages are normally `qt6-base-dev`, `qt6-declarative-dev`, `qt6-wayland`, and `libxkbcommon-dev`. Running directly from a TTY also requires [Cage](https://github.com/cage-kiosk/cage) and `wlr-randr`. Private Qt development packages are neither required nor permitted by the project architecture.
 
 ## Build and run
 
@@ -36,7 +36,7 @@ Use `task check` for the clang-tidy build. If Qt is installed outside the system
 
 ## Raspberry Pi TTY kiosk
 
-Log in on a local Raspberry Pi TTY, then build natively and start Cage with the dashboard as its fullscreen Wayland client:
+Log in on an active local Raspberry Pi TTY, then build natively and start Cage as that non-root user with the dashboard as its fullscreen Wayland client:
 
 ```sh
 cmake --preset release
@@ -44,9 +44,9 @@ cmake --build --preset release --target holonight-dashboard
 ./scripts/run-kiosk.sh
 ```
 
-The launcher accepts an alternate dashboard executable as its first argument. It reuses `XDG_RUNTIME_DIR` when the login session provides one; otherwise it creates a private mode-0700 runtime directory under `/tmp`. Missing executables and startup diagnostics are written to the TTY and produce a nonzero exit status.
+The launcher accepts an alternate dashboard executable as its first argument. It reuses `XDG_RUNTIME_DIR` when the login session provides one; otherwise it creates a private mode-0700 runtime directory under `/tmp`. Its Cage session helper applies the validated `HDMI-A-1` transform before starting Qt. Missing executables, missing `wlr-randr`, failed output configuration, and startup diagnostics are written to the TTY and produce a nonzero exit status.
 
-For first-device validation, launch with `QSG_INFO=1 ./scripts/run-kiosk.sh`. Confirm the dashboard fills the 1480×320 panel, all four touch targets work, Left/Right/Home navigation does not wrap, F5 visibly focuses the current placeholder, and no Wayland platform or QML module errors appear. Switch to another VT to stop the process and confirm that the console is recovered.
+For first-device validation, launch with `QSG_INFO=1 ./scripts/run-kiosk.sh`. Confirm the dashboard fills the 1480×320 panel, all four touch targets work, Left/Right/Home navigation does not wrap, F5 visibly focuses the current placeholder, and no Wayland platform or QML module errors appear. Switch to another VT to stop the process and confirm that the console is recovered. The validated Waveshare output, touch calibration, seat requirements, and rounded-corner safe-area constraint are documented in [the Raspberry Pi 5 hardware validation report](docs/hardware-validation.md).
 
 ## Repository layout
 
@@ -57,6 +57,7 @@ src/dashboard/  Qt Quick dashboard executable and QML module
 tests/          Protocol unit tests and dashboard startup integration test
 docs/mockups/   Visual direction
 docs/specs/     Feature specifications used by the SDD cycle
+docs/hardware-validation.md  Target hardware validation and operational notes
 ```
 
 ## Development approach

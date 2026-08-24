@@ -29,3 +29,12 @@ target_link_libraries(dashboard_startup_test
 )
 
 add_test(NAME dashboard_startup_test COMMAND dashboard_startup_test)
+
+add_test(
+    NAME kiosk_launcher_test
+    COMMAND
+        sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/kiosk_launcher_test.sh
+        ${CMAKE_SOURCE_DIR}/scripts/run-kiosk.sh
+        ${CMAKE_SOURCE_DIR}/scripts/run-dashboard-session.sh
+)
