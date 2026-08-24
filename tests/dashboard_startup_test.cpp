@@ -66,6 +66,9 @@ void DashboardStartupTest::sidebarButtonExposesInteractionStates() {  // NOLINT(
   QVERIFY(source.contains(QStringLiteral("root.hovered")));
   QVERIFY(source.contains(QStringLiteral("root.selected")));
   QVERIFY(source.contains(QStringLiteral("root.activeFocus")));
+  QVERIFY(source.contains(QStringLiteral("acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad")));
+  QVERIFY(source.contains(QStringLiteral("ToolTip.visible: pointerHover.hovered")));
+  QVERIFY(!source.contains(QStringLiteral("ToolTip.visible: root.hovered || root.activeFocus")));
   QVERIFY(source.contains(QStringLiteral("strokeWidth: root.activeFocus ? 2 : root.selected ? 1 : 0")));
   QCOMPARE(source.count(QStringLiteral("PathLine")), 6);
 }
@@ -84,7 +87,7 @@ void DashboardStartupTest::sidebarIconsAreTintableSvgResources() {  // NOLINT(re
   QFile mainQml(QStringLiteral(DASHBOARD_MAIN_QML));
   QVERIFY2(mainQml.open(QIODevice::ReadOnly | QIODevice::Text), qPrintable(mainQml.errorString()));
   const auto mainSource = QString::fromUtf8(mainQml.readAll());
-  QCOMPARE(mainSource.count(QStringLiteral("\"icon\": \"icons/")), 4);
+  QCOMPARE(mainSource.count(QStringLiteral("\"icon\": Qt.resolvedUrl(\"icons/")), 4);
   QVERIFY(mainSource.contains(QStringLiteral("value: navigationLoader.modelData.icon")));
 }
 

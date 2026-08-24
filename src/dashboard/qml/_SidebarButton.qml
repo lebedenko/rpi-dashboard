@@ -20,8 +20,14 @@ Button {
     Accessible.name: root.tooltipText
     scale: root.down ? 0.96 : 1
 
+    HoverHandler {
+        id: pointerHover
+
+        acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+    }
+
     ToolTip.delay: 600
-    ToolTip.visible: root.hovered || root.activeFocus
+    ToolTip.visible: pointerHover.hovered
     ToolTip.text: root.tooltipText
 
     Behavior on scale {

@@ -66,10 +66,10 @@ ApplicationWindow {
 
                 Repeater {
                     model: [
-                        { "icon": "icons/overview.svg", "label": qsTr("Overview") },
-                        { "icon": "icons/systems.svg", "label": qsTr("Systems") },
-                        { "icon": "icons/projects.svg", "label": qsTr("Projects") },
-                        { "icon": "icons/weather.svg", "label": qsTr("Weather") }
+                        { "icon": Qt.resolvedUrl("icons/overview.svg"), "label": qsTr("Overview") },
+                        { "icon": Qt.resolvedUrl("icons/systems.svg"), "label": qsTr("Systems") },
+                        { "icon": Qt.resolvedUrl("icons/projects.svg"), "label": qsTr("Projects") },
+                        { "icon": Qt.resolvedUrl("icons/weather.svg"), "label": qsTr("Weather") }
                     ]
 
                     delegate: Loader {

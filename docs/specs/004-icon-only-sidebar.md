@@ -14,13 +14,14 @@ The dashboard sidebar should match the compact visual language of `docs/mockups/
 - Default, hover, pressed, selected, and keyboard-focus states are visually distinct. Selection remains visible after keyboard focus leaves.
 - Button frames use opposing chamfered corners. Selected buttons use a 1 px cyan/blue frame; focused buttons use a 2 px focus-accent frame.
 - The sidebar boundary draws only a 12 px top-right chamfer followed by the internal right border. It draws no top, bottom, or physical-left border.
-- Optional delayed tooltips may reveal translated navigation names to pointer and keyboard users.
+- Delayed tooltips reveal translated navigation names only while a hover-capable pointer is over a button; touch activation and keyboard focus do not show or persist a tooltip.
 
 ## Acceptance criteria
 
 - The sidebar width is exactly 88 px, with four centered 56×56 targets separated by 16 px.
 - No visible `Dashboard`, `Overview`, `Systems`, `Projects`, or `Weather` label is rendered in the sidebar.
 - All four icon resources initialize through the dashboard QML module and are dynamically tinted through the button icon API.
+- Icon URLs are resolved in the declaring QML context before being passed through the dynamically loaded private button component.
 - Each button exposes its translated page name to accessibility and activates the corresponding page.
 - The separator consists only of the top-right chamfer and internal vertical edge.
 - The focused startup test, `task test`, and `task check` pass.
