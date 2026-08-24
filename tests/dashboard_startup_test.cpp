@@ -28,11 +28,13 @@ void DashboardStartupTest::sidebarUsesIconOnlySafeLayout() {  // NOLINT(readabil
   QVERIFY(source.contains(QStringLiteral("Layout.preferredWidth: Theme.sidebarWidth")));
   QVERIFY(source.contains(QStringLiteral("anchors.centerIn: parent")));
   QVERIFY(source.contains(QStringLiteral("spacing: Theme.spacingMedium")));
-  QCOMPARE(source.count(QStringLiteral("source: \"_SidebarButton.qml\"")), 1);
+  QCOMPARE(source.count(QStringLiteral("SidebarButton {")), 4);
+  QVERIFY(!source.contains(QStringLiteral("delegate: Loader")));
   QVERIFY(!source.contains(QStringLiteral("qsTr(\"Dashboard\")")));
-  QVERIFY(!source.contains(QStringLiteral("text: navigationLoader.modelData.label")));
-  QVERIFY(source.contains(QStringLiteral("value: navigationLoader.modelData.label")));
-  QVERIFY(source.contains(QStringLiteral("pageStack.currentIndex = navigationLoader.index")));
+  QVERIFY(!source.contains(QStringLiteral("Binding {")));
+  QVERIFY(!source.contains(QStringLiteral("Connections {")));
+  QVERIFY(source.contains(QStringLiteral("tooltipText: qsTr(\"Overview\")")));
+  QVERIFY(source.contains(QStringLiteral("onClicked: pageStack.currentIndex = 0")));
 }
 
 void DashboardStartupTest::sidebarDrawsOnlyChamferedInternalSeparator() {  // NOLINT(readability-convert-member-functions-to-static)
@@ -61,7 +63,7 @@ void DashboardStartupTest::sidebarButtonExposesInteractionStates() {  // NOLINT(
 
   QVERIFY(source.contains(QStringLiteral("display: AbstractButton.IconOnly")));
   QVERIFY(source.contains(QStringLiteral("property url iconSource")));
-  QVERIFY(source.contains(QStringLiteral("icon.source: root.iconSource")));
+  QVERIFY(source.contains(QStringLiteral("source: root.iconSource")));
   QVERIFY(source.contains(QStringLiteral("activeFocusOnTab: true")));
   QVERIFY(source.contains(QStringLiteral("Accessible.name: root.tooltipText")));
   QVERIFY(source.contains(QStringLiteral("root.down ? 0.96 : 1")));
@@ -69,7 +71,7 @@ void DashboardStartupTest::sidebarButtonExposesInteractionStates() {  // NOLINT(
   QVERIFY(source.contains(QStringLiteral("root.selected")));
   QVERIFY(source.contains(QStringLiteral("root.activeFocus")));
   QVERIFY(source.contains(QStringLiteral("acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad")));
-  QVERIFY(source.contains(QStringLiteral("ToolTip.visible: pointerHover.hovered")));
+  QVERIFY(source.contains(QStringLiteral("visible: pointerHover.hovered")));
   QVERIFY(!source.contains(QStringLiteral("ToolTip.visible: root.hovered || root.activeFocus")));
   QVERIFY(source.contains(QStringLiteral("strokeWidth: root.activeFocus ? 2 : root.selected ? 1 : 0")));
   QCOMPARE(source.count(QStringLiteral("PathLine")), 6);
@@ -96,8 +98,7 @@ void DashboardStartupTest::sidebarIconsAreTintableSvgResources() {  // NOLINT(re
   QFile mainQml(QStringLiteral(DASHBOARD_MAIN_QML));
   QVERIFY2(mainQml.open(QIODevice::ReadOnly | QIODevice::Text), qPrintable(mainQml.errorString()));
   const auto mainSource = QString::fromUtf8(mainQml.readAll());
-  QCOMPARE(mainSource.count(QStringLiteral("\"icon\": Qt.resolvedUrl(\"icons/")), 4);
-  QVERIFY(mainSource.contains(QStringLiteral("value: navigationLoader.modelData.icon")));
+  QCOMPARE(mainSource.count(QStringLiteral("iconSource: Qt.resolvedUrl(\"icons/")), 4);
 }
 
 void DashboardStartupTest::declaresAndUsesTypographyRoles() {  // NOLINT(readability-convert-member-functions-to-static)
@@ -138,6 +139,10 @@ void DashboardStartupTest::initializesQmlAndKeepsRunning() {  // NOLINT(readabil
 
   QVERIFY2(dashboard.waitForStarted(), qPrintable(dashboard.errorString()));
   QVERIFY2(!dashboard.waitForFinished(1000), qPrintable(QString::fromUtf8(dashboard.readAllStandardError())));
+
+  const auto startupErrors = QString::fromUtf8(dashboard.readAllStandardError());
+  QVERIFY2(!startupErrors.contains(QStringLiteral("Unsupported image format")), qPrintable(startupErrors));
+  QVERIFY2(!startupErrors.contains(QStringLiteral("Error decoding")), qPrintable(startupErrors));
 
   dashboard.terminate();
   const bool terminated = dashboard.waitForFinished(3000);

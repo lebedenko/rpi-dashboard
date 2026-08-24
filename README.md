@@ -13,7 +13,7 @@ The repository currently provides the project foundation: a landscape dashboard 
 - [Task](https://taskfile.dev/) for the convenience commands
 - clang-tidy and clang-format for `task check` and `task format`
 
-On Raspberry Pi OS/Debian, the relevant Qt packages are normally `qt6-base-dev`, `qt6-declarative-dev`, `qt6-wayland`, and `libxkbcommon-dev`. Running directly from a TTY also requires [Cage](https://github.com/cage-kiosk/cage) and `wlr-randr`. Private Qt development packages are neither required nor permitted by the project architecture.
+On Raspberry Pi OS/Debian, the relevant Qt packages are normally `qt6-base-dev`, `qt6-declarative-dev`, `qt6-svg-plugins`, `qt6-wayland`, and `libxkbcommon-dev`. The SVG image-format plugin is required to decode the embedded sidebar icons. Running directly from a TTY also requires [Cage](https://github.com/cage-kiosk/cage) and `wlr-randr`. Private Qt development packages are neither required nor permitted by the project architecture.
 
 ## Build and run
 

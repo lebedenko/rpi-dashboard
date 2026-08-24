@@ -21,7 +21,8 @@ The dashboard sidebar should match the compact visual language of `docs/mockups/
 - The sidebar width is exactly 88 px, with four centered 56×56 targets separated by 16 px.
 - No visible `Dashboard`, `Overview`, `Systems`, `Projects`, or `Weather` label is rendered in the sidebar.
 - All four icon resources initialize through the dashboard QML module and are dynamically tinted through the button icon API.
-- Icon URLs are resolved in the declaring QML context before being passed through the dynamically loaded private button component.
+- SVG decoding is an explicit build and deployment dependency, and startup emits no icon decoding errors.
+- The fixed navigation buttons are instantiated directly without dynamic loaders or intermediary binding objects.
 - Each button exposes its translated page name to accessibility and activates the corresponding page.
 - The separator consists only of the top-right chamfer and internal vertical edge.
 - The focused startup test, `task test`, and `task check` pass.
@@ -31,7 +32,7 @@ The dashboard sidebar should match the compact visual language of `docs/mockups/
 
 - Changing page headings, page content, navigation order, or keyboard shortcuts.
 - Adding bitmap or duplicate per-state icon assets.
-- Adding C++ APIs, dependencies, private Qt modules, or a HoloNight runtime dependency.
+- Adding C++ APIs, private Qt modules, or a HoloNight runtime dependency.
 
 ## Verification
 

@@ -12,7 +12,7 @@ qt_add_qml_module(holonight-dashboard
         qml/DashboardPage.qml
         qml/Main.qml
         qml/Theme.qml
-        qml/_SidebarButton.qml
+        qml/SidebarButton.qml
     RESOURCES
         qml/icons/overview.svg
         qml/icons/projects.svg

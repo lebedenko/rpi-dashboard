@@ -5,7 +5,7 @@ import QtQuick.Layouts
 import QtQuick.Shapes
 
 ApplicationWindow {
-    id: window
+    id: root
 
     readonly property var currentPlaceholder: pageStack.currentIndex === 0 ? overviewPage.placeholder
                                                : pageStack.currentIndex === 1 ? systemsPage.placeholder
@@ -27,9 +27,9 @@ ApplicationWindow {
     }
 
     Shortcut { sequence: "Home"; onActivated: pageStack.currentIndex = 0 }
-    Shortcut { sequence: "Left"; onActivated: window.selectPreviousPage() }
-    Shortcut { sequence: "Right"; onActivated: window.selectNextPage() }
-    Shortcut { sequence: "F5"; onActivated: window.currentPlaceholder.forceActiveFocus() }
+    Shortcut { sequence: "Left"; onActivated: root.selectPreviousPage() }
+    Shortcut { sequence: "Right"; onActivated: root.selectNextPage() }
+    Shortcut { sequence: "F5"; onActivated: root.currentPlaceholder.forceActiveFocus() }
 
     RowLayout {
         anchors.fill: parent
@@ -38,9 +38,9 @@ ApplicationWindow {
         Rectangle {
             id: sidebarSurface
 
+            color: Theme.surface
             Layout.preferredWidth: Theme.sidebarWidth
             Layout.fillHeight: true
-            color: Theme.surface
 
             Shape {
                 id: sidebarSeparator
@@ -64,53 +64,40 @@ ApplicationWindow {
                 anchors.centerIn: parent
                 spacing: Theme.spacingMedium
 
-                Repeater {
-                    model: [
-                        { "icon": Qt.resolvedUrl("icons/overview.svg"), "label": qsTr("Overview") },
-                        { "icon": Qt.resolvedUrl("icons/systems.svg"), "label": qsTr("Systems") },
-                        { "icon": Qt.resolvedUrl("icons/projects.svg"), "label": qsTr("Projects") },
-                        { "icon": Qt.resolvedUrl("icons/weather.svg"), "label": qsTr("Weather") }
-                    ]
+                SidebarButton {
+                    width: Theme.touchTarget
+                    height: Theme.touchTarget
+                    selected: pageStack.currentIndex === 0
+                    iconSource: Qt.resolvedUrl("icons/overview.svg")
+                    tooltipText: qsTr("Overview")
+                    onClicked: pageStack.currentIndex = 0
+                }
 
-                    delegate: Loader {
-                        id: navigationLoader
+                SidebarButton {
+                    width: Theme.touchTarget
+                    height: Theme.touchTarget
+                    selected: pageStack.currentIndex === 1
+                    iconSource: Qt.resolvedUrl("icons/systems.svg")
+                    tooltipText: qsTr("Systems")
+                    onClicked: pageStack.currentIndex = 1
+                }
 
-                        required property var modelData
-                        required property int index
+                SidebarButton {
+                    width: Theme.touchTarget
+                    height: Theme.touchTarget
+                    selected: pageStack.currentIndex === 2
+                    iconSource: Qt.resolvedUrl("icons/projects.svg")
+                    tooltipText: qsTr("Projects")
+                    onClicked: pageStack.currentIndex = 2
+                }
 
-                        width: Theme.touchTarget
-                        height: Theme.touchTarget
-                        source: "_SidebarButton.qml"
-
-                        Binding {
-                            target: navigationLoader.item
-                            property: "selected"
-                            value: pageStack.currentIndex === navigationLoader.index
-                            when: navigationLoader.status === Loader.Ready
-                        }
-
-                        Binding {
-                            target: navigationLoader.item
-                            property: "tooltipText"
-                            value: navigationLoader.modelData.label
-                            when: navigationLoader.status === Loader.Ready
-                        }
-
-                        Binding {
-                            target: navigationLoader.item
-                            property: "iconSource"
-                            value: navigationLoader.modelData.icon
-                            when: navigationLoader.status === Loader.Ready
-                        }
-
-                        Connections {
-                            target: navigationLoader.status === Loader.Ready ? navigationLoader.item : null
-
-                            function onClicked(): void {
-                                pageStack.currentIndex = navigationLoader.index
-                            }
-                        }
-                    }
+                SidebarButton {
+                    width: Theme.touchTarget
+                    height: Theme.touchTarget
+                    selected: pageStack.currentIndex === 3
+                    iconSource: Qt.resolvedUrl("icons/weather.svg")
+                    tooltipText: qsTr("Weather")
+                    onClicked: pageStack.currentIndex = 3
                 }
             }
         }
@@ -118,9 +105,9 @@ ApplicationWindow {
         StackLayout {
             id: pageStack
 
+            currentIndex: 0
             Layout.fillWidth: true
             Layout.fillHeight: true
-            currentIndex: 0
 
             DashboardPage { id: overviewPage; heading: qsTr("Overview") }
             DashboardPage { id: systemsPage; heading: qsTr("Systems") }
