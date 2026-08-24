@@ -60,6 +60,8 @@ void DashboardStartupTest::sidebarButtonExposesInteractionStates() {  // NOLINT(
   const auto source = QString::fromUtf8(buttonQml.readAll());
 
   QVERIFY(source.contains(QStringLiteral("display: AbstractButton.IconOnly")));
+  QVERIFY(source.contains(QStringLiteral("property url iconSource")));
+  QVERIFY(source.contains(QStringLiteral("icon.source: root.iconSource")));
   QVERIFY(source.contains(QStringLiteral("activeFocusOnTab: true")));
   QVERIFY(source.contains(QStringLiteral("Accessible.name: root.tooltipText")));
   QVERIFY(source.contains(QStringLiteral("root.down ? 0.96 : 1")));
@@ -82,7 +84,14 @@ void DashboardStartupTest::sidebarIconsAreTintableSvgResources() {  // NOLINT(re
     const auto source = QString::fromUtf8(icon.readAll());
     QVERIFY2(source.contains(QStringLiteral("viewBox=\"0 0 24 24\"")), qPrintable(iconName));
     QVERIFY2(source.contains(QStringLiteral("stroke-width=\"2\"")), qPrintable(iconName));
+    QVERIFY2(!source.contains(QStringLiteral("#000")), qPrintable(iconName));
   }
+
+  QFile weatherIcon(QStringLiteral(DASHBOARD_ICON_DIRECTORY) + QStringLiteral("/weather.svg"));
+  QVERIFY2(weatherIcon.open(QIODevice::ReadOnly | QIODevice::Text), qPrintable(weatherIcon.errorString()));
+  const auto weatherSource = QString::fromUtf8(weatherIcon.readAll());
+  QVERIFY(weatherSource.contains(QStringLiteral("M12 2v2")));
+  QVERIFY(weatherSource.contains(QStringLiteral("M13 22H6")));
 
   QFile mainQml(QStringLiteral(DASHBOARD_MAIN_QML));
   QVERIFY2(mainQml.open(QIODevice::ReadOnly | QIODevice::Text), qPrintable(mainQml.errorString()));

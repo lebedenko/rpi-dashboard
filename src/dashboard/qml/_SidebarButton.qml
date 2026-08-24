@@ -6,10 +6,11 @@ Button {
     id: root
 
     property bool selected: false
-    property alias iconSource: root.icon.source
+    property url iconSource
     property string tooltipText
 
     display: AbstractButton.IconOnly
+    icon.source: root.iconSource
     icon.width: 24
     icon.height: 24
     icon.color: root.selected ? Theme.focusAccent

@@ -10,7 +10,7 @@ The dashboard sidebar should match the compact visual language of `docs/mockups/
 - The sidebar contains no visible title or navigation labels. Each navigation button retains a translated accessible name.
 - Four 56×56 icon-only buttons are vertically centered with 16 px spacing. Their visible frames remain inside the 11 px display-safe inset.
 - Overview is selected at startup. Touch/click selection, tab focus, Left, Right, Home, and F5 behavior remain unchanged.
-- Each button uses a 24×24 tintable outline SVG: a panel grid for Overview, pulse waveform for Systems, terminal prompt for Projects, and cloud/sun for Weather.
+- Each button uses a 24×24 tintable outline SVG: a panel grid for Overview, pulse waveform for Systems, terminal prompt for Projects, and a recognizable cloud-with-sun silhouette for Weather. SVG strokes use a visible neutral fallback color if platform tinting is unavailable.
 - Default, hover, pressed, selected, and keyboard-focus states are visually distinct. Selection remains visible after keyboard focus leaves.
 - Button frames use opposing chamfered corners. Selected buttons use a 1 px cyan/blue frame; focused buttons use a 2 px focus-accent frame.
 - The sidebar boundary draws only a 12 px top-right chamfer followed by the internal right border. It draws no top, bottom, or physical-left border.
