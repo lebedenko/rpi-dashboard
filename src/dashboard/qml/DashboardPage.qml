@@ -20,8 +20,9 @@ Item {
             Layout.fillWidth: true
             text: root.heading
             color: Theme.textPrimary
+            font.family: Theme.sansFontFamily
             font.pixelSize: 28
-            font.weight: Font.DemiBold
+            font.weight: Theme.headingFontWeight
         }
 
         Control {
@@ -38,7 +39,9 @@ Item {
                 color: Theme.textSecondary
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
+                font.family: Theme.sansFontFamily
                 font.pixelSize: 22
+                font.weight: Theme.informationFontWeight
             }
 
             background: Rectangle {

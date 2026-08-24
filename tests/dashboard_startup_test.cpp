@@ -7,6 +7,7 @@ class DashboardStartupTest : public QObject {
 
  private slots:
   void sidebarDrawsOnlyInternalSeparator();
+  void declaresAndUsesTypographyRoles();
   void initializesQmlAndKeepsRunning();
 };
 
@@ -24,6 +25,33 @@ void DashboardStartupTest::sidebarDrawsOnlyInternalSeparator() {  // NOLINT(read
   QVERIFY2(!sidebarSurface.contains(QStringLiteral("border.")), "sidebar surface must not border physical edges");
   QVERIFY(source.contains(QStringLiteral("id: sidebarSeparator")));
   QVERIFY(source.contains(QStringLiteral("anchors.right: parent.right")));
+}
+
+void DashboardStartupTest::declaresAndUsesTypographyRoles() {  // NOLINT(readability-convert-member-functions-to-static)
+  QFile themeQml(QStringLiteral(DASHBOARD_THEME_QML));
+  QVERIFY2(themeQml.open(QIODevice::ReadOnly | QIODevice::Text), qPrintable(themeQml.errorString()));
+  const auto themeSource = QString::fromUtf8(themeQml.readAll());
+
+  QVERIFY(themeSource.contains(QStringLiteral("installedFontFamilies.includes(\"Rajdhani\")")));
+  QVERIFY(themeSource.contains(QStringLiteral("installedFontFamilies.includes(\"JetBrains Mono\")")));
+  QVERIFY(themeSource.contains(QStringLiteral("installedFontFamilies.includes(\"IBM Plex Mono\")")));
+  QVERIFY(themeSource.contains(QStringLiteral("return \"monospace\"")));
+  QVERIFY(themeSource.contains(QStringLiteral("headingFontWeight: Font.DemiBold")));
+  QVERIFY(themeSource.contains(QStringLiteral("informationFontWeight: Font.Medium")));
+  QVERIFY(themeSource.contains(QStringLiteral("metricFontWeight: Font.Light")));
+
+  QFile mainQml(QStringLiteral(DASHBOARD_MAIN_QML));
+  QVERIFY2(mainQml.open(QIODevice::ReadOnly | QIODevice::Text), qPrintable(mainQml.errorString()));
+  const auto mainSource = QString::fromUtf8(mainQml.readAll());
+  QCOMPARE(mainSource.count(QStringLiteral("font.family: Theme.sansFontFamily")), 3);
+  QCOMPARE(mainSource.count(QStringLiteral("font.weight: Theme.headingFontWeight")), 3);
+
+  QFile pageQml(QStringLiteral(DASHBOARD_PAGE_QML));
+  QVERIFY2(pageQml.open(QIODevice::ReadOnly | QIODevice::Text), qPrintable(pageQml.errorString()));
+  const auto pageSource = QString::fromUtf8(pageQml.readAll());
+  QCOMPARE(pageSource.count(QStringLiteral("font.family: Theme.sansFontFamily")), 2);
+  QVERIFY(pageSource.contains(QStringLiteral("font.weight: Theme.headingFontWeight")));
+  QVERIFY(pageSource.contains(QStringLiteral("font.weight: Theme.informationFontWeight")));
 }
 
 void DashboardStartupTest::initializesQmlAndKeepsRunning() {  // NOLINT(readability-convert-member-functions-to-static)

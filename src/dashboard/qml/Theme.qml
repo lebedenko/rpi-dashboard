@@ -2,6 +2,14 @@ pragma Singleton
 import QtQuick
 
 QtObject {
+    readonly property var installedFontFamilies: Qt.fontFamilies()
+    readonly property string sansFontFamily: installedFontFamilies.includes("Rajdhani") ? "Rajdhani" : "sans-serif"
+    readonly property string fixedFontFamily: preferredFixedFontFamily()
+    readonly property int headingFontWeight: Font.DemiBold
+    readonly property int informationFontWeight: Font.Medium
+    readonly property int metricFontWeight: Font.Light
+    readonly property int technicalFontWeight: Font.Medium
+
     readonly property color background: "#0C1118"
     readonly property color surface: "#131A24"
     readonly property color surfaceElevated: "#18212D"
@@ -18,4 +26,12 @@ QtObject {
     readonly property int spacingLarge: 24
     readonly property int touchTarget: 56
     readonly property int displaySafeInset: 11
+
+    function preferredFixedFontFamily(): string {
+        if (installedFontFamilies.includes("JetBrains Mono"))
+            return "JetBrains Mono"
+        if (installedFontFamilies.includes("IBM Plex Mono"))
+            return "IBM Plex Mono"
+        return "monospace"
+    }
 }

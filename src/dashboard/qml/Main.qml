@@ -65,8 +65,9 @@ ApplicationWindow {
                     Layout.bottomMargin: Theme.spacingSmall
                     text: qsTr("Dashboard")
                     color: Theme.textPrimary
+                    font.family: Theme.sansFontFamily
                     font.pixelSize: 21
-                    font.weight: Font.DemiBold
+                    font.weight: Theme.headingFontWeight
                 }
 
                 Repeater {
@@ -98,8 +99,9 @@ ApplicationWindow {
                                 text: navigationButton.modelData.mark
                                 color: navigationButton.selected ? Theme.primaryAccent : Theme.textMuted
                                 horizontalAlignment: Text.AlignHCenter
+                                font.family: Theme.sansFontFamily
                                 font.pixelSize: 18
-                                font.weight: Font.DemiBold
+                                font.weight: Theme.headingFontWeight
                                 Accessible.ignored: true
                             }
 
@@ -107,7 +109,9 @@ ApplicationWindow {
                                 Layout.fillWidth: true
                                 text: navigationButton.modelData.label
                                 color: navigationButton.selected ? Theme.textPrimary : Theme.textSecondary
+                                font.family: Theme.sansFontFamily
                                 font.pixelSize: 16
+                                font.weight: Theme.headingFontWeight
                                 Accessible.ignored: true
                             }
                         }
