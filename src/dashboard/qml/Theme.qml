@@ -26,6 +26,9 @@ QtObject {
     readonly property int spacingLarge: 24
     readonly property int touchTarget: 56
     readonly property int displaySafeInset: 11
+    readonly property int sidebarWidth: 88
+    readonly property int sidebarChamfer: 12
+    readonly property int navigationFrameChamfer: 8
 
     function preferredFixedFontFamily(): string {
         if (installedFontFamilies.includes("JetBrains Mono"))

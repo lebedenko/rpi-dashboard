@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
+import QtQuick.Shapes
 
 ApplicationWindow {
     id: window
@@ -37,103 +38,80 @@ ApplicationWindow {
         Rectangle {
             id: sidebarSurface
 
-            Layout.preferredWidth: 184
+            Layout.preferredWidth: Theme.sidebarWidth
             Layout.fillHeight: true
             color: Theme.surface
 
-            Rectangle {
+            Shape {
                 id: sidebarSeparator
 
-                anchors.top: parent.top
-                anchors.right: parent.right
-                anchors.bottom: parent.bottom
-                width: 1
-                color: Theme.passiveBorder
+                anchors.fill: parent
                 Accessible.ignored: true
+
+                ShapePath {
+                    fillColor: "transparent"
+                    strokeColor: Theme.passiveBorder
+                    strokeWidth: 1
+                    joinStyle: ShapePath.MiterJoin
+                    startX: sidebarSeparator.width - Theme.sidebarChamfer
+                    startY: 0
+                    PathLine { x: sidebarSeparator.width; y: Theme.sidebarChamfer }
+                    PathLine { x: sidebarSeparator.width; y: sidebarSeparator.height }
+                }
             }
 
-            ColumnLayout {
-                anchors.fill: parent
-                anchors.leftMargin: Math.max(Theme.spacingMedium, Theme.displaySafeInset)
-                anchors.topMargin: Math.max(Theme.spacingMedium, Theme.displaySafeInset)
-                anchors.rightMargin: Theme.spacingMedium
-                anchors.bottomMargin: Math.max(Theme.spacingMedium, Theme.displaySafeInset)
-                spacing: Theme.spacingSmall
-
-                Label {
-                    Layout.fillWidth: true
-                    Layout.bottomMargin: Theme.spacingSmall
-                    text: qsTr("Dashboard")
-                    color: Theme.textPrimary
-                    font.family: Theme.sansFontFamily
-                    font.pixelSize: 21
-                    font.weight: Theme.headingFontWeight
-                }
+            Column {
+                anchors.centerIn: parent
+                spacing: Theme.spacingMedium
 
                 Repeater {
                     model: [
-                        { "mark": "O", "label": qsTr("Overview") },
-                        { "mark": "S", "label": qsTr("Systems") },
-                        { "mark": "P", "label": qsTr("Projects") },
-                        { "mark": "W", "label": qsTr("Weather") }
+                        { "icon": "icons/overview.svg", "label": qsTr("Overview") },
+                        { "icon": "icons/systems.svg", "label": qsTr("Systems") },
+                        { "icon": "icons/projects.svg", "label": qsTr("Projects") },
+                        { "icon": "icons/weather.svg", "label": qsTr("Weather") }
                     ]
 
-                    delegate: Button {
-                        id: navigationButton
+                    delegate: Loader {
+                        id: navigationLoader
 
                         required property var modelData
                         required property int index
-                        readonly property bool selected: pageStack.currentIndex === navigationButton.index
 
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: Theme.touchTarget
-                        activeFocusOnTab: true
-                        Accessible.name: navigationButton.modelData.label
-                        onClicked: pageStack.currentIndex = navigationButton.index
+                        width: Theme.touchTarget
+                        height: Theme.touchTarget
+                        source: "_SidebarButton.qml"
 
-                        contentItem: RowLayout {
-                            spacing: Theme.spacingSmall
-
-                            Label {
-                                Layout.preferredWidth: 32
-                                text: navigationButton.modelData.mark
-                                color: navigationButton.selected ? Theme.primaryAccent : Theme.textMuted
-                                horizontalAlignment: Text.AlignHCenter
-                                font.family: Theme.sansFontFamily
-                                font.pixelSize: 18
-                                font.weight: Theme.headingFontWeight
-                                Accessible.ignored: true
-                            }
-
-                            Label {
-                                Layout.fillWidth: true
-                                text: navigationButton.modelData.label
-                                color: navigationButton.selected ? Theme.textPrimary : Theme.textSecondary
-                                font.family: Theme.sansFontFamily
-                                font.pixelSize: 16
-                                font.weight: Theme.headingFontWeight
-                                Accessible.ignored: true
-                            }
+                        Binding {
+                            target: navigationLoader.item
+                            property: "selected"
+                            value: pageStack.currentIndex === navigationLoader.index
+                            when: navigationLoader.status === Loader.Ready
                         }
 
-                        background: Rectangle {
-                            color: navigationButton.selected ? Theme.surfaceRaised : "transparent"
-                            border.width: navigationButton.activeFocus ? 2 : 0
-                            border.color: Theme.focusAccent
-                            radius: 6
+                        Binding {
+                            target: navigationLoader.item
+                            property: "tooltipText"
+                            value: navigationLoader.modelData.label
+                            when: navigationLoader.status === Loader.Ready
+                        }
 
-                            Rectangle {
-                                width: 4
-                                height: parent.height
-                                color: navigationButton.selected ? Theme.primaryAccent : "transparent"
-                                radius: 2
-                                Accessible.ignored: true
+                        Binding {
+                            target: navigationLoader.item
+                            property: "iconSource"
+                            value: navigationLoader.modelData.icon
+                            when: navigationLoader.status === Loader.Ready
+                        }
+
+                        Connections {
+                            target: navigationLoader.status === Loader.Ready ? navigationLoader.item : null
+
+                            function onClicked(): void {
+                                pageStack.currentIndex = navigationLoader.index
                             }
                         }
                     }
                 }
-
-                Item { Layout.fillHeight: true }
             }
         }
 

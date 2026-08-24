@@ -24,12 +24,12 @@ This specification covers measurement on the validated panel and application of 
 ## Functional requirements
 
 - `Theme.displaySafeInset` is a read-only integer containing the measured final inset.
-- The sidebar remains exactly 184 logical pixels wide.
+- The sidebar remains exactly 88 logical pixels wide.
 - The sidebar and page background surfaces continue to fill their complete rectangular regions beneath the rounded glass.
 - Full-bleed surfaces do not draw decorative borders along physical display edges; the sidebar draws only its internal separator against the page region.
-- Sidebar content uses `max(existing margin, Theme.displaySafeInset)` on the physical left, top, and bottom edges.
+- Sidebar navigation frames remain fully inside `Theme.displaySafeInset` on the physical left, top, and bottom edges.
 - Page content uses `max(existing margin, Theme.displaySafeInset)` on the physical top, right, and bottom edges.
-- Spacing at the internal sidebar/page boundary remains unchanged: the sidebar retains its existing right margin and pages retain their existing left margin.
+- Page spacing at the internal sidebar/page boundary remains unchanged; the compact navigation rail centers its button frames horizontally.
 - Overview, Systems, Projects, and Weather use the same safe-area policy.
 - Touch navigation and Left, Right, Home, and F5 behavior do not change.
 
@@ -42,7 +42,7 @@ This specification covers measurement on the validated panel and application of 
 - [x] The calibration outline at the measured 9 px inset is completely visible at all four corners; the final 11 px token adds clearance.
 - [x] `Theme.displaySafeInset` equals the recorded final value.
 - [ ] Dashboard title, page headings, controls, icons, and focus borders are unobscured on every page.
-- [ ] The sidebar is exactly 184 px wide and all background surfaces remain edge-to-edge.
+- [ ] The sidebar is exactly 88 px wide and all background surfaces remain edge-to-edge.
 - [ ] Touch navigation and Left, Right, Home, and F5 behavior are unchanged.
 - [ ] The focused dashboard startup test, `task test`, and `task check` pass.
 
@@ -70,7 +70,7 @@ The criteria remain unchecked until measurements and physical-panel verification
 - Deriving content clearance from the fitted radius instead of the directly observed safe inset.
 - Assuming that the measurement applies to replacement panels or other display models.
 - Permanently shipping calibration UI, command-line switches, launch modes, photographs, or image-analysis tooling.
-- Changing the 184 px sidebar width, page navigation, keyboard shortcuts, touch mapping, or output rotation.
+- Changing page navigation, keyboard shortcuts, touch mapping, or output rotation.
 - Preventing touch hit areas from extending into the inset when all visible and meaningful content remains unobscured.
 
 ## Verification

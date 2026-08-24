@@ -12,6 +12,12 @@ qt_add_qml_module(holonight-dashboard
         qml/DashboardPage.qml
         qml/Main.qml
         qml/Theme.qml
+        qml/_SidebarButton.qml
+    RESOURCES
+        qml/icons/overview.svg
+        qml/icons/projects.svg
+        qml/icons/systems.svg
+        qml/icons/weather.svg
 )
 
 target_link_libraries(holonight-dashboard

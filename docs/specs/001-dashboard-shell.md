@@ -7,8 +7,8 @@ The Raspberry Pi dashboard needs a complete kiosk runtime chain from a local TTY
 ## Functional requirements
 
 - The dashboard requests fullscreen presentation with a 1480×320 design geometry.
-- A fixed 184-pixel sidebar selects Overview, Systems, Projects, and Weather.
-- Navigation controls show a label and initial mark, expose selected and keyboard-focus states, provide accessible names, and are at least 48 logical pixels high.
+- A fixed 88-pixel icon-only sidebar selects Overview, Systems, Projects, and Weather.
+- Navigation controls expose selected and keyboard-focus states, provide accessible names, and use 56×56 logical-pixel touch targets.
 - Pages cannot be changed by swiping.
 - Every page shows a translated heading and a centered `Not implemented yet` empty state.
 - Left and Right select the adjacent page without wrapping, and Home selects Overview.
