@@ -11,9 +11,9 @@ Item {
     ColumnLayout {
         anchors.fill: parent
         anchors.leftMargin: Theme.spacingLarge
-        anchors.topMargin: Theme.spacingMedium
-        anchors.rightMargin: Theme.spacingLarge
-        anchors.bottomMargin: Theme.spacingLarge
+        anchors.topMargin: Math.max(Theme.spacingMedium, Theme.displaySafeInset)
+        anchors.rightMargin: Math.max(Theme.spacingLarge, Theme.displaySafeInset)
+        anchors.bottomMargin: Math.max(Theme.spacingLarge, Theme.displaySafeInset)
         spacing: Theme.spacingMedium
 
         Label {

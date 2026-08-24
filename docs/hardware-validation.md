@@ -91,3 +91,9 @@ The event number is diagnostic only and may change across boots; the udev rule i
 The glass viewport has rounded corners that physically obscure pixels at all four corners. This is expected panel geometry, not rectangular framebuffer clipping.
 
 Background surfaces may render edge to edge. Text, icons, focus borders, touch-control visuals, and other meaningful content must remain inside a shared safe content rectangle. Future UI work should measure the smallest inset at which content is fully visible at every corner and expose it as a central theme/layout token rather than scattering component-specific margins. Touch hit areas may extend into the inset provided their visible and meaningful content remains unobscured.
+
+The measurement procedure and evidence requirements are defined in [Rounded-Corner Display Safe Area](specs/002-rounded-corner-safe-area.md). Calibration was performed on 2026-08-24 using one straight-on and four close-corner 4080×3072 photographs. A 9 px equal X/Y outline was completely visible at every corner; at 8 px, one pixel at the limiting magenta corner edge was obscured. The measured safe inset is therefore 9 px. Applying the specified 2 px guard produces `Theme.displaySafeInset = 11`.
+
+Photo-derived corner estimates are approximately 20 px top-left, 22 px top-right, 26 px bottom-right, and 23 px bottom-left, with approximately 2.5–3 px fit residual and ±4 px radius uncertainty. Effective horizontal/vertical estimates are 17/22, 22/23, 27/25, and 20/25 px respectively. Perspective, display-pixel moiré, and glass reflections make these radii less precise than the directly observed inset; layout clearance uses the inset only.
+
+The calibration outline passed at all four corners. Final-dashboard inspection of every page, focus border, and navigation method remains pending after applying the token.

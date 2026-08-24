@@ -17,4 +17,5 @@ QtObject {
     readonly property int spacingMedium: 16
     readonly property int spacingLarge: 24
     readonly property int touchTarget: 56
+    readonly property int displaySafeInset: 11
 }

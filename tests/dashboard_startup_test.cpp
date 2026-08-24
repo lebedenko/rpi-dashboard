@@ -1,3 +1,4 @@
+#include <QFile>
 #include <QProcess>
 #include <QtTest>
 
@@ -5,8 +6,25 @@ class DashboardStartupTest : public QObject {
   Q_OBJECT
 
  private slots:
+  void sidebarDrawsOnlyInternalSeparator();
   void initializesQmlAndKeepsRunning();
 };
+
+void DashboardStartupTest::sidebarDrawsOnlyInternalSeparator() {  // NOLINT(readability-convert-member-functions-to-static)
+  QFile mainQml(QStringLiteral(DASHBOARD_MAIN_QML));
+  QVERIFY2(mainQml.open(QIODevice::ReadOnly | QIODevice::Text), qPrintable(mainQml.errorString()));
+  const auto source = QString::fromUtf8(mainQml.readAll());
+
+  const auto sidebarStart = source.indexOf(QStringLiteral("id: sidebarSurface"));
+  const auto contentStart = source.indexOf(QStringLiteral("ColumnLayout {"), sidebarStart);
+  QVERIFY(sidebarStart >= 0);
+  QVERIFY(contentStart > sidebarStart);
+
+  const auto sidebarSurface = source.sliced(sidebarStart, contentStart - sidebarStart);
+  QVERIFY2(!sidebarSurface.contains(QStringLiteral("border.")), "sidebar surface must not border physical edges");
+  QVERIFY(source.contains(QStringLiteral("id: sidebarSeparator")));
+  QVERIFY(source.contains(QStringLiteral("anchors.right: parent.right")));
+}
 
 void DashboardStartupTest::initializesQmlAndKeepsRunning() {  // NOLINT(readability-convert-member-functions-to-static)
   QProcess dashboard;

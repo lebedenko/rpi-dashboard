@@ -35,14 +35,29 @@ ApplicationWindow {
         spacing: 0
 
         Rectangle {
+            id: sidebarSurface
+
             Layout.preferredWidth: 184
             Layout.fillHeight: true
             color: Theme.surface
-            border.color: Theme.passiveBorder
+
+            Rectangle {
+                id: sidebarSeparator
+
+                anchors.top: parent.top
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                width: 1
+                color: Theme.passiveBorder
+                Accessible.ignored: true
+            }
 
             ColumnLayout {
                 anchors.fill: parent
-                anchors.margins: Theme.spacingMedium
+                anchors.leftMargin: Math.max(Theme.spacingMedium, Theme.displaySafeInset)
+                anchors.topMargin: Math.max(Theme.spacingMedium, Theme.displaySafeInset)
+                anchors.rightMargin: Theme.spacingMedium
+                anchors.bottomMargin: Math.max(Theme.spacingMedium, Theme.displaySafeInset)
                 spacing: Theme.spacingSmall
 
                 Label {
