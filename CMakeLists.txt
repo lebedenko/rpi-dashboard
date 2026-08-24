@@ -29,7 +29,7 @@ if(ENABLE_UNDEFINED_SANITIZER)
     add_link_options(-fsanitize=undefined)
 endif()
 
-find_package(Qt6 6.8 REQUIRED COMPONENTS Core Gui Network Qml Quick)
+find_package(Qt6 6.8 REQUIRED COMPONENTS Concurrent Core Gui Network Qml Quick)
 qt_standard_project_setup(REQUIRES 6.8)
 
 if(ENABLE_CLANG_TIDY)
@@ -40,6 +40,7 @@ endif()
 include(CTest)
 
 add_subdirectory(src/protocol)
+add_subdirectory(src/sysinfo)
 add_subdirectory(src/dashboard)
 add_subdirectory(src/agent)
 

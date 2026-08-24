@@ -12,6 +12,18 @@ target_link_libraries(device_snapshot_test
 
 add_test(NAME device_snapshot_test COMMAND device_snapshot_test)
 
+qt_add_executable(system_info_test
+    system_info_test.cpp
+)
+
+target_link_libraries(system_info_test
+    PRIVATE
+        HoloNightDashboard::sysinfo
+        Qt6::Test
+)
+
+add_test(NAME system_info_test COMMAND system_info_test)
+
 qt_add_executable(dashboard_startup_test
     dashboard_startup_test.cpp
 )

@@ -32,6 +32,7 @@ qt_add_executable(holonight-dashboard
 target_link_libraries(holonight-dashboard
     PRIVATE
         HoloNightDashboard::protocol
+        HoloNightDashboard::sysinfo
         holonight-dashboard-qml
         holonight-dashboard-qmlplugin
         holonight-dashboard-qmlplugin_init

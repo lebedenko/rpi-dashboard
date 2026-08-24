@@ -1,10 +1,14 @@
-#include <QGuiApplication>
+#include "sysinfo/linux_sys_info_collector.h"
+#include "sysinfo/sys_info_service.h"
+
 #include <QCommandLineOption>
 #include <QCommandLineParser>
+#include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QVariantMap>
 
 #include <cstdlib>
+#include <memory>
 
 int main(int argc, char* argv[]) {
   QGuiApplication application(argc, argv);
@@ -35,6 +39,7 @@ int main(int argc, char* argv[]) {
   }
 
   QQmlApplicationEngine engine;
+  dashboard::sysinfo::SysInfoService sys_info_service(std::make_shared<dashboard::sysinfo::LinuxSysInfoCollector>());
   engine.setInitialProperties({{QStringLiteral("windowed"), parser.isSet(windowedOption)},
                                {QStringLiteral("windowWidth"), windowWidth},
                                {QStringLiteral("windowHeight"), windowHeight}});
