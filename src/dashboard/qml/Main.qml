@@ -176,6 +176,7 @@ ApplicationWindow {
     Shortcut { sequence: "Left"; onActivated: root.selectPreviousPage() }
     Shortcut { sequence: "Right"; onActivated: root.selectNextPage() }
     Shortcut { sequence: "F5"; onActivated: { if (root.currentFocusTarget) root.currentFocusTarget.forceActiveFocus() } }
+    Shortcut { sequence: "Ctrl+Q"; onActivated: root.close() }
 
     RowLayout {
         anchors.fill: parent

@@ -13,6 +13,7 @@ The Raspberry Pi dashboard needs a complete kiosk runtime chain from a local TTY
 - Overview shows the collapsible local-device card; Systems, Projects, and Weather show a translated heading and centered `Not implemented yet` empty state.
 - Left and Right select the adjacent page without wrapping, and Home selects Overview.
 - F5 focuses the Overview card chevron or the current empty state on other pages without changing pages or claiming that data was refreshed.
+- Ctrl+Q requests a normal application exit so Cage and profiling tools can flush and recover cleanly.
 - Failure to create the root QML object terminates the dashboard with a nonzero status.
 - The TTY launcher starts Cage without decorations and with VT switching enabled for manual recovery, explicitly selects Qt Wayland, and leaves startup diagnostics visible on stderr.
 - The Cage session configures `HDMI-A-1` with the hardware-validated wlroots transform `270` before starting the dashboard.
@@ -24,7 +25,7 @@ The Raspberry Pi dashboard needs a complete kiosk runtime chain from a local TTY
 - A native release build succeeds on Raspberry Pi 5 with Qt 6.8 or newer.
 - The dashboard starts through Cage from a local TTY, transforms the panel's native 320×1480 mode with wlroots transform `270`, and fills the resulting logical 1480×320 display without stretching or rectangular-edge clipping.
 - Touching each sidebar entry selects its corresponding page.
-- Left, Right, Home, and F5 behave as specified, including visible keyboard focus.
+- Left, Right, Home, F5, and Ctrl+Q behave as specified, including visible keyboard focus and a normal exit request.
 - Overview displays the local-device card; Systems, Projects, and Weather display `Not implemented yet`.
 - Missing Cage, missing `wlr-randr`, failed output configuration, a missing dashboard executable, or root-QML initialization failure returns a nonzero status with a diagnostic visible on the TTY.
 - The launcher preserves an explicitly supplied dashboard path, passes it through the Cage session helper, and propagates the session's exit status.

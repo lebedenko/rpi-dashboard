@@ -107,6 +107,11 @@ Item {
             tryCompare(dashboardWindow, "currentPageIndex", 0);
         }
 
+        function test_ctrlQRequestsNormalExit() {
+            keyClick(Qt.Key_Q, Qt.ControlModifier);
+            tryCompare(dashboardWindow, "visible", false);
+        }
+
         function test_touchTargetsSelectPages() {
             const buttonNames = ["overviewButton", "systemsButton", "projectsButton", "weatherButton"];
             for (let index = 0; index < buttonNames.length; ++index) {
