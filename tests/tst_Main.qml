@@ -92,11 +92,44 @@ Item {
             for (let index = 0; index < buttonNames.length; ++index) {
                 const button = findChild(dashboardWindow.contentItem, buttonNames[index]);
                 verify(!!button, "Object exists");
-                compare(button.width, 56);
-                compare(button.height, 56);
+                compare(button.width, 48);
+                compare(button.height, 48);
                 mouseClick(button);
                 tryCompare(dashboardWindow, "currentPageIndex", index);
             }
+        }
+
+        function test_insetSidebarGeometry() {
+            const sidebar = findChild(dashboardWindow.contentItem, "sidebarSurface");
+            const pageStack = findChild(dashboardWindow.contentItem, "pageStack");
+            verify(!!sidebar);
+            verify(!!pageStack);
+            compare(sidebar.x, 10);
+            compare(sidebar.y, 10);
+            compare(sidebar.width, 64);
+            compare(sidebar.height, 300);
+            compare(pageStack.x, 74);
+
+            const buttonNames = ["overviewButton", "systemsButton", "projectsButton", "weatherButton"];
+            let previousBottom = -1;
+            for (const buttonName of buttonNames) {
+                const button = findChild(sidebar, buttonName);
+                verify(!!button);
+                compare(button.width, 48);
+                compare(button.height, 48);
+                const position = button.mapToItem(dashboardWindow.contentItem, 0, 0);
+                compare(position.x, 18);
+                verify(position.y >= Theme.displaySafeInset);
+                verify(position.y + button.height <= dashboardWindow.height - Theme.displaySafeInset);
+                if (previousBottom >= 0)
+                    compare(position.y - previousBottom, 8);
+                previousBottom = position.y + button.height;
+            }
+
+            const firstButton = findChild(sidebar, buttonNames[0]);
+            const lastButton = findChild(sidebar, buttonNames[buttonNames.length - 1]);
+            compare(firstButton.mapToItem(dashboardWindow.contentItem, 0, 0).y, 18);
+            compare(lastButton.mapToItem(dashboardWindow.contentItem, 0, 0).y + lastButton.height, 234);
         }
 
         function test_f5FocusesCurrentPage() {

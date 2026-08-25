@@ -183,9 +183,13 @@ ApplicationWindow {
 
         Item {
             id: sidebarSurface
+            objectName: "sidebarSurface"
 
             Layout.preferredWidth: Theme.sidebarWidth
             Layout.fillHeight: true
+            Layout.leftMargin: Theme.displaySafeInset
+            Layout.topMargin: Theme.displaySafeInset
+            Layout.bottomMargin: Theme.displaySafeInset
 
             Shape {
                 id: sidebarBackground
@@ -195,38 +199,32 @@ ApplicationWindow {
 
                 ShapePath {
                     fillColor: Theme.surface
-                    strokeColor: "transparent"
-                    startX: 0
-                    startY: 0
-                    PathLine { x: sidebarBackground.width - Theme.sidebarChamfer; y: 0 }
-                    PathLine { x: sidebarBackground.width; y: Theme.sidebarChamfer }
-                    PathLine { x: sidebarBackground.width; y: sidebarBackground.height }
-                    PathLine { x: 0; y: sidebarBackground.height }
-                    PathLine { x: 0; y: 0 }
-                }
-            }
-
-            Shape {
-                id: sidebarSeparator
-
-                anchors.fill: parent
-                Accessible.ignored: true
-
-                ShapePath {
-                    fillColor: "transparent"
                     strokeColor: Theme.passiveBorder
                     strokeWidth: 1
                     joinStyle: ShapePath.MiterJoin
-                    startX: sidebarSeparator.width - Theme.sidebarChamfer
+                    startX: Theme.sidebarChamfer
                     startY: 0
-                    PathLine { x: sidebarSeparator.width; y: Theme.sidebarChamfer }
-                    PathLine { x: sidebarSeparator.width; y: sidebarSeparator.height }
+                    PathLine { x: sidebarBackground.width - Theme.sidebarCornerRadius; y: 0 }
+                    PathArc {
+                        x: sidebarBackground.width
+                        y: Theme.sidebarCornerRadius
+                        radiusX: Theme.sidebarCornerRadius
+                        radiusY: Theme.sidebarCornerRadius
+                    }
+                    PathLine { x: sidebarBackground.width; y: sidebarBackground.height - Theme.sidebarChamfer }
+                    PathLine { x: sidebarBackground.width - Theme.sidebarChamfer; y: sidebarBackground.height }
+                    PathLine { x: Theme.sidebarChamfer; y: sidebarBackground.height }
+                    PathLine { x: 0; y: sidebarBackground.height - Theme.sidebarChamfer }
+                    PathLine { x: 0; y: Theme.sidebarChamfer }
+                    PathLine { x: Theme.sidebarChamfer; y: 0 }
                 }
             }
 
             Column {
-                anchors.centerIn: parent
-                spacing: Theme.spacingMedium
+                anchors.top: parent.top
+                anchors.topMargin: Theme.spacingSmall
+                anchors.horizontalCenter: parent.horizontalCenter
+                spacing: Theme.spacingSmall
 
                 SidebarButton {
                     objectName: "overviewButton"

@@ -26,7 +26,7 @@ QtObject {
     readonly property color chartText: "#71859B"
     readonly property color chartGrid: "#1A71859B"
     readonly property color chartAxis: "#3371859B"
-    readonly property color selectedSurface: "#173445"
+    readonly property color selectedSurface: "#142431"
     readonly property color cardSurface: "#0E1823"
     readonly property color cardFrame: "#2D6685"
     readonly property color cardAccent: "#20BFFF"
@@ -45,11 +45,13 @@ QtObject {
     readonly property int spacingSmall: 8
     readonly property int spacingMedium: 16
     readonly property int spacingLarge: 24
-    readonly property int touchTarget: 56
+    readonly property int touchTarget: 48
     readonly property int displaySafeInset: 10
-    readonly property int sidebarWidth: 88
+    readonly property int sidebarWidth: 64
     readonly property int sidebarChamfer: 12
+    readonly property int sidebarCornerRadius: 4
     readonly property int navigationFrameChamfer: 8
+    readonly property int navigationFrameCornerRadius: 2
     readonly property int deviceHeaderHeight: 64
     readonly property int deviceFrameChamfer: 12
     readonly property int deviceFrameStep: 24

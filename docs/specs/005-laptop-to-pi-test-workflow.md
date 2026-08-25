@@ -19,7 +19,7 @@ Most dashboard behavior should be testable on the development laptop, while Rasp
 - Starting without development options requests fullscreen presentation.
 - `holonight-dashboard --windowed --width 1480 --height 320` creates a 1480×320 window.
 - Keyboard navigation never wraps and F5 focuses the Overview chevron or the current placeholder on other pages.
-- All meaningful dashboard content remains within the 1480×320 root bounds and sidebar buttons remain 56×56.
+- All meaningful dashboard content remains within the 1480×320 root bounds and sidebar buttons remain 48×48.
 - `task test`, `task test-asan`, and `task test-ubsan` expose the corresponding local verification paths.
 - `task test-pi PI_HOST=<host> PI_PATH=<dedicated-path>` runs `task test` from a synchronized source tree on the Pi.
 
