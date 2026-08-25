@@ -303,8 +303,8 @@ Control {
                     }
                     Row {
                         anchors.right: parent.right; anchors.top: parent.top; spacing: 18
-                        Row { spacing: 6; Rectangle { anchors.verticalCenter: parent.verticalCenter; width: 8; height: 8; radius: 4; color: Theme.cpuSeries } Text { objectName: "cpuHistoryLegend"; text: qsTr("CPU %"); textFormat: Text.PlainText; color: Theme.textSecondary; font.family: Theme.fixedFontFamily; font.pixelSize: Theme.captionTextSize } }
-                        Row { spacing: 6; Rectangle { anchors.verticalCenter: parent.verticalCenter; width: 8; height: 8; radius: 4; color: Theme.memorySeries } Text { objectName: "memoryHistoryLegend"; text: qsTr("MEM %"); textFormat: Text.PlainText; color: Theme.textSecondary; font.family: Theme.fixedFontFamily; font.pixelSize: Theme.captionTextSize } }
+                        Row { spacing: 6; Rectangle { objectName: "cpuHistoryLegendLine"; anchors.verticalCenter: parent.verticalCenter; width: 14; height: 2; color: Theme.cpuSeries } Text { objectName: "cpuHistoryLegend"; text: qsTr("CPU %"); textFormat: Text.PlainText; color: Theme.chartText; font.family: Theme.fixedFontFamily; font.pixelSize: Theme.captionTextSize } }
+                        Row { spacing: 6; Rectangle { objectName: "memoryHistoryLegendLine"; anchors.verticalCenter: parent.verticalCenter; width: 14; height: 2; color: Theme.memorySeries } Text { objectName: "memoryHistoryLegend"; text: qsTr("MEM %"); textFormat: Text.PlainText; color: Theme.chartText; font.family: Theme.fixedFontFamily; font.pixelSize: Theme.captionTextSize } }
                     }
                     Item {
                         id: plot
@@ -314,25 +314,17 @@ Control {
                         anchors.leftMargin: Theme.plotLeftPadding; anchors.rightMargin: Theme.plotRightPadding
                         anchors.topMargin: Theme.plotTopPadding; anchors.bottomMargin: Theme.plotBottomPadding
                         Repeater {
-                            model: 5
-                            delegate: Row {
+                            model: 4
+                            delegate: Rectangle {
                                 required property int index
+                                objectName: "historyHorizontalGuide" + index
                                 y: index * (plot.height - 1) / 4
-                                spacing: 4
-                                Repeater { model: Math.max(0, Math.ceil(plot.width / 10)); delegate: Rectangle { required property int index; width: 6; height: 1; color: Theme.chartGrid } }
+                                width: plot.width
+                                height: 1
+                                color: Theme.chartGrid
                             }
                         }
-                        Repeater {
-                            model: 5
-                            delegate: Column {
-                                required property int index
-                                x: index * (plot.width - 1) / 4
-                                spacing: 4
-                                Repeater { model: Math.max(0, Math.ceil(plot.height / 10)); delegate: Rectangle { required property int index; width: 1; height: 6; color: Theme.chartGrid } }
-                            }
-                        }
-                        Rectangle { objectName: "historyLeftAxis"; width: 1; height: parent.height; color: Theme.chartAxis }
-                        Rectangle { objectName: "historyBottomAxis"; y: parent.height - 1; width: parent.width; height: 1; color: Theme.chartAxis }
+                        Rectangle { objectName: "historyBaseline"; y: parent.height - 1; width: parent.width; height: 1; color: Theme.chartAxis }
                         ResourceHistorySeries {
                             id: historySeries
                             objectName: "resourceHistorySeries"
@@ -340,6 +332,8 @@ Control {
                             model: root.usageHistoryModel
                             cpuColor: Theme.cpuSeries
                             memoryColor: Theme.memorySeries
+                            plotBackgroundColor: Theme.cardSurface
+                            transitionDuration: 200
                             Accessible.ignored: true
                         }
                     }
@@ -350,7 +344,7 @@ Control {
                             objectName: "historyValue" + index
                             x: 0; y: Theme.plotTopPadding + index * (plot.height - height) / 4; width: Theme.plotLeftPadding - 6
                             horizontalAlignment: Text.AlignRight; text: String(100 - index * 25); textFormat: Text.PlainText
-                            color: Theme.textMuted; font.family: Theme.fixedFontFamily; font.pixelSize: Theme.axisTextSize
+                            color: Theme.chartText; font.family: Theme.fixedFontFamily; font.pixelSize: Theme.axisTextSize
                         }
                     }
                     Repeater {
@@ -364,7 +358,7 @@ Control {
                                : timeLabel.index === 4 ? history.width - Theme.plotRightPadding - width
                                : Theme.plotLeftPadding + timeLabel.index * plot.width / 4 - width / 2
                             y: history.height - height; text: timeLabel.modelData; textFormat: Text.PlainText
-                            color: Theme.textMuted; font.family: Theme.fixedFontFamily; font.pixelSize: Theme.axisTextSize
+                            color: Theme.chartText; font.family: Theme.fixedFontFamily; font.pixelSize: Theme.axisTextSize
                         }
                     }
                 }

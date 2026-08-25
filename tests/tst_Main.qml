@@ -139,9 +139,35 @@ Item {
             compare(findChild(card, "moreButton").enabled, false);
             verify(!!findChild(card, "resourceHistory"));
             verify(!!findChild(card, "historyGrid"));
-            verify(!!findChild(card, "resourceHistorySeries"));
+            const series = findChild(card, "resourceHistorySeries");
+            verify(!!series);
+            compare(series.model, fakeMetricsService.usageHistoryModel);
+            compare(series.cpuColor, Theme.cpuSeries);
+            compare(series.memoryColor, Theme.memorySeries);
+            compare(series.plotBackgroundColor, Theme.cardSurface);
+            compare(series.transitionDuration, 200);
             compare(findChild(card, "cpuHistoryLegend").text, "CPU %");
             compare(findChild(card, "memoryHistoryLegend").text, "MEM %");
+            const cpuLegendLine = findChild(card, "cpuHistoryLegendLine");
+            const memoryLegendLine = findChild(card, "memoryHistoryLegendLine");
+            compare(cpuLegendLine.width, 14);
+            compare(cpuLegendLine.height, 2);
+            compare(cpuLegendLine.color, Theme.cpuSeries);
+            compare(memoryLegendLine.width, 14);
+            compare(memoryLegendLine.height, 2);
+            compare(memoryLegendLine.color, Theme.memorySeries);
+            for (let index = 0; index < 4; ++index) {
+                const guide = findChild(card, "historyHorizontalGuide" + index);
+                verify(!!guide);
+                compare(guide.height, 1);
+                compare(guide.width, findChild(card, "historyGrid").width);
+                compare(guide.color, Theme.chartGrid);
+            }
+            const baseline = findChild(card, "historyBaseline");
+            verify(!!baseline);
+            compare(baseline.color, Theme.chartAxis);
+            verify(findChild(card, "historyLeftAxis") === null);
+            verify(findChild(card, "historyVerticalGuide0") === null);
             const history = findChild(card, "resourceHistory");
             compare(history.width >= 600, true);
             compare(history.x + history.width <= card.width, true);

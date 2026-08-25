@@ -36,6 +36,44 @@ target_link_libraries(system_metrics_test
 
 add_test(NAME system_metrics_test COMMAND system_metrics_test)
 
+qt_add_executable(resource_history_geometry_test
+    resource_history_geometry_test.cpp
+    ${CMAKE_SOURCE_DIR}/src/dashboard/resource_history_geometry.cpp
+)
+
+target_include_directories(resource_history_geometry_test
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/src/dashboard
+)
+
+target_link_libraries(resource_history_geometry_test
+    PRIVATE
+        Qt6::Test
+)
+
+add_test(NAME resource_history_geometry_test COMMAND resource_history_geometry_test)
+
+qt_add_executable(resource_history_series_test
+    resource_history_series_test.cpp
+    ${CMAKE_SOURCE_DIR}/src/dashboard/resource_history_geometry.cpp
+    ${CMAKE_SOURCE_DIR}/src/dashboard/resource_history_series.cpp
+    ${CMAKE_SOURCE_DIR}/src/sysmetrics/system_metric_history_model.cpp
+)
+
+target_include_directories(resource_history_series_test
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/src
+        ${CMAKE_SOURCE_DIR}/src/dashboard
+)
+
+target_link_libraries(resource_history_series_test
+    PRIVATE
+        Qt6::Quick
+        Qt6::Test
+)
+
+add_test(NAME resource_history_series_test COMMAND resource_history_series_test -platform offscreen)
+
 qt_add_executable(dashboard_startup_test
     dashboard_startup_test.cpp
 )

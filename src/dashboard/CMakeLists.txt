@@ -8,6 +8,8 @@ qt_add_qml_module(holonight-dashboard-qml
     URI HoloNight.Dashboard
     OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/HoloNight/Dashboard
     SOURCES
+        resource_history_geometry.cpp
+        resource_history_geometry.h
         resource_history_series.cpp
         resource_history_series.h
     QML_FILES
