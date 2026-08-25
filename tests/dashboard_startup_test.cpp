@@ -10,11 +10,35 @@ class DashboardStartupTest : public QObject {
   void sidebarDrawsInsetClosedBorder();
   void sidebarButtonExposesInteractionStates();
   void sidebarIconsAreTintableSvgResources();
+  void clockSidebarIsPackagedAndUsesThemeRoles();
   void iconFallbackColorsMatchThemeRoles();
   void declaresAndUsesTypographyRoles();
   void deviceCardSourcesAndChevronArePackaged();
   void initializesQmlAndKeepsRunning();
 };
+
+void DashboardStartupTest::
+    clockSidebarIsPackagedAndUsesThemeRoles() {  // NOLINT(readability-convert-member-functions-to-static)
+  QFile clockQml(QStringLiteral(DASHBOARD_CLOCK_SIDEBAR_QML));
+  QVERIFY2(clockQml.open(QIODevice::ReadOnly | QIODevice::Text), qPrintable(clockQml.errorString()));
+  const auto source = QString::fromUtf8(clockQml.readAll());
+
+  QVERIFY(source.contains(QStringLiteral("Qt.formatTime(root.currentTimestamp, Locale.ShortFormat)")));
+  QVERIFY(source.contains(QStringLiteral("Qt.formatDate(root.currentTimestamp, Locale.ShortFormat)")));
+  QVERIFY(source.contains(QStringLiteral("interval: 1000")));
+  QVERIFY(source.contains(QStringLiteral("Accessible.role: Accessible.StaticText")));
+  QVERIFY(source.contains(QStringLiteral("color: Theme.textPrimary")));
+  QVERIFY(source.contains(QStringLiteral("color: Theme.textSecondary")));
+  QVERIFY(source.contains(QStringLiteral("font.pixelSize: Theme.clockTimeTextSize")));
+  QVERIFY(source.contains(QStringLiteral("font.pixelSize: Theme.clockDateTextSize")));
+
+  QFile themeQml(QStringLiteral(DASHBOARD_THEME_QML));
+  QVERIFY2(themeQml.open(QIODevice::ReadOnly | QIODevice::Text), qPrintable(themeQml.errorString()));
+  const auto themeSource = QString::fromUtf8(themeQml.readAll());
+  QVERIFY(themeSource.contains(QStringLiteral("statusSidebarWidth: 144")));
+  QVERIFY(themeSource.contains(QStringLiteral("clockTimeTextSize: 28")));
+  QVERIFY(themeSource.contains(QStringLiteral("clockDateTextSize: 14")));
+}
 
 void DashboardStartupTest::sidebarUsesIconOnlySafeLayout() {  // NOLINT(readability-convert-member-functions-to-static)
   QFile themeQml(QStringLiteral(DASHBOARD_THEME_QML));

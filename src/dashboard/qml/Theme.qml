@@ -42,6 +42,7 @@ QtObject {
     readonly property int touchTarget: 48
     readonly property int displaySafeInset: 10
     readonly property int sidebarWidth: 64
+    readonly property int statusSidebarWidth: 144
     readonly property int sidebarChamfer: 12
     readonly property int sidebarCornerRadius: 4
     readonly property int navigationFrameChamfer: 8
@@ -64,6 +65,8 @@ QtObject {
     readonly property int plotTopPadding: 30
     readonly property int plotBottomPadding: 18
     readonly property int headingTextSize: 22
+    readonly property int clockTimeTextSize: 28
+    readonly property int clockDateTextSize: 14
     readonly property int metricTextSize: 18
     readonly property int metricLabelTextSize: 12
     readonly property int bodyTextSize: 14

@@ -83,6 +83,7 @@ add_dependencies(dashboard_startup_test holonight-dashboard)
 target_compile_definitions(dashboard_startup_test
     PRIVATE
         DASHBOARD_EXECUTABLE="$<TARGET_FILE:holonight-dashboard>"
+        DASHBOARD_CLOCK_SIDEBAR_QML="${CMAKE_SOURCE_DIR}/src/dashboard/qml/ClockSidebar.qml"
         DASHBOARD_MAIN_QML="${CMAKE_SOURCE_DIR}/src/dashboard/qml/Main.qml"
         DASHBOARD_DEVICE_CARD_QML="${CMAKE_SOURCE_DIR}/src/dashboard/qml/DeviceCard.qml"
         DASHBOARD_OVERVIEW_PAGE_QML="${CMAKE_SOURCE_DIR}/src/dashboard/qml/OverviewPage.qml"

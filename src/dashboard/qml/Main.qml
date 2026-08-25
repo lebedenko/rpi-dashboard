@@ -286,5 +286,13 @@ ApplicationWindow {
             DashboardPage { id: projectsPage; objectName: "projectsPage"; heading: qsTr("Projects") }
             DashboardPage { id: weatherPage; objectName: "weatherPage"; heading: qsTr("Weather") }
         }
+
+        ClockSidebar {
+            Layout.preferredWidth: Theme.statusSidebarWidth
+            Layout.fillHeight: true
+            Layout.topMargin: Theme.displaySafeInset
+            Layout.rightMargin: Theme.displaySafeInset
+            Layout.bottomMargin: Theme.displaySafeInset
+        }
     }
 }

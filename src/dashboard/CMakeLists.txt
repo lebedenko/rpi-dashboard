@@ -13,6 +13,7 @@ qt_add_qml_module(holonight-dashboard-qml
         resource_history_series.cpp
         resource_history_series.h
     QML_FILES
+        qml/ClockSidebar.qml
         qml/DashboardPage.qml
         qml/DeviceCard.qml
         qml/Main.qml

@@ -133,6 +133,7 @@ Item {
             compare(sidebar.width, 64);
             compare(sidebar.height, 300);
             compare(pageStack.x, 74);
+            compare(pageStack.width, 1252);
 
             const buttonNames = ["overviewButton", "systemsButton", "projectsButton", "weatherButton"];
             let previousBottom = -1;
@@ -154,6 +155,39 @@ Item {
             const lastButton = findChild(sidebar, buttonNames[buttonNames.length - 1]);
             compare(firstButton.mapToItem(dashboardWindow.contentItem, 0, 0).y, 18);
             compare(lastButton.mapToItem(dashboardWindow.contentItem, 0, 0).y + lastButton.height, 234);
+        }
+
+        function test_clockSidebarGeometryFormattingAndTheme() {
+            const sidebar = findChild(dashboardWindow.contentItem, "clockSidebar");
+            const timeLabel = findChild(sidebar, "clockTimeLabel");
+            const dateLabel = findChild(sidebar, "clockDateLabel");
+            verify(!!sidebar);
+            verify(!!timeLabel);
+            verify(!!dateLabel);
+
+            compare(sidebar.x, 1326);
+            compare(sidebar.y, 10);
+            compare(sidebar.width, 144);
+            compare(sidebar.height, 300);
+            verify(timeLabel.mapToItem(dashboardWindow.contentItem, 0, 0).y
+                   < dateLabel.mapToItem(dashboardWindow.contentItem, 0, 0).y);
+            verify(timeLabel.mapToItem(dashboardWindow.contentItem, 0, 0).y >= Theme.displaySafeInset);
+            verify(dateLabel.mapToItem(dashboardWindow.contentItem, 0, dateLabel.height).y
+                   <= dashboardWindow.height - Theme.displaySafeInset);
+
+            compare(sidebar.timeText, Qt.formatTime(sidebar.currentTimestamp, Locale.ShortFormat));
+            compare(sidebar.dateText, Qt.formatDate(sidebar.currentTimestamp, Locale.ShortFormat));
+            compare(timeLabel.text, sidebar.timeText);
+            compare(dateLabel.text, sidebar.dateText);
+            compare(timeLabel.color, Theme.textPrimary);
+            compare(dateLabel.color, Theme.textSecondary);
+            compare(timeLabel.font.pixelSize, Theme.clockTimeTextSize);
+            compare(dateLabel.font.pixelSize, Theme.clockDateTextSize);
+            compare(sidebar.Accessible.role, Accessible.StaticText);
+            compare(sidebar.Accessible.name, sidebar.accessibleText);
+            verify(sidebar.Accessible.name.includes(sidebar.timeText));
+            verify(sidebar.Accessible.name.includes(sidebar.dateText));
+            compare(sidebar.activeFocus, false);
         }
 
         function test_f5FocusesCurrentPage() {
