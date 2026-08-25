@@ -22,6 +22,7 @@ QtObject {
     readonly property color onlineStatus: "#69E6B1"
     readonly property color cpuSeries: "#56D7FF"
     readonly property color memorySeries: "#B889FF"
+    readonly property color metricRail: "#1A2A38"
     readonly property color chartGrid: "#29394B"
     readonly property color selectedSurface: "#173445"
     readonly property color cardSurface: "#0E1823"
@@ -69,6 +70,7 @@ QtObject {
     readonly property int actionChamfer: 8
     readonly property int headingTextSize: 22
     readonly property int metricTextSize: 18
+    readonly property int metricLabelTextSize: 12
     readonly property int bodyTextSize: 14
     readonly property int sectionTitleTextSize: 12
     readonly property int actionTextSize: 13

@@ -5,7 +5,7 @@ import QtTest
 Item {
     id: root
 
-    function deviceEntry(number, name, selected = true, cpuMetric = "—", memoryMetric = "—", temperatureMetric = "—", uptimeMetric = "—") {
+    function deviceEntry(number, name, selected = true, cpuMetric = "—", memoryMetric = "—", temperatureMetric = "—", uptimeMetric = "—", cpuUsageRatio = -1, memoryUsageRatio = -1) {
         return {
             "deviceNumber": number,
             "hostname": name,
@@ -13,6 +13,8 @@ Item {
             "selected": selected,
             "cpuMetric": cpuMetric,
             "memoryMetric": memoryMetric,
+            "cpuUsageRatio": cpuUsageRatio,
+            "memoryUsageRatio": memoryUsageRatio,
             "temperatureMetric": temperatureMetric,
             "uptimeMetric": uptimeMetric,
             "osDescription": "—",
@@ -112,6 +114,8 @@ Item {
             compare(card.online, true);
             compare(card.cpuMetric, "42%");
             compare(card.memoryMetric, "68%");
+            compare(card.cpuUsageRatio, 0.42);
+            compare(card.memoryUsageRatio, 0.68);
             compare(card.temperatureMetric, "53°C");
             compare(card.uptimeMetric, "1d 2h");
             compare(card.osDescription, "Raspberry Pi OS · 13");
@@ -186,15 +190,40 @@ Item {
         function test_metricAndSelectionRolesAreForwarded() {
             const overview = findChild(dashboardWindow.contentItem, "overviewPage");
             overview.deviceModel = listModelComponent.createObject(root);
-            overview.deviceModel.append(deviceEntry("01", "FORWARDED", false, "17%", "33%", "42°C", "2h"));
+            overview.deviceModel.append(deviceEntry("01", "FORWARDED", false, "17%", "33%", "42°C", "2h", 0.17, 0.33));
             tryCompare(overview.deviceList, "count", 1);
             const card = findChild(overview, "deviceCard0");
             tryCompare(card, "hostname", "FORWARDED");
             compare(card.selected, false);
             compare(card.cpuMetric, "17%");
             compare(card.memoryMetric, "33%");
+            compare(card.cpuUsageRatio, 0.17);
+            compare(card.memoryUsageRatio, 0.33);
             compare(card.temperatureMetric, "42°C");
             compare(card.uptimeMetric, "2h");
+        }
+
+        function test_metricRailsReflectRatiosAndSeriesColors() {
+            const card = findChild(dashboardWindow.contentItem, "deviceCard0");
+            compare(card.cpuProgressFill.visible, true);
+            compare(card.memoryProgressFill.visible, true);
+            compare(Math.abs(card.cpuProgressFill.width / card.cpuProgressFill.parent.width - 0.42) < 0.001, true);
+            compare(Math.abs(card.memoryProgressFill.width / card.memoryProgressFill.parent.width - 0.68) < 0.001, true);
+            compare(card.cpuProgressFill.color, Theme.cpuSeries);
+            compare(card.memoryProgressFill.color, Theme.memorySeries);
+        }
+
+        function test_unavailableMetricRatiosHideColoredFills() {
+            const overview = findChild(dashboardWindow.contentItem, "overviewPage");
+            overview.deviceModel = listModelComponent.createObject(root);
+            overview.deviceModel.append(deviceEntry("01", "UNKNOWN"));
+            tryCompare(overview.deviceList, "count", 1);
+            const card = findChild(overview, "deviceCard0");
+            tryCompare(card, "cpuMetric", "—");
+            compare(card.cpuUsageRatio, -1);
+            compare(card.memoryUsageRatio, -1);
+            compare(card.cpuProgressFill.visible, false);
+            compare(card.memoryProgressFill.visible, false);
         }
 
         function test_twoCardModelLeavesNextCardPeek() {
@@ -251,6 +280,7 @@ Item {
             tryCompare(card.chevronButton, "activeFocus", true);
             fakeMetricsService.cpuUsageRatio = 0.995;
             tryCompare(card, "cpuMetric", "100%");
+            tryCompare(card, "cpuUsageRatio", 0.995);
             compare(card.expanded, true);
             compare(card.chevronButton.activeFocus, true);
             fakeMetricsService.uptimeSeconds = 30;
@@ -265,6 +295,26 @@ Item {
             verify(!!footer);
             verify(!!details);
             verify(!!history);
+            const header = findChild(card, "deviceHeader");
+            const chevron = card.chevronButton;
+            for (const metricName of ["cpuMetricCell", "memoryMetricCell", "temperatureMetricCell", "uptimeMetricCell"]) {
+                const metric = findChild(card, metricName);
+                verify(!!metric);
+                const position = metric.mapToItem(header, 0, 0);
+                compare(position.y >= 0, true);
+                compare(position.y + metric.height <= header.height, true);
+            }
+            const cpuMetric = findChild(card, "cpuMetricCell");
+            const memoryMetric = findChild(card, "memoryMetricCell");
+            const temperatureMetric = findChild(card, "temperatureMetricCell");
+            const uptimeMetric = findChild(card, "uptimeMetricCell");
+            const metricRegionWidth = cpuMetric.width + memoryMetric.width + temperatureMetric.width + uptimeMetric.width;
+            compare(Math.abs(cpuMetric.width / metricRegionWidth - 0.28) < 0.001, true);
+            compare(Math.abs(memoryMetric.width / metricRegionWidth - 0.28) < 0.001, true);
+            compare(Math.abs(temperatureMetric.width / metricRegionWidth - 0.18) < 0.001, true);
+            compare(Math.abs(uptimeMetric.width / metricRegionWidth - 0.26) < 0.001, true);
+            compare(chevron.y >= 0, true);
+            compare(chevron.y + chevron.height <= header.height, true);
             compare(Math.abs(details.width / (details.width + history.width) - 0.32) < 0.025, true);
             const footerButtons = [findChild(card, "selectActiveButton"), findChild(card, "viewStreamsButton"), findChild(card, "terminalButton"), findChild(card, "moreButton")];
             compare(footer.x, 0);

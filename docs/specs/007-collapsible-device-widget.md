@@ -9,7 +9,8 @@ Overview needs to present the local Raspberry Pi as a compact device dashboard a
 - Overview renders exactly one local device, numbered `01`, with the hostname uppercased and an `ONLINE` status inferred from the running process.
 - The device card starts expanded. Its collapsed header is 64 logical pixels high and its expanded height fills the Overview viewport.
 - Activating the 48×48 accessible chevron by pointer, Space, or Enter toggles expansion immediately. F5 focuses that chevron on Overview and the existing placeholder on other pages.
-- Header CPU, memory, temperature, and uptime metrics display `—`; no live or fabricated values or progress are shown.
+- Header CPU and memory metrics show their formatted values beside readable labels with an 8-pixel utilization rail below. Their normalized ratios are explicit values in `[0, 1]`; `-1` means unavailable, displays `—`, and hides the colored fill while retaining the muted rail as structural framing.
+- Header temperature and uptime use stacked labels and prominent values without progress rails. Temperature uses cyan emphasis without warning thresholds; uptime remains neutral.
 - Expanded details prefer available system information and display `—` for missing OS, kernel, architecture, hardware, CPU, core-count, and RAM values.
 - Resource History shows translated CPU and memory legends, static axes/grid, 0–100 vertical labels, and −60s through current horizontal labels. It has no samples, series, timers, or fabricated history.
 - The footer contains `SELECT ACTIVE`, `VIEW STREAMS`, `TERMINAL`, and `MORE`. The first remains selected when activated; the others are disabled.
@@ -19,7 +20,8 @@ Overview needs to present the local Raspberry Pi as a compact device dashboard a
 ## Visual requirements
 
 - The outer card stroke is inset so its full 1-pixel width remains visible, with stepped cyan accent segments at the top and bottom and a quieter inner body frame.
-- The 64-pixel header groups device identity, a framed status badge with a status dot, four equal metric cells with subtle dividers, and the 48×48 chevron.
+- The 64-pixel header groups device identity, a framed status badge with a status dot, four metric cells, and the 48×48 chevron. CPU, memory, temperature, and uptime receive approximately 28, 28, 18, and 26 percent of the metric region respectively, with subtle vertical dividers.
+- CPU uses the cyan series color and memory uses the purple series color. Metric labels use a dedicated readable theme size rather than the smaller caption size. Rails are decorative because adjacent text exposes the value accessibly.
 - Expanded content uses approximately 32 percent of its width for Device Details and 68 percent for Resource History, separated by a visible section divider.
 - Device Details has a narrow cyan icon rail. Its seven rows are distributed evenly, separated subtly, and use primary values no smaller than 14 pixels.
 - Resource History reserves explicit plot insets for its title, dot legends, axes, and labels. The `−60s` and `NOW` endpoint labels remain inside the plot bounds.
@@ -29,8 +31,9 @@ Overview needs to present the local Raspberry Pi as a compact device dashboard a
 ## Public interfaces
 
 - `SysInfoService` exposes read-only bindable scalar projections of hostname, OS, kernel, architecture, hardware, CPU, core counts, and total memory. Missing fields are invalid variants.
-- `DeviceCard` receives identity, status, metrics, details, selection, expanded state, and expanded height explicitly; it has no dependency on `SysInfoService`.
-- `OverviewPage` accepts a stable role-based device model and explicitly forwards identity, status, selection, metric, and detail roles. It exposes independent `expandedIndex` and `focusedIndex` values plus its current chevron focus target.
+- `DeviceCard` receives identity, status, formatted metrics, normalized CPU and memory ratios, details, selection, expanded state, and expanded height explicitly; it has no dependency on either service.
+- `OverviewPage` accepts a stable role-based device model and explicitly forwards identity, status, selection, formatted metric, ratio, and detail roles. It exposes independent `expandedIndex` and `focusedIndex` values plus its current chevron focus target.
+- `Main` forwards `cpuUsageRatio` and `memoryUsageRatio` roles with `-1` as the unavailable sentinel while preserving `cpuMetric` and `memoryMetric` as the visible and accessible strings.
 
 ## Non-goals
 
@@ -41,7 +44,10 @@ Overview needs to present the local Raspberry Pi as a compact device dashboard a
 ## Acceptance criteria
 
 - Complete and partial service snapshots preserve values and absence through scalar projections.
-- At 1480×320, the initial local card fills the safe Overview viewport and shows the required identity, status, details, placeholder metrics, history scaffold, and footer states.
+- At 1480×320, the initial local card fills the safe Overview viewport and shows the required identity, status, live or unavailable metrics, history scaffold, and footer states.
+- CPU and memory ratios are forwarded unchanged, their colored fills occupy the corresponding proportion of the rail, and their fills use the CPU and memory series colors.
+- An unavailable CPU or memory ratio displays `—` and has no colored fill; the structural muted rail does not imply a measured zero.
+- All four metric cells and the chevron remain within the 64-pixel collapsed header.
 - Pointer and keyboard activation collapse and expand the card, update the chevron accessible name, and remove expanded content through conditional loading.
 - F5 focuses the current card chevron even after all cards have been collapsed.
 - Selecting an already selected local device is idempotent and does not replace the binding to its model role.
@@ -53,6 +59,6 @@ Overview needs to present the local Raspberry Pi as a compact device dashboard a
 
 ## Verification
 
-- Run focused `system_info_test`, `dashboard_qml_test`, and `dashboard_startup_test` targets.
+- Run focused `dashboard_qml_test` and `dashboard_startup_test` targets.
 - Run `task test` and `task check`.
 - Inspect the offscreen 1480×320 application; physical-panel verification remains required on Raspberry Pi hardware.

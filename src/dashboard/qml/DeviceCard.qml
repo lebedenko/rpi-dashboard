@@ -13,6 +13,8 @@ Control {
     required property real expandedHeight
     property string cpuMetric: "—"
     property string memoryMetric: "—"
+    property real cpuUsageRatio: -1
+    property real memoryUsageRatio: -1
     property string temperatureMetric: "—"
     property string uptimeMetric: "—"
     property string osDescription: "—"
@@ -24,6 +26,8 @@ Control {
     property string totalMemory: "—"
     property bool selected: true
     readonly property alias chevronButton: chevron
+    readonly property alias cpuProgressFill: cpuMetricCell.progressFill
+    readonly property alias memoryProgressFill: memoryMetricCell.progressFill
     readonly property string chevronAccessibleName: root.expanded ? qsTr("Collapse %1").arg(root.hostname) : qsTr("Expand %1").arg(root.hostname)
     readonly property bool expandedContentLoaded: detailsLoader.status === Loader.Ready
     signal expansionRequested()
@@ -32,18 +36,54 @@ Control {
     height: root.expanded ? root.expandedHeight : Theme.deviceHeaderHeight
     padding: Theme.cardFrameInset
 
-    component MetricCell: Item {
+    component UtilizationMetricCell: Item {
         required property string metricLabel
         required property string metricValue
+        required property real usageRatio
+        required property color seriesColor
+        readonly property bool ratioAvailable: usageRatio >= 0
+        readonly property alias progressFill: fill
         Rectangle { anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter; width: 1; height: 34; color: Theme.sectionDivider }
         Text {
-            anchors.left: parent.left; anchors.leftMargin: Theme.spacingMedium; anchors.top: parent.top; anchors.topMargin: 11
+            anchors.left: parent.left; anchors.leftMargin: Theme.spacingMedium; anchors.top: parent.top; anchors.topMargin: 9
             text: parent.metricLabel; textFormat: Text.PlainText; color: Theme.textMuted
-            font.family: Theme.fixedFontFamily; font.pixelSize: Theme.captionTextSize
+            font.family: Theme.fixedFontFamily; font.pixelSize: Theme.metricLabelTextSize; font.weight: Theme.technicalFontWeight
         }
         Text {
-            anchors.left: parent.left; anchors.leftMargin: Theme.spacingMedium; anchors.bottom: parent.bottom; anchors.bottomMargin: 9
+            anchors.right: parent.right; anchors.rightMargin: Theme.spacingMedium; anchors.top: parent.top; anchors.topMargin: 7
             text: parent.metricValue; textFormat: Text.PlainText; color: Theme.textSecondary
+            font.family: Theme.fixedFontFamily; font.pixelSize: Theme.metricTextSize; font.weight: Theme.metricFontWeight
+        }
+        Rectangle {
+            id: rail
+            anchors.left: parent.left; anchors.leftMargin: Theme.spacingMedium
+            anchors.right: parent.right; anchors.rightMargin: Theme.spacingMedium
+            anchors.bottom: parent.bottom; anchors.bottomMargin: 10
+            height: 8; color: Theme.metricRail; Accessible.ignored: true
+            Rectangle {
+                id: fill
+                objectName: parent.parent.objectName + "ProgressFill"
+                width: parent.width * Math.min(1, Math.max(0, parent.parent.usageRatio))
+                height: parent.height; color: parent.parent.seriesColor
+                visible: parent.parent.ratioAvailable
+                Accessible.ignored: true
+            }
+        }
+    }
+
+    component StackedMetricCell: Item {
+        required property string metricLabel
+        required property string metricValue
+        property color valueColor: Theme.textSecondary
+        Rectangle { anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter; width: 1; height: 34; color: Theme.sectionDivider }
+        Text {
+            anchors.left: parent.left; anchors.leftMargin: Theme.spacingMedium; anchors.top: parent.top; anchors.topMargin: 9
+            text: parent.metricLabel; textFormat: Text.PlainText; color: Theme.textMuted
+            font.family: Theme.fixedFontFamily; font.pixelSize: Theme.metricLabelTextSize; font.weight: Theme.technicalFontWeight
+        }
+        Text {
+            anchors.left: parent.left; anchors.leftMargin: Theme.spacingMedium; anchors.bottom: parent.bottom; anchors.bottomMargin: 7
+            text: parent.metricValue; textFormat: Text.PlainText; color: parent.valueColor
             font.family: Theme.fixedFontFamily; font.pixelSize: Theme.metricTextSize; font.weight: Theme.metricFontWeight
         }
     }
@@ -171,10 +211,28 @@ Control {
                 id: metrics
                 anchors.left: statusBadge.right; anchors.leftMargin: Theme.spacingLarge; anchors.right: chevron.left; anchors.rightMargin: Theme.spacingMedium
                 anchors.top: parent.top; anchors.bottom: parent.bottom
-                MetricCell { x: 0; width: parent.width / 4; height: parent.height; metricLabel: qsTr("CPU"); metricValue: root.cpuMetric }
-                MetricCell { x: parent.width / 4; width: parent.width / 4; height: parent.height; metricLabel: qsTr("MEM"); metricValue: root.memoryMetric }
-                MetricCell { x: parent.width / 2; width: parent.width / 4; height: parent.height; metricLabel: qsTr("TEMP"); metricValue: root.temperatureMetric }
-                MetricCell { x: parent.width * 3 / 4; width: parent.width / 4; height: parent.height; metricLabel: qsTr("UPTIME"); metricValue: root.uptimeMetric }
+                UtilizationMetricCell {
+                    id: cpuMetricCell
+                    objectName: "cpuMetricCell"
+                    x: 0; width: parent.width * 0.28; height: parent.height
+                    metricLabel: qsTr("CPU"); metricValue: root.cpuMetric; usageRatio: root.cpuUsageRatio; seriesColor: Theme.cpuSeries
+                }
+                UtilizationMetricCell {
+                    id: memoryMetricCell
+                    objectName: "memoryMetricCell"
+                    x: parent.width * 0.28; width: parent.width * 0.28; height: parent.height
+                    metricLabel: qsTr("MEM"); metricValue: root.memoryMetric; usageRatio: root.memoryUsageRatio; seriesColor: Theme.memorySeries
+                }
+                StackedMetricCell {
+                    objectName: "temperatureMetricCell"
+                    x: parent.width * 0.56; width: parent.width * 0.18; height: parent.height
+                    metricLabel: qsTr("TEMP"); metricValue: root.temperatureMetric; valueColor: Theme.cpuSeries
+                }
+                StackedMetricCell {
+                    objectName: "uptimeMetricCell"
+                    x: parent.width * 0.74; width: parent.width * 0.26; height: parent.height
+                    metricLabel: qsTr("UPTIME"); metricValue: root.uptimeMetric
+                }
             }
             Button {
                 id: chevron

@@ -76,6 +76,8 @@ Item {
             required property bool selected
             required property string cpuMetric
             required property string memoryMetric
+            required property real cpuUsageRatio
+            required property real memoryUsageRatio
             required property string temperatureMetric
             required property string uptimeMetric
             required property string osDescription
@@ -90,6 +92,8 @@ Item {
             readonly property alias chevronAccessibleName: card.chevronAccessibleName
             readonly property alias expanded: card.expanded
             readonly property alias availableWidth: card.availableWidth
+            readonly property alias cpuProgressFill: card.cpuProgressFill
+            readonly property alias memoryProgressFill: card.memoryProgressFill
 
             objectName: "deviceCard" + cardDelegate.index
             width: ListView.view.width
@@ -104,6 +108,8 @@ Item {
                 selected: cardDelegate.selected
                 cpuMetric: cardDelegate.cpuMetric
                 memoryMetric: cardDelegate.memoryMetric
+                cpuUsageRatio: cardDelegate.cpuUsageRatio
+                memoryUsageRatio: cardDelegate.memoryUsageRatio
                 temperatureMetric: cardDelegate.temperatureMetric
                 uptimeMetric: cardDelegate.uptimeMetric
                 expanded: root.expandedIndex === cardDelegate.index

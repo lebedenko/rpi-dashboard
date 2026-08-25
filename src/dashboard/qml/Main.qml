@@ -68,6 +68,10 @@ ApplicationWindow {
         return root.isAvailable(ratio) ? qsTr("%1%").arg(Math.round(Number(ratio) * 100)) : "—"
     }
 
+    function usageRatioOrUnavailable(ratio): real {
+        return root.isAvailable(ratio) ? Number(ratio) : -1
+    }
+
     function formatTemperature(celsius): string {
         return root.isAvailable(celsius) ? qsTr("%1°C").arg(Math.round(Number(celsius))) : "—"
     }
@@ -91,6 +95,8 @@ ApplicationWindow {
         const service = root.sysMetricsService
         localDevices.setProperty(0, "cpuMetric", root.formatPercentage(service ? service.cpuUsageRatio : undefined))
         localDevices.setProperty(0, "memoryMetric", root.formatPercentage(service ? service.memoryUsageRatio : undefined))
+        localDevices.setProperty(0, "cpuUsageRatio", root.usageRatioOrUnavailable(service ? service.cpuUsageRatio : undefined))
+        localDevices.setProperty(0, "memoryUsageRatio", root.usageRatioOrUnavailable(service ? service.memoryUsageRatio : undefined))
         localDevices.setProperty(0, "temperatureMetric", root.formatTemperature(service ? service.cpuTemperatureCelsius : undefined))
         localDevices.setProperty(0, "uptimeMetric", root.formatUptime(service ? service.uptimeSeconds : undefined))
     }
@@ -121,6 +127,8 @@ ApplicationWindow {
             selected: true
             cpuMetric: "—"
             memoryMetric: "—"
+            cpuUsageRatio: -1
+            memoryUsageRatio: -1
             temperatureMetric: "—"
             uptimeMetric: "—"
             osDescription: "—"
