@@ -145,7 +145,7 @@ Item {
             compare(series.cpuColor, Theme.cpuSeries);
             compare(series.memoryColor, Theme.memorySeries);
             compare(series.plotBackgroundColor, Theme.cardSurface);
-            compare(series.transitionDuration, 200);
+            compare(series.transitionDuration, 350);
             compare(findChild(card, "cpuHistoryLegend").text, "CPU %");
             compare(findChild(card, "memoryHistoryLegend").text, "MEM %");
             const cpuLegendLine = findChild(card, "cpuHistoryLegendLine");

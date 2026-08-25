@@ -4,10 +4,9 @@
 
 #include <QAbstractItemModel>
 #include <QColor>
-#include <QElapsedTimer>
 #include <QPointer>
 #include <QQuickItem>
-#include <QTimer>
+#include <QVariantAnimation>
 #include <QtQmlIntegration/qqmlintegration.h>
 
 namespace dashboard::ui {
@@ -52,23 +51,29 @@ class ResourceHistorySeries : public QQuickItem {
  private:
   struct Snapshot {
     QList<geometry::Sample> samples;
-    std::optional<geometry::Sample> predecessor;
+    QList<geometry::Sample> retained_prefix;
   };
 
   friend class ResourceHistorySeriesTest;
+  [[nodiscard]] static qreal interpolateWindowEnd(qreal start, qreal target, qreal progress);
+  [[nodiscard]] qreal currentWindowEnd() const;
+  void rebuildAt(qreal window_end_milliseconds);
   void reconnectModel();
-  void capturePredecessor(const QModelIndex& parent, int first, int last);
+  void captureRemovedPrefix(const QModelIndex& parent, int first, int last);
   void cacheModel(bool animate);
-  void repaintImmediately();
   QPointer<QAbstractItemModel> model_;
   Snapshot snapshot_;
-  Snapshot previous_snapshot_;
   QColor cpu_color_{QStringLiteral("#35A7FF")};
   QColor memory_color_{QStringLiteral("#A875F5")};
   QColor plot_background_color_{QStringLiteral("#0E1823")};
-  int transition_duration_{200};
-  QElapsedTimer transition_clock_;
-  QTimer transition_timer_;
+  int transition_duration_{350};
+  qreal window_start_milliseconds_{};
+  qreal window_current_milliseconds_{};
+  qreal window_target_milliseconds_{};
+  qreal geometry_origin_milliseconds_{};
+  bool has_window_end_{false};
+  quint64 geometry_revision_{};
+  QVariantAnimation transition_animation_;
 };
 
 }  // namespace dashboard::ui

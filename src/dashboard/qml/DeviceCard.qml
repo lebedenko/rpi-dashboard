@@ -333,7 +333,7 @@ Control {
                             cpuColor: Theme.cpuSeries
                             memoryColor: Theme.memorySeries
                             plotBackgroundColor: Theme.cardSurface
-                            transitionDuration: 200
+                            transitionDuration: 350
                             Accessible.ignored: true
                         }
                     }

@@ -1,9 +1,10 @@
 #include "resource_history_series.h"
 
 #include <QAbstractItemModel>
-#include <QSGFlatColorMaterial>
+#include <QSGClipNode>
 #include <QSGGeometryNode>
 #include <QSGOpacityNode>
+#include <QSGTransformNode>
 #include <QSGVertexColorMaterial>
 
 #include <algorithm>
@@ -20,6 +21,28 @@ using geometry::MetricGeometry;
 struct Point {
   float x;
   float y;
+};
+
+struct SceneRoot final : QSGNode {
+  SceneRoot() {
+    appendChildNode(curve_clip = new QSGClipNode);
+    curve_clip->setIsRectangular(true);
+    curve_clip->appendChildNode(curves = new QSGTransformNode);
+    appendChildNode(cpu_marker = new QSGTransformNode);
+    appendChildNode(memory_marker = new QSGTransformNode);
+    cpu_marker->appendChildNode(cpu_marker_opacity = new QSGOpacityNode);
+    memory_marker->appendChildNode(memory_marker_opacity = new QSGOpacityNode);
+  }
+
+  QSGClipNode* curve_clip{};
+  QSGTransformNode* curves{};
+  QSGTransformNode* cpu_marker{};
+  QSGTransformNode* memory_marker{};
+  QSGOpacityNode* cpu_marker_opacity{};
+  QSGOpacityNode* memory_marker_opacity{};
+  MetricGeometry cpu_geometry;
+  MetricGeometry memory_geometry;
+  quint64 geometry_revision{};
 };
 
 [[nodiscard]] QList<Point> renderPoints(const CurveRun& run) {
@@ -69,46 +92,39 @@ void clearChildren(QSGNode* node) {
   return samples;
 }
 
-[[nodiscard]] std::optional<geometry::Sample> readSample(QAbstractItemModel* model, int row) {
+[[nodiscard]] QList<geometry::Sample> readSampleRange(QAbstractItemModel* model, int first, int last) {
   const QList<geometry::Sample> samples = readSamples(model);
-  return row >= 0 && row < samples.size() ? std::optional(samples.at(row)) : std::nullopt;
+  if (first < 0 || last < first || last >= samples.size()) {
+    return {};
+  }
+  return samples.sliced(first, (last - first) + 1);
 }
 
-[[nodiscard]] QSGGeometryNode* lineNode(const QList<Point>& points, const QColor& color, float width) {
-  const float half_width = width / 2.0F;
-  auto* geometry = new QSGGeometry(QSGGeometry::defaultAttributes_Point2D(), static_cast<int>(points.size() * 2));
-  geometry->setDrawingMode(QSGGeometry::DrawTriangleStrip);
-  auto* vertices = geometry->vertexDataAsPoint2D();
-  const auto unitNormal = [](const Point& start, const Point& end) {
-    const float delta_x = end.x - start.x;
-    const float delta_y = end.y - start.y;
-    const float length = std::hypot(delta_x, delta_y);
-    return length > 0.0F ? Point{.x = -delta_y / length, .y = delta_x / length} : Point{.x = 0.0F, .y = 1.0F};
-  };
-  for (qsizetype index = 0; index < points.size(); ++index) {
-    Point normal =
-        index == 0 ? unitNormal(points.at(0), points.at(1)) : unitNormal(points.at(index - 1), points.at(index));
-    if (index > 0 && index + 1 < points.size()) {
-      const Point after = unitNormal(points.at(index), points.at(index + 1));
-      const float sum_x = normal.x + after.x;
-      const float sum_y = normal.y + after.y;
-      const float sum_length = std::hypot(sum_x, sum_y);
-      if (sum_length > 0.001F) {
-        normal = {.x = sum_x / sum_length, .y = sum_y / sum_length};
-      }
-    }
-    const Point point = points.at(index);
-    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic) Qt exposes a vertex buffer pointer.
-    vertices[index * 2].set(point.x + (normal.x * half_width), point.y + (normal.y * half_width));
-    vertices[(index * 2) + 1].set(point.x - (normal.x * half_width), point.y - (normal.y * half_width));
-    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+[[nodiscard]] QSGGeometryNode* lineNode(const QList<Point>& points, const QColor& color, float width, qreal opacity) {
+  QList<QPointF> source;
+  source.reserve(points.size());
+  for (const Point& point : points) {
+    source.append({point.x, point.y});
   }
-  auto* material = new QSGFlatColorMaterial;
-  material->setColor(color);
+  const QList<geometry::FeatherVertex> ribbon = geometry::buildFeatheredRibbon(source, width, opacity);
+  auto* geometry = new QSGGeometry(QSGGeometry::defaultAttributes_ColoredPoint2D(), static_cast<int>(ribbon.size()));
+  geometry->setDrawingMode(QSGGeometry::DrawTriangles);
+  geometry->setVertexDataPattern(QSGGeometry::StaticPattern);
+  auto* vertices = geometry->vertexDataAsColoredPoint2D();
+  for (qsizetype index = 0; index < ribbon.size(); ++index) {
+    const auto& vertex = ribbon.at(index);
+    const auto alpha = static_cast<std::uint8_t>(std::clamp(vertex.alpha, 0.0, 1.0) * 255.0);
+    const auto premultiply = [alpha](int channel) {
+      return static_cast<std::uint8_t>((channel * static_cast<int>(alpha)) / 255);
+    };
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic) Qt exposes a vertex buffer pointer.
+    vertices[index].set(static_cast<float>(vertex.position.x()), static_cast<float>(vertex.position.y()),
+                        premultiply(color.red()), premultiply(color.green()), premultiply(color.blue()), alpha);
+  }
   auto* node = new QSGGeometryNode;
   node->setGeometry(geometry);
   node->setFlag(QSGNode::OwnsGeometry);
-  node->setMaterial(material);
+  node->setMaterial(new QSGVertexColorMaterial);
   node->setFlag(QSGNode::OwnsMaterial);
   return node;
 }
@@ -118,6 +134,7 @@ void clearChildren(QSGNode* node) {
   auto* geometry =
       new QSGGeometry(QSGGeometry::defaultAttributes_ColoredPoint2D(), static_cast<int>(points.size() * 2));
   geometry->setDrawingMode(QSGGeometry::DrawTriangleStrip);
+  geometry->setVertexDataPattern(QSGGeometry::StaticPattern);
   auto* vertices = geometry->vertexDataAsColoredPoint2D();
   const auto premultiply = [&](int channel) {
     return static_cast<std::uint8_t>((channel * static_cast<int>(kCurveAlpha)) / 255);
@@ -138,12 +155,38 @@ void clearChildren(QSGNode* node) {
   return node;
 }
 
-[[nodiscard]] QSGGeometryNode* ringNode(const QPointF& center, const QColor& color, const QColor& background) {
+[[nodiscard]] QSGGeometryNode* joinNode(const QColor& color) {
+  auto* geometry = new QSGGeometry(QSGGeometry::defaultAttributes_ColoredPoint2D(), 6);
+  geometry->setDrawingMode(QSGGeometry::DrawTriangles);
+  geometry->setVertexDataPattern(QSGGeometry::StaticPattern);
+  auto* vertices = geometry->vertexDataAsColoredPoint2D();
+  const auto set = [&](int index, float x_position, float y_position) {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic) Qt exposes a vertex buffer pointer.
+    vertices[index].set(x_position, y_position, static_cast<std::uint8_t>(color.red()),
+                        static_cast<std::uint8_t>(color.green()), static_cast<std::uint8_t>(color.blue()),
+                        static_cast<std::uint8_t>(color.alpha()));
+  };
+  set(0, 0.0F, -1.0F);
+  set(1, 2.0F, -1.0F);
+  set(2, 2.0F, 1.0F);
+  set(3, 0.0F, -1.0F);
+  set(4, 2.0F, 1.0F);
+  set(5, 0.0F, 1.0F);
+  auto* node = new QSGGeometryNode;
+  node->setGeometry(geometry);
+  node->setFlag(QSGNode::OwnsGeometry);
+  node->setMaterial(new QSGVertexColorMaterial);
+  node->setFlag(QSGNode::OwnsMaterial);
+  return node;
+}
+
+[[nodiscard]] QSGGeometryNode* ringNode(const QColor& color, const QColor& background) {
   constexpr int kSections = 20;
   constexpr float kOuterRadius = 4.0F;
   constexpr float kInnerRadius = 2.0F;
   auto* geometry = new QSGGeometry(QSGGeometry::defaultAttributes_ColoredPoint2D(), kSections * 12);
   geometry->setDrawingMode(QSGGeometry::DrawTriangles);
+  geometry->setVertexDataPattern(QSGGeometry::StaticPattern);
   auto* vertices = geometry->vertexDataAsColoredPoint2D();
   const auto write = [&](int index, float x_position, float y_position, const QColor& value) {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic) Qt exposes a vertex buffer pointer.
@@ -155,23 +198,24 @@ void clearChildren(QSGNode* node) {
   for (int section = 0; section < kSections; ++section) {
     const float angle_1 = kTau * static_cast<float>(section) / kSections;
     const float angle_2 = kTau * static_cast<float>(section + 1) / kSections;
-    const QPointF outer_1 = center + QPointF(std::cos(angle_1) * kOuterRadius, std::sin(angle_1) * kOuterRadius);
-    const QPointF outer_2 = center + QPointF(std::cos(angle_2) * kOuterRadius, std::sin(angle_2) * kOuterRadius);
-    const QPointF inner_1 = center + QPointF(std::cos(angle_1) * kInnerRadius, std::sin(angle_1) * kInnerRadius);
-    const QPointF inner_2 = center + QPointF(std::cos(angle_2) * kInnerRadius, std::sin(angle_2) * kInnerRadius);
+    const QPointF outer_1(std::cos(angle_1) * kOuterRadius, std::sin(angle_1) * kOuterRadius);
+    const QPointF outer_2(std::cos(angle_2) * kOuterRadius, std::sin(angle_2) * kOuterRadius);
+    const QPointF inner_1(std::cos(angle_1) * kInnerRadius, std::sin(angle_1) * kInnerRadius);
+    const QPointF inner_2(std::cos(angle_2) * kInnerRadius, std::sin(angle_2) * kInnerRadius);
     const int vertex = section * 12;
-    write(vertex, static_cast<float>(center.x()), static_cast<float>(center.y()), background);
-    write(vertex + 1, static_cast<float>(inner_1.x()), static_cast<float>(inner_1.y()), background);
-    write(vertex + 2, static_cast<float>(inner_2.x()), static_cast<float>(inner_2.y()), background);
-    write(vertex + 3, static_cast<float>(inner_1.x()), static_cast<float>(inner_1.y()), color);
-    write(vertex + 4, static_cast<float>(outer_1.x()), static_cast<float>(outer_1.y()), color);
-    write(vertex + 5, static_cast<float>(outer_2.x()), static_cast<float>(outer_2.y()), color);
-    write(vertex + 6, static_cast<float>(inner_1.x()), static_cast<float>(inner_1.y()), color);
-    write(vertex + 7, static_cast<float>(outer_2.x()), static_cast<float>(outer_2.y()), color);
-    write(vertex + 8, static_cast<float>(inner_2.x()), static_cast<float>(inner_2.y()), color);
-    write(vertex + 9, static_cast<float>(center.x()), static_cast<float>(center.y()), background);
-    write(vertex + 10, static_cast<float>(inner_2.x()), static_cast<float>(inner_2.y()), background);
-    write(vertex + 11, static_cast<float>(inner_1.x()), static_cast<float>(inner_1.y()), background);
+    constexpr float kCenterX = 6.0F;
+    write(vertex, kCenterX, 0.0F, background);
+    write(vertex + 1, kCenterX + static_cast<float>(inner_1.x()), static_cast<float>(inner_1.y()), background);
+    write(vertex + 2, kCenterX + static_cast<float>(inner_2.x()), static_cast<float>(inner_2.y()), background);
+    write(vertex + 3, kCenterX + static_cast<float>(inner_1.x()), static_cast<float>(inner_1.y()), color);
+    write(vertex + 4, kCenterX + static_cast<float>(outer_1.x()), static_cast<float>(outer_1.y()), color);
+    write(vertex + 5, kCenterX + static_cast<float>(outer_2.x()), static_cast<float>(outer_2.y()), color);
+    write(vertex + 6, kCenterX + static_cast<float>(inner_1.x()), static_cast<float>(inner_1.y()), color);
+    write(vertex + 7, kCenterX + static_cast<float>(outer_2.x()), static_cast<float>(outer_2.y()), color);
+    write(vertex + 8, kCenterX + static_cast<float>(inner_2.x()), static_cast<float>(inner_2.y()), color);
+    write(vertex + 9, kCenterX, 0.0F, background);
+    write(vertex + 10, kCenterX + static_cast<float>(inner_2.x()), static_cast<float>(inner_2.y()), background);
+    write(vertex + 11, kCenterX + static_cast<float>(inner_1.x()), static_cast<float>(inner_1.y()), background);
   }
   auto* node = new QSGGeometryNode;
   node->setGeometry(geometry);
@@ -181,70 +225,76 @@ void clearChildren(QSGNode* node) {
   return node;
 }
 
-void appendSnapshot(QSGNode* parent, const QList<geometry::Sample>& samples,
-                    const std::optional<geometry::Sample>& predecessor, const QSizeF& size, const QColor& cpu_color,
-                    const QColor& memory_color, const QColor& background) {
-  const MetricGeometry cpu = geometry::buildMetricGeometry(samples, Metric::Cpu, size, predecessor);
-  const MetricGeometry memory = geometry::buildMetricGeometry(samples, Metric::Memory, size, predecessor);
+void rebuildSnapshot(SceneRoot* root, const QList<geometry::Sample>& samples,
+                     const QList<geometry::Sample>& retained_prefix, const QSizeF& size, const QColor& cpu_color,
+                     const QColor& memory_color, const QColor& background, qreal window_end_milliseconds) {
+  clearChildren(root->curves);
+  clearChildren(root->cpu_marker_opacity);
+  clearChildren(root->memory_marker_opacity);
+  root->cpu_geometry =
+      geometry::buildMetricGeometry(samples, Metric::Cpu, size, window_end_milliseconds, retained_prefix);
+  root->memory_geometry =
+      geometry::buildMetricGeometry(samples, Metric::Memory, size, window_end_milliseconds, retained_prefix);
   const auto appendRuns = [&](const MetricGeometry& metric, const QColor& color, auto make_node) {
     for (const CurveRun& run : metric.runs) {
-      parent->appendChildNode(make_node(renderPoints(run), color));
+      root->curves->appendChildNode(make_node(renderPoints(run), color));
     }
   };
 
-  appendRuns(cpu, cpu_color, [&](const QList<Point>& points, const QColor& color) {
+  appendRuns(root->cpu_geometry, cpu_color, [&](const QList<Point>& points, const QColor& color) {
     return areaNode(points, color, static_cast<float>(size.height()));
   });
-  appendRuns(memory, memory_color, [&](const QList<Point>& points, const QColor& color) {
+  appendRuns(root->memory_geometry, memory_color, [&](const QList<Point>& points, const QColor& color) {
     return areaNode(points, color, static_cast<float>(size.height()));
   });
-  QColor cpu_glow = cpu_color;
-  QColor memory_glow = memory_color;
-  cpu_glow.setAlphaF(0.07);
-  memory_glow.setAlphaF(0.07);
-  appendRuns(cpu, cpu_glow,
-             [](const QList<Point>& points, const QColor& color) { return lineNode(points, color, 6.0F); });
-  appendRuns(memory, memory_glow,
-             [](const QList<Point>& points, const QColor& color) { return lineNode(points, color, 6.0F); });
-  QColor cpu_fringe = cpu_color;
-  QColor memory_fringe = memory_color;
-  cpu_fringe.setAlphaF(0.35);
-  memory_fringe.setAlphaF(0.35);
-  appendRuns(cpu, cpu_fringe,
-             [](const QList<Point>& points, const QColor& color) { return lineNode(points, color, 4.0F); });
-  appendRuns(memory, memory_fringe,
-             [](const QList<Point>& points, const QColor& color) { return lineNode(points, color, 4.0F); });
-  appendRuns(cpu, cpu_color,
-             [](const QList<Point>& points, const QColor& color) { return lineNode(points, color, 2.0F); });
-  appendRuns(memory, memory_color,
-             [](const QList<Point>& points, const QColor& color) { return lineNode(points, color, 2.0F); });
-  const qreal marker_inset = std::min(4.0, size.width() / 2.0);
-  if (cpu.current_endpoint) {
-    QPointF marker = *cpu.current_endpoint;
-    marker.setX(std::clamp(marker.x(), marker_inset, size.width() - marker_inset));
-    parent->appendChildNode(ringNode(marker, cpu_color, background));
+  appendRuns(root->cpu_geometry, cpu_color,
+             [](const QList<Point>& points, const QColor& color) { return lineNode(points, color, 5.0F, 0.04); });
+  appendRuns(root->memory_geometry, memory_color,
+             [](const QList<Point>& points, const QColor& color) { return lineNode(points, color, 5.0F, 0.04); });
+  appendRuns(root->cpu_geometry, cpu_color,
+             [](const QList<Point>& points, const QColor& color) { return lineNode(points, color, 3.0F, 0.12); });
+  appendRuns(root->memory_geometry, memory_color,
+             [](const QList<Point>& points, const QColor& color) { return lineNode(points, color, 3.0F, 0.12); });
+  appendRuns(root->cpu_geometry, cpu_color,
+             [](const QList<Point>& points, const QColor& color) { return lineNode(points, color, 2.0F, 1.0); });
+  appendRuns(root->memory_geometry, memory_color,
+             [](const QList<Point>& points, const QColor& color) { return lineNode(points, color, 2.0F, 1.0); });
+  root->cpu_marker_opacity->appendChildNode(joinNode(cpu_color));
+  root->cpu_marker_opacity->appendChildNode(ringNode(cpu_color, background));
+  root->memory_marker_opacity->appendChildNode(joinNode(memory_color));
+  root->memory_marker_opacity->appendChildNode(ringNode(memory_color, background));
+}
+
+void positionMarker(QSGTransformNode* marker, QSGOpacityNode* opacity, const MetricGeometry& metric,
+                    qreal local_boundary_x, qreal visible_x) {
+  const std::optional<QPointF> intersection = geometry::curveIntersection(metric, local_boundary_x);
+  opacity->setOpacity(intersection ? 1.0F : 0.0F);
+  if (!intersection) {
+    return;
   }
-  if (memory.current_endpoint) {
-    QPointF marker = *memory.current_endpoint;
-    marker.setX(std::clamp(marker.x(), marker_inset, size.width() - marker_inset));
-    parent->appendChildNode(ringNode(marker, memory_color, background));
-  }
+  QMatrix4x4 matrix;
+  matrix.translate(static_cast<float>(visible_x), static_cast<float>(intersection->y()));
+  marker->setMatrix(matrix);
 }
 }  // namespace
 
 ResourceHistorySeries::ResourceHistorySeries(QQuickItem* parent) : QQuickItem(parent) {
   setFlag(ItemHasContents);
   setClip(true);
-  transition_timer_.setInterval(16);
-  connect(&transition_timer_, &QTimer::timeout, this, [this] {
+  transition_animation_.setStartValue(0.0);
+  transition_animation_.setEndValue(1.0);
+  connect(&transition_animation_, &QVariantAnimation::valueChanged, this, [this](const QVariant& value) {
+    window_current_milliseconds_ =
+        interpolateWindowEnd(window_start_milliseconds_, window_target_milliseconds_, value.toDouble());
     update();
-    if (!transition_clock_.isValid() || transition_clock_.elapsed() >= transition_duration_) {
-      transition_timer_.stop();
-      previous_snapshot_ = {};
-    }
   });
-  connect(this, &QQuickItem::widthChanged, this, &ResourceHistorySeries::repaintImmediately);
-  connect(this, &QQuickItem::heightChanged, this, &ResourceHistorySeries::repaintImmediately);
+  connect(&transition_animation_, &QVariantAnimation::finished, this, [this] {
+    window_start_milliseconds_ = window_target_milliseconds_;
+    window_current_milliseconds_ = window_target_milliseconds_;
+    update();
+  });
+  connect(this, &QQuickItem::widthChanged, this, [this] { rebuildAt(currentWindowEnd()); });
+  connect(this, &QQuickItem::heightChanged, this, [this] { rebuildAt(currentWindowEnd()); });
 }
 
 QAbstractItemModel* ResourceHistorySeries::model() const { return model_; }
@@ -258,6 +308,7 @@ void ResourceHistorySeries::setModel(QAbstractItemModel* model) {
   }
   model_ = model;
   reconnectModel();
+  snapshot_ = {};
   cacheModel(false);
   emit modelChanged();
 }
@@ -265,21 +316,21 @@ void ResourceHistorySeries::setModel(QAbstractItemModel* model) {
 QColor ResourceHistorySeries::cpuColor() const { return cpu_color_; }
 void ResourceHistorySeries::setCpuColor(const QColor& color) {
   if (std::exchange(cpu_color_, color) != color) {
-    repaintImmediately();
+    rebuildAt(currentWindowEnd());
     emit cpuColorChanged();
   }
 }
 QColor ResourceHistorySeries::memoryColor() const { return memory_color_; }
 void ResourceHistorySeries::setMemoryColor(const QColor& color) {
   if (std::exchange(memory_color_, color) != color) {
-    repaintImmediately();
+    rebuildAt(currentWindowEnd());
     emit memoryColorChanged();
   }
 }
 QColor ResourceHistorySeries::plotBackgroundColor() const { return plot_background_color_; }
 void ResourceHistorySeries::setPlotBackgroundColor(const QColor& color) {
   if (std::exchange(plot_background_color_, color) != color) {
-    repaintImmediately();
+    rebuildAt(currentWindowEnd());
     emit plotBackgroundColorChanged();
   }
 }
@@ -287,7 +338,6 @@ int ResourceHistorySeries::transitionDuration() const { return transition_durati
 void ResourceHistorySeries::setTransitionDuration(int duration) {
   duration = std::max(0, duration);
   if (std::exchange(transition_duration_, duration) != duration) {
-    repaintImmediately();
     emit transitionDurationChanged();
   }
 }
@@ -297,7 +347,7 @@ void ResourceHistorySeries::reconnectModel() {
     return;
   }
   const auto refresh = [this] { cacheModel(true); };
-  connect(model_, &QAbstractItemModel::rowsAboutToBeRemoved, this, &ResourceHistorySeries::capturePredecessor);
+  connect(model_, &QAbstractItemModel::rowsAboutToBeRemoved, this, &ResourceHistorySeries::captureRemovedPrefix);
   connect(model_, &QAbstractItemModel::rowsInserted, this, refresh);
   connect(model_, &QAbstractItemModel::rowsRemoved, this, refresh);
   connect(model_, &QAbstractItemModel::dataChanged, this, refresh);
@@ -309,70 +359,111 @@ void ResourceHistorySeries::reconnectModel() {
   });
 }
 
-void ResourceHistorySeries::capturePredecessor(const QModelIndex& parent, int first, int last) {
+void ResourceHistorySeries::captureRemovedPrefix(const QModelIndex& parent, int first, int last) {
   if (parent.isValid() || first != 0) {
     return;
   }
-  const std::optional<geometry::Sample> predecessor = readSample(model_, last);
-  if (!predecessor) {
-    return;
-  }
-  snapshot_.predecessor = predecessor;
-  previous_snapshot_.predecessor = predecessor;
+  snapshot_.retained_prefix.append(readSampleRange(model_, first, last));
 }
 
 void ResourceHistorySeries::cacheModel(bool animate) {
-  Snapshot new_snapshot{.samples = readSamples(model_), .predecessor = snapshot_.predecessor};
+  Snapshot new_snapshot{.samples = readSamples(model_), .retained_prefix = snapshot_.retained_prefix};
+  const std::optional<qreal> newest = new_snapshot.samples.isEmpty()
+                                          ? std::nullopt
+                                          : std::optional<qreal>(new_snapshot.samples.constLast().elapsed_milliseconds);
 
-  if (animate && transition_duration_ > 0 && (!snapshot_.samples.isEmpty() || transition_timer_.isActive())) {
-    if (previous_snapshot_.samples.isEmpty() || !transition_timer_.isActive()) {
-      previous_snapshot_ = snapshot_;
+  if (!animate) {
+    transition_animation_.stop();
+    has_window_end_ = newest.has_value();
+    if (newest) {
+      window_start_milliseconds_ = *newest;
+      window_current_milliseconds_ = *newest;
+      window_target_milliseconds_ = *newest;
     }
-    previous_snapshot_.predecessor = new_snapshot.predecessor;
-    transition_clock_.restart();
-    transition_timer_.start();
-  } else {
-    previous_snapshot_ = {};
-    transition_clock_.invalidate();
-    transition_timer_.stop();
+  } else if (!has_window_end_ && newest) {
+    has_window_end_ = true;
+    window_start_milliseconds_ = *newest;
+    window_current_milliseconds_ = *newest;
+    window_target_milliseconds_ = *newest;
+  } else if (newest && *newest > window_target_milliseconds_) {
+    const qreal displayed = currentWindowEnd();
+    transition_animation_.stop();
+    window_start_milliseconds_ = displayed;
+    window_current_milliseconds_ = displayed;
+    window_target_milliseconds_ = *newest;
+    if (transition_duration_ > 0) {
+      transition_animation_.setDuration(transition_duration_);
+      transition_animation_.start();
+    } else {
+      window_start_milliseconds_ = window_target_milliseconds_;
+      window_current_milliseconds_ = window_target_milliseconds_;
+    }
+  } else if (newest && *newest < window_target_milliseconds_) {
+    window_start_milliseconds_ = *newest;
+    window_current_milliseconds_ = *newest;
+    window_target_milliseconds_ = *newest;
+    transition_animation_.stop();
+  }
+  if (!new_snapshot.retained_prefix.isEmpty()) {
+    const qreal cutoff = currentWindowEnd() - 60'000.0;
+    qsizetype first_inside = 0;
+    while (first_inside < new_snapshot.retained_prefix.size() &&
+           static_cast<qreal>(new_snapshot.retained_prefix.at(first_inside).elapsed_milliseconds) < cutoff) {
+      ++first_inside;
+    }
+    const qsizetype keep_from = first_inside > 0 ? first_inside - 1 : 0;
+    if (keep_from > 0) {
+      new_snapshot.retained_prefix.remove(0, keep_from);
+    }
   }
   snapshot_ = std::move(new_snapshot);
+  rebuildAt(currentWindowEnd());
+}
+
+void ResourceHistorySeries::rebuildAt(qreal window_end_milliseconds) {
+  geometry_origin_milliseconds_ = window_end_milliseconds;
+  ++geometry_revision_;
   update();
 }
 
-void ResourceHistorySeries::repaintImmediately() {
-  previous_snapshot_ = {};
-  transition_clock_.invalidate();
-  transition_timer_.stop();
-  update();
+qreal ResourceHistorySeries::interpolateWindowEnd(qreal start, qreal target, qreal progress) {
+  const qreal bounded = std::clamp(progress, 0.0, 1.0);
+  const qreal smoothstep = bounded * bounded * (3.0 - (2.0 * bounded));
+  return start + ((target - start) * smoothstep);
 }
+
+qreal ResourceHistorySeries::currentWindowEnd() const { return window_current_milliseconds_; }
 
 QSGNode* ResourceHistorySeries::updatePaintNode(QSGNode* old_node, UpdatePaintNodeData* update_data) {
   Q_UNUSED(update_data)
-  QSGNode* root = old_node != nullptr ? old_node : new QSGNode;
-  clearChildren(root);
+  auto* root = old_node != nullptr ? dynamic_cast<SceneRoot*>(old_node) : new SceneRoot;
+  Q_ASSERT(root != nullptr);
   if (snapshot_.samples.isEmpty() || width() <= 0 || height() <= 0) {
+    clearChildren(root->curves);
+    clearChildren(root->cpu_marker_opacity);
+    clearChildren(root->memory_marker_opacity);
+    root->geometry_revision = geometry_revision_;
     return root;
   }
 
   const QSizeF size(width(), height());
-  const bool transitioning =
-      !previous_snapshot_.samples.isEmpty() && transition_clock_.isValid() && transition_duration_ > 0;
-  const qreal progress =
-      transitioning ? std::clamp(static_cast<qreal>(transition_clock_.elapsed()) / transition_duration_, 0.0, 1.0)
-                    : 1.0;
-  if (transitioning && progress < 1.0) {
-    auto* previous = new QSGOpacityNode;
-    previous->setOpacity(static_cast<float>(1.0 - progress));
-    appendSnapshot(previous, previous_snapshot_.samples, previous_snapshot_.predecessor, size, cpu_color_,
-                   memory_color_, plot_background_color_);
-    root->appendChildNode(previous);
+  constexpr qreal kEndpointZoneWidth = 10.0;
+  const qreal drawable_width = std::max(0.0, size.width() - kEndpointZoneWidth);
+  const QSizeF drawable_size(drawable_width, size.height());
+  if (root->geometry_revision != geometry_revision_) {
+    root->curve_clip->setClipRect(QRectF(0.0, 0.0, drawable_width, size.height()));
+    rebuildSnapshot(root, snapshot_.samples, snapshot_.retained_prefix, drawable_size, cpu_color_, memory_color_,
+                    plot_background_color_, geometry_origin_milliseconds_);
+    root->geometry_revision = geometry_revision_;
   }
-  auto* current = new QSGOpacityNode;
-  current->setOpacity(static_cast<float>(progress));
-  appendSnapshot(current, snapshot_.samples, snapshot_.predecessor, size, cpu_color_, memory_color_,
-                 plot_background_color_);
-  root->appendChildNode(current);
+  const qreal translation = -drawable_width * ((currentWindowEnd() - geometry_origin_milliseconds_) / 60'000.0);
+  QMatrix4x4 curve_matrix;
+  curve_matrix.translate(static_cast<float>(translation), 0.0F);
+  root->curves->setMatrix(curve_matrix);
+  const qreal local_boundary_x = drawable_width - translation;
+  positionMarker(root->cpu_marker, root->cpu_marker_opacity, root->cpu_geometry, local_boundary_x, drawable_width);
+  positionMarker(root->memory_marker, root->memory_marker_opacity, root->memory_geometry, local_boundary_x,
+                 drawable_width);
   return root;
 }
 

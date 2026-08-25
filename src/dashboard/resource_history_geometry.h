@@ -35,7 +35,15 @@ struct MetricGeometry {
   std::optional<QPointF> current_endpoint;
 };
 
+struct FeatherVertex {
+  QPointF position;
+  qreal alpha{};
+};
+
 [[nodiscard]] MetricGeometry buildMetricGeometry(const QList<Sample>& samples, Metric metric, const QSizeF& plot_size,
-                                                 const std::optional<Sample>& predecessor = std::nullopt);
+                                                 qreal window_end_milliseconds,
+                                                 const QList<Sample>& retained_prefix = {});
+[[nodiscard]] std::optional<QPointF> curveIntersection(const MetricGeometry& geometry, qreal x_position);
+[[nodiscard]] QList<FeatherVertex> buildFeatheredRibbon(const QList<QPointF>& points, qreal width, qreal layer_opacity);
 
 }  // namespace dashboard::ui::geometry
