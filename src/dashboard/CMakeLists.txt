@@ -47,6 +47,7 @@ target_link_libraries(holonight-dashboard
     PRIVATE
         HoloNightDashboard::protocol
         HoloNightDashboard::sysinfo
+        HoloNightDashboard::sysmetrics
         holonight-dashboard-qml
         holonight-dashboard-qmlplugin
         holonight-dashboard-qmlplugin_init

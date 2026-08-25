@@ -3,6 +3,8 @@ qt_add_library(dashboard_protocol STATIC
     device_snapshot.h
     system_info.cpp
     system_info.h
+    system_metrics.cpp
+    system_metrics.h
 )
 
 add_library(HoloNightDashboard::protocol ALIAS dashboard_protocol)

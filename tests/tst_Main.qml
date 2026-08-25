@@ -32,16 +32,19 @@ Item {
         property var dashboardWindow: null
         property var dashboardComponent: null
         property var fakeService: null
+        property var fakeMetricsService: null
 
         function init() {
             fakeService = fakeServiceComponent.createObject(root);
+            fakeMetricsService = fakeMetricsServiceComponent.createObject(root);
             dashboardComponent = Qt.createComponent("qrc:/qt/qml/HoloNight/Dashboard/qml/Main.qml");
             verify(dashboardComponent.status === Component.Ready, dashboardComponent.errorString());
             dashboardWindow = dashboardComponent.createObject(null, {
                 "windowed": true,
                 "windowWidth": 1480,
                 "windowHeight": 320,
-                "sysInfoService": fakeService
+                "sysInfoService": fakeService,
+                "sysMetricsService": fakeMetricsService
             });
             verify(dashboardWindow !== null);
             dashboardWindow.show();
@@ -58,6 +61,8 @@ Item {
             dashboardComponent = null;
             fakeService.destroy();
             fakeService = null;
+            fakeMetricsService.destroy();
+            fakeMetricsService = null;
         }
 
         function test_exactDevelopmentGeometry() {
@@ -105,10 +110,10 @@ Item {
             compare(card.deviceNumber, "01");
             compare(card.hostname, "PI-DASH");
             compare(card.online, true);
-            compare(card.cpuMetric, "—");
-            compare(card.memoryMetric, "—");
-            compare(card.temperatureMetric, "—");
-            compare(card.uptimeMetric, "—");
+            compare(card.cpuMetric, "42%");
+            compare(card.memoryMetric, "68%");
+            compare(card.temperatureMetric, "53°C");
+            compare(card.uptimeMetric, "1d 2h");
             compare(card.osDescription, "Raspberry Pi OS · 13");
             compare(card.kernelDescription, "linux · 6.12-test");
             compare(card.architecture, "aarch64");
@@ -240,6 +245,18 @@ Item {
             compare(card.chevronButton.activeFocus, true);
         }
 
+        function test_metricRefreshPreservesExpansionAndFocus() {
+            const card = findChild(dashboardWindow.contentItem, "deviceCard0");
+            keyClick(Qt.Key_F5);
+            tryCompare(card.chevronButton, "activeFocus", true);
+            fakeMetricsService.cpuUsageRatio = 0.995;
+            tryCompare(card, "cpuMetric", "100%");
+            compare(card.expanded, true);
+            compare(card.chevronButton.activeFocus, true);
+            fakeMetricsService.uptimeSeconds = 30;
+            tryCompare(card, "uptimeMetric", "<1m");
+        }
+
         function test_deviceCardGeometryMatchesFixedViewportComposition() {
             const card = findChild(dashboardWindow.contentItem, "deviceCard0");
             const footer = findChild(card, "deviceFooter");
@@ -328,6 +345,22 @@ Item {
             property double totalMemoryBytes: 8.58993e+09
         }
 
+    }
+
+    Component {
+        id: fakeMetricsServiceComponent
+
+        QtObject {
+            property double cpuUsageRatio: 0.42
+            property double memoryUsageRatio: 0.68
+            property double cpuTemperatureCelsius: 52.6
+            property double uptimeSeconds: 93600
+            signal currentMetricsChanged()
+            onCpuUsageRatioChanged: currentMetricsChanged()
+            onMemoryUsageRatioChanged: currentMetricsChanged()
+            onCpuTemperatureCelsiusChanged: currentMetricsChanged()
+            onUptimeSecondsChanged: currentMetricsChanged()
+        }
     }
 
 }

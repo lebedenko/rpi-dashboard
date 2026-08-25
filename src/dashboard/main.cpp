@@ -1,5 +1,7 @@
 #include "sysinfo/linux_sys_info_collector.h"
 #include "sysinfo/sys_info_service.h"
+#include "sysmetrics/linux_sys_metrics_collector.h"
+#include "sysmetrics/sys_metrics_service.h"
 
 #include <QCommandLineOption>
 #include <QCommandLineParser>
@@ -39,11 +41,14 @@ int main(int argc, char* argv[]) {
   }
 
   dashboard::sysinfo::SysInfoService sys_info_service(std::make_shared<dashboard::sysinfo::LinuxSysInfoCollector>());
+  dashboard::sysmetrics::SysMetricsService sys_metrics_service(
+      std::make_shared<dashboard::sysmetrics::LinuxSysMetricsCollector>());
   QQmlApplicationEngine engine;
   engine.setInitialProperties({{QStringLiteral("windowed"), parser.isSet(windowedOption)},
                                {QStringLiteral("windowWidth"), windowWidth},
                                {QStringLiteral("windowHeight"), windowHeight},
-                               {QStringLiteral("sysInfoService"), QVariant::fromValue(&sys_info_service)}});
+                               {QStringLiteral("sysInfoService"), QVariant::fromValue(&sys_info_service)},
+                               {QStringLiteral("sysMetricsService"), QVariant::fromValue(&sys_metrics_service)}});
   QObject::connect(
       &engine, &QQmlApplicationEngine::objectCreationFailed, &application, [] { QCoreApplication::exit(EXIT_FAILURE); },
       Qt::QueuedConnection);

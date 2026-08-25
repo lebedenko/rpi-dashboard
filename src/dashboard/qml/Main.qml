@@ -11,6 +11,7 @@ ApplicationWindow {
     property int windowWidth: 1480
     property int windowHeight: 320
     property var sysInfoService: null
+    property var sysMetricsService: null
     readonly property alias currentPageIndex: pageStack.currentIndex
     readonly property bool currentPageHasFocus: root.currentFocusTarget ? root.currentFocusTarget.activeFocus : false
 
@@ -61,6 +62,37 @@ ApplicationWindow {
         if (!root.isAvailable(bytes))
             return "—"
         return qsTr("%1 GiB").arg((Number(bytes) / 1073741824).toFixed(1))
+    }
+
+    function formatPercentage(ratio): string {
+        return root.isAvailable(ratio) ? qsTr("%1%").arg(Math.round(Number(ratio) * 100)) : "—"
+    }
+
+    function formatTemperature(celsius): string {
+        return root.isAvailable(celsius) ? qsTr("%1°C").arg(Math.round(Number(celsius))) : "—"
+    }
+
+    function formatUptime(seconds): string {
+        if (!root.isAvailable(seconds))
+            return "—"
+        const minutes = Math.max(0, Math.floor(Number(seconds) / 60))
+        if (minutes < 1)
+            return qsTr("<1m")
+        const hours = Math.floor(minutes / 60)
+        const days = Math.floor(hours / 24)
+        if (days > 0)
+            return qsTr("%1d %2h").arg(days).arg(hours % 24)
+        if (hours > 0)
+            return qsTr("%1h %2m").arg(hours).arg(minutes % 60)
+        return qsTr("%1m").arg(minutes)
+    }
+
+    function refreshLocalMetrics(): void {
+        const service = root.sysMetricsService
+        localDevices.setProperty(0, "cpuMetric", root.formatPercentage(service ? service.cpuUsageRatio : undefined))
+        localDevices.setProperty(0, "memoryMetric", root.formatPercentage(service ? service.memoryUsageRatio : undefined))
+        localDevices.setProperty(0, "temperatureMetric", root.formatTemperature(service ? service.cpuTemperatureCelsius : undefined))
+        localDevices.setProperty(0, "uptimeMetric", root.formatUptime(service ? service.uptimeSeconds : undefined))
     }
 
     function refreshLocalDevice(): void {
@@ -121,7 +153,16 @@ ApplicationWindow {
         function onTotalMemoryBytesChanged(): void { root.refreshLocalDevice() }
     }
 
-    Component.onCompleted: root.refreshLocalDevice()
+    Connections {
+        target: root.sysMetricsService
+        ignoreUnknownSignals: true
+        function onCurrentMetricsChanged(): void { root.refreshLocalMetrics() }
+    }
+
+    Component.onCompleted: {
+        root.refreshLocalDevice()
+        root.refreshLocalMetrics()
+    }
 
     Shortcut { sequence: "Home"; onActivated: pageStack.currentIndex = 0 }
     Shortcut { sequence: "Left"; onActivated: root.selectPreviousPage() }

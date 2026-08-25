@@ -24,6 +24,18 @@ target_link_libraries(system_info_test
 
 add_test(NAME system_info_test COMMAND system_info_test)
 
+qt_add_executable(system_metrics_test
+    system_metrics_test.cpp
+)
+
+target_link_libraries(system_metrics_test
+    PRIVATE
+        HoloNightDashboard::sysmetrics
+        Qt6::Test
+)
+
+add_test(NAME system_metrics_test COMMAND system_metrics_test)
+
 qt_add_executable(dashboard_startup_test
     dashboard_startup_test.cpp
 )
