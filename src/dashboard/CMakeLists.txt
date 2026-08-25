@@ -21,7 +21,6 @@ qt_add_qml_module(holonight-dashboard-qml
         qml/SidebarButton.qml
     RESOURCES
         qml/icons/chevron.svg
-        qml/icons/check.svg
         qml/icons/detail-arch.svg
         qml/icons/detail-cores.svg
         qml/icons/detail-cpu.svg
@@ -29,12 +28,9 @@ qt_add_qml_module(holonight-dashboard-qml
         qml/icons/detail-kernel.svg
         qml/icons/detail-memory.svg
         qml/icons/detail-os.svg
-        qml/icons/more.svg
         qml/icons/overview.svg
         qml/icons/projects.svg
         qml/icons/systems.svg
-        qml/icons/streams.svg
-        qml/icons/terminal.svg
         qml/icons/weather.svg
 )
 

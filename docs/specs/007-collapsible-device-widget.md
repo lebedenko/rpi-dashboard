@@ -13,8 +13,9 @@ Overview needs to present the local Raspberry Pi as a compact device dashboard a
 - Header temperature and uptime use stacked labels and prominent values without progress rails. Temperature uses cyan emphasis without warning thresholds; uptime remains neutral.
 - Expanded details prefer available system information and display `—` for missing OS, kernel, architecture, hardware, CPU, core-count, and RAM values.
 - Resource History shows translated CPU and memory legends, live rolling series, a styled axes/grid, 0–100 vertical labels, and −60s through current horizontal labels as specified in `009-live-resource-history.md`.
-- The footer contains `SELECT ACTIVE`, `VIEW STREAMS`, `TERMINAL`, and `MORE`. The first remains selected when activated; the others are disabled.
-- The Overview list owns `expandedIndex` and permits zero or one expanded card. For two or more entries, an expanded card leaves 24 logical pixels of the following 64-pixel collapsed card visible after an 8-pixel gap.
+- The card has no footer or footer actions; expanded details and resource history use the released vertical space.
+- The Overview list owns `expandedIndex` and permits zero or one expanded card. All cards may be collapsed. For two or more entries, an expanded card leaves 24 logical pixels of the following 64-pixel collapsed card visible after an 8-pixel gap.
+- The Overview list also owns `selectedIndex`. Expanding a card selects it, while collapsing the selected card leaves it selected.
 - Meaningful content remains inside the shared display-safe inset.
 
 ## Visual requirements
@@ -25,35 +26,36 @@ Overview needs to present the local Raspberry Pi as a compact device dashboard a
 - Expanded content uses approximately 32 percent of its width for Device Details and 68 percent for Resource History, separated by a visible section divider.
 - Device Details has a narrow cyan icon rail. Its seven rows are distributed evenly, separated subtly, and use primary values no smaller than 14 pixels.
 - Resource History reserves explicit plot insets for its title, dot legends, axes, and labels. The `−60s` and `NOW` endpoint labels remain inside the plot bounds.
-- The footer spans the full inner width as four equal chamfered controls. `SELECT ACTIVE` uses a cyan selected surface and check icon; the other three actions use muted outlined disabled surfaces.
+- Expanded details and resource history extend to the card bottom while remaining inside the inset frame.
 - Flat fills, solid strokes, tintable icons, and static geometry are used; only the resource-series lines receive a narrow downward glow, with no blur effect, shader effect, or geometry animation.
 
 ## Public interfaces
 
 - `SysInfoService` exposes read-only bindable scalar projections of hostname, OS, kernel, architecture, hardware, CPU, core counts, and total memory. Missing fields are invalid variants.
 - `DeviceCard` receives identity, status, formatted metrics, normalized CPU and memory ratios, details, selection, expanded state, and expanded height explicitly; it has no dependency on either service.
-- `OverviewPage` accepts a stable role-based device model and explicitly forwards identity, status, selection, formatted metric, ratio, and detail roles. It also accepts the local usage-history model, and exposes independent `expandedIndex` and `focusedIndex` values plus its current chevron focus target.
+- `OverviewPage` accepts a stable role-based device model and explicitly forwards identity, status, formatted metric, ratio, and detail roles. It also accepts the local usage-history model, and exposes independent `expandedIndex`, `selectedIndex`, and `focusedIndex` values plus its current chevron focus target.
 - `Main` forwards `cpuUsageRatio` and `memoryUsageRatio` roles with `-1` as the unavailable sentinel while preserving `cpuMetric` and `memoryMetric` as the visible and accessible strings.
 
 ## Non-goals
 
 - Remote discovery or remote-device production rendering.
-- Connectivity probing, stale-state semantics, persistence, remote history, chart interaction, or working footer actions.
+- Connectivity probing, stale-state semantics, persistence, remote history, chart interaction, or device actions.
 - Geometry animation when expanding or collapsing.
 
 ## Acceptance criteria
 
 - Complete and partial service snapshots preserve values and absence through scalar projections.
-- At 1480×320, the initial local card fills the safe Overview viewport and shows the required identity, status, live or unavailable metrics, history scaffold, and footer states.
+- At 1480×320, the initial local card fills the safe Overview viewport and shows the required identity, status, live or unavailable metrics, and history scaffold without a footer.
 - CPU and memory ratios are forwarded unchanged, their colored fills occupy the corresponding proportion of the rail, and their fills use the CPU and memory series colors.
 - An unavailable CPU or memory ratio displays `—` and has no colored fill; the structural muted rail does not imply a measured zero.
 - All four metric cells and the chevron remain within the 64-pixel collapsed header.
 - Pointer and keyboard activation collapse and expand the card, update the chevron accessible name, and remove expanded content through conditional loading.
 - F5 focuses the current card chevron even after all cards have been collapsed.
-- Selecting an already selected local device is idempotent and does not replace the binding to its model role.
+- At most one card is expanded, all cards may remain collapsed, expanding a card makes it active, and collapsing the active card preserves its selection.
+- Selection is `-1` for an empty model, becomes the first card when entries become available, and remains in range when the model count changes.
 - First and middle expanded cards are positioned at the viewport start and leave a 24-pixel next-card peek; the final expanded card fills the viewport.
 - Service refreshes update forwarded roles without replacing the card, losing expansion, or losing keyboard focus.
-- Footer cells have equal widths across the full inner span, detail/history widths follow the 32/68 split, detail rows are evenly distributed, and chart labels remain within card bounds.
+- No footer separator or footer controls are instantiated; detail/history widths follow the 32/68 split, extend into the released area, detail rows are evenly distributed, and chart labels remain within card bounds.
 - F5 focus and safe bounds remain correct on all four pages.
 - A 1480×320 offscreen or windowed render is inspected against `docs/mockups/m1.png` for hierarchy, framing, spacing, and typography. Physical-panel appearance is verified separately on Raspberry Pi hardware.
 

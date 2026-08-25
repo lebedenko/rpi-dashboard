@@ -124,7 +124,6 @@ ApplicationWindow {
             deviceNumber: "01"
             hostname: "—"
             online: true
-            selected: true
             cpuMetric: "—"
             memoryMetric: "—"
             cpuUsageRatio: -1

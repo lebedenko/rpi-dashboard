@@ -149,9 +149,6 @@ void DashboardStartupTest::
        QStringLiteral("detail-hardware.svg"), QStringLiteral("detail-kernel.svg"), QStringLiteral("detail-memory.svg"),
        QStringLiteral("detail-os.svg")},
       QStringLiteral("#20D4F7"));
-  verifyIconsContain({QStringLiteral("check.svg")}, QStringLiteral("#D5F7FF"));
-  verifyIconsContain({QStringLiteral("streams.svg"), QStringLiteral("terminal.svg"), QStringLiteral("more.svg")},
-                     QStringLiteral("#91A5BB"));
 }
 
 void DashboardStartupTest::declaresAndUsesTypographyRoles() {  // NOLINT(readability-convert-member-functions-to-static)
@@ -195,6 +192,10 @@ void DashboardStartupTest::
   const auto cardSource = QString::fromUtf8(deviceCard.readAll());
   QVERIFY(cardSource.contains(QStringLiteral("Loader {")));
   QVERIFY(cardSource.contains(QStringLiteral("active: root.expanded")));
+  QVERIFY(!cardSource.contains(QStringLiteral("FooterButton")));
+  QVERIFY(!cardSource.contains(QStringLiteral("deviceFooter")));
+  QVERIFY(!cardSource.contains(QStringLiteral("selectionRequested")));
+  QVERIFY(cardSource.contains(QStringLiteral("root.online ? Theme.onlineFrame : Theme.passiveBorder")));
   QVERIFY(!cardSource.contains(QStringLiteral("Timer {")));
   QVERIFY(!cardSource.contains(QStringLiteral("Behavior on height")));
 

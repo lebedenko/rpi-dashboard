@@ -5,12 +5,11 @@ import QtTest
 Item {
     id: root
 
-    function deviceEntry(number, name, selected = true, cpuMetric = "—", memoryMetric = "—", temperatureMetric = "—", uptimeMetric = "—", cpuUsageRatio = -1, memoryUsageRatio = -1) {
+    function deviceEntry(number, name, cpuMetric = "—", memoryMetric = "—", temperatureMetric = "—", uptimeMetric = "—", cpuUsageRatio = -1, memoryUsageRatio = -1) {
         return {
             "deviceNumber": number,
             "hostname": name,
             "online": true,
-            "selected": selected,
             "cpuMetric": cpuMetric,
             "memoryMetric": memoryMetric,
             "cpuUsageRatio": cpuUsageRatio,
@@ -190,12 +189,11 @@ Item {
             compare(card.chevronButton.width, 48);
             compare(card.chevronButton.height, 48);
             compare(card.chevronAccessibleName, "Collapse PI-DASH");
-            const footer = findChild(card, "deviceFooter");
-            verify(!!footer);
-            compare(findChild(card, "selectActiveButton").checked, true);
-            compare(findChild(card, "viewStreamsButton").enabled, false);
-            compare(findChild(card, "terminalButton").enabled, false);
-            compare(findChild(card, "moreButton").enabled, false);
+            compare(findChild(card, "deviceFooter"), null);
+            compare(findChild(card, "selectActiveButton"), null);
+            compare(findChild(card, "viewStreamsButton"), null);
+            compare(findChild(card, "terminalButton"), null);
+            compare(findChild(card, "moreButton"), null);
             verify(!!findChild(card, "resourceHistory"));
             verify(!!findChild(card, "historyGrid"));
             const series = findChild(card, "resourceHistorySeries");
@@ -262,28 +260,65 @@ Item {
             tryCompare(card.chevronButton, "activeFocus", true);
         }
 
-        function test_selectedActionRemainsModelBoundAndIdempotent() {
-            const overview = findChild(dashboardWindow.contentItem, "overviewPage");
-            const card = findChild(overview, "deviceCard0");
-            const selectButton = findChild(card, "selectActiveButton");
-            compare(card.selected, true);
-            compare(selectButton.checked, true);
-            mouseClick(selectButton);
-            compare(card.selected, true);
-            compare(selectButton.checked, true);
-            overview.deviceModel.setProperty(0, "selected", false);
-            tryCompare(card, "selected", false);
-            tryCompare(selectButton, "checked", false);
-        }
-
-        function test_metricAndSelectionRolesAreForwarded() {
+        function test_accordionSelectionFollowsExpansionAndSurvivesCollapse() {
             const overview = findChild(dashboardWindow.contentItem, "overviewPage");
             overview.deviceModel = listModelComponent.createObject(root);
-            overview.deviceModel.append(deviceEntry("01", "FORWARDED", false, "17%", "33%", "42°C", "2h", 0.17, 0.33));
+            overview.deviceModel.append(deviceEntry("01", "FIRST"));
+            overview.deviceModel.append(deviceEntry("02", "SECOND"));
+            tryCompare(overview.deviceList, "count", 2);
+            tryVerify(() => !!findChild(overview, "deviceCard1"));
+            const first = findChild(overview, "deviceCard0");
+            const second = findChild(overview, "deviceCard1");
+            compare(overview.selectedIndex, 0);
+            compare(first.selected, true);
+            compare(second.selected, false);
+
+            mouseClick(first.chevronButton);
+            tryCompare(overview, "expandedIndex", -1);
+            compare(overview.selectedIndex, 0);
+            compare(first.selected, true);
+            compare(first.expanded, false);
+            compare(second.expanded, false);
+
+            overview.expandCard(1);
+            tryCompare(overview, "expandedIndex", 1);
+            compare(overview.selectedIndex, 1);
+            compare(first.selected, false);
+            compare(second.selected, true);
+
+            const expandedSecond = findChild(overview, "deviceCard1");
+            verify(!!expandedSecond, "Object exists");
+            overview.expandedIndex = -1;
+            tryCompare(overview, "expandedIndex", -1);
+            compare(overview.selectedIndex, 1);
+            compare(expandedSecond.selected, true);
+            compare(first.expanded, false);
+            compare(expandedSecond.expanded, false);
+        }
+
+        function test_selectionNormalizesWhenModelCountChanges() {
+            const overview = findChild(dashboardWindow.contentItem, "overviewPage");
+            overview.deviceModel = listModelComponent.createObject(root);
+            compare(overview.selectedIndex, -1);
+            overview.deviceModel.append(deviceEntry("01", "FIRST"));
+            tryCompare(overview, "selectedIndex", 0);
+            overview.deviceModel.append(deviceEntry("02", "SECOND"));
+            overview.expandCard(1);
+            tryCompare(overview, "selectedIndex", 1);
+            overview.deviceModel.remove(1);
+            tryCompare(overview, "selectedIndex", 0);
+            overview.deviceModel.clear();
+            tryCompare(overview, "selectedIndex", -1);
+        }
+
+        function test_metricRolesAreForwarded() {
+            const overview = findChild(dashboardWindow.contentItem, "overviewPage");
+            overview.deviceModel = listModelComponent.createObject(root);
+            overview.deviceModel.append(deviceEntry("01", "FORWARDED", "17%", "33%", "42°C", "2h", 0.17, 0.33));
             tryCompare(overview.deviceList, "count", 1);
             const card = findChild(overview, "deviceCard0");
             tryCompare(card, "hostname", "FORWARDED");
-            compare(card.selected, false);
+            compare(card.selected, true);
             compare(card.cpuMetric, "17%");
             compare(card.memoryMetric, "33%");
             compare(card.cpuUsageRatio, 0.17);
@@ -392,10 +427,8 @@ Item {
 
         function test_deviceCardGeometryMatchesFixedViewportComposition() {
             const card = findChild(dashboardWindow.contentItem, "deviceCard0");
-            const footer = findChild(card, "deviceFooter");
             const details = findChild(card, "deviceDetails");
             const history = findChild(card, "resourceHistory");
-            verify(!!footer);
             verify(!!details);
             verify(!!history);
             const header = findChild(card, "deviceHeader");
@@ -419,12 +452,13 @@ Item {
             compare(chevron.y >= 0, true);
             compare(chevron.y + chevron.height <= header.height, true);
             compare(Math.abs(details.width / (details.width + history.width) - 0.32) < 0.025, true);
-            const footerButtons = [findChild(card, "selectActiveButton"), findChild(card, "viewStreamsButton"), findChild(card, "terminalButton"), findChild(card, "moreButton")];
-            compare(footer.x, 0);
-            compare(footer.width, card.availableWidth);
-            for (let index = 1; index < footerButtons.length; ++index) compare(Math.abs(footerButtons[index].width - footerButtons[0].width) <= 1, true)
-            compare(footerButtons[0].selectedSurfaceVisible, true);
-            for (let index = 1; index < footerButtons.length; ++index) compare(footerButtons[index].disabledSurfaceVisible, true)
+            compare(findChild(card, "deviceFooter"), null);
+            const detailsBottom = details.mapToItem(card, 0, details.height).y;
+            const historyBottom = history.mapToItem(card, 0, history.height).y;
+            compare(detailsBottom > card.height - 48, true);
+            compare(historyBottom > card.height - 48, true);
+            compare(detailsBottom <= card.height, true);
+            compare(historyBottom <= card.height, true);
             const firstRow = findChild(card, "detailRow0");
             const lastRow = findChild(card, "detailRow6");
             verify(!!firstRow);

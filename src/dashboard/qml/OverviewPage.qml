@@ -7,6 +7,7 @@ Item {
     required property var deviceModel
     property var usageHistoryModel: null
     property int expandedIndex: 0
+    property int selectedIndex: 0
     property int focusedIndex: 0
     property bool modelInitialized: false
     property int expandedIndexBeforeModelReset: 0
@@ -20,6 +21,7 @@ Item {
 
     function normalizeIndices(): void {
         root.focusedIndex = root.normalizedIndex(root.focusedIndex)
+        root.selectedIndex = root.normalizedIndex(root.selectedIndex)
         if (deviceList.count === 0) {
             if (root.expandedIndex >= 0)
                 root.expandedIndexBeforeModelReset = root.expandedIndex
@@ -41,6 +43,7 @@ Item {
             return
         root.focusedIndex = normalized
         root.expandedIndex = normalized
+        root.selectedIndex = normalized
         Qt.callLater(() => {
             deviceList.forceLayout()
             deviceList.positionViewAtIndex(normalized, ListView.Beginning)
@@ -74,7 +77,6 @@ Item {
             required property string deviceNumber
             required property string hostname
             required property bool online
-            required property bool selected
             required property string cpuMetric
             required property string memoryMetric
             required property real cpuUsageRatio
@@ -92,6 +94,7 @@ Item {
             readonly property alias expandedContentLoaded: card.expandedContentLoaded
             readonly property alias chevronAccessibleName: card.chevronAccessibleName
             readonly property alias expanded: card.expanded
+            readonly property alias selected: card.selected
             readonly property alias availableWidth: card.availableWidth
             readonly property alias cpuProgressFill: card.cpuProgressFill
             readonly property alias memoryProgressFill: card.memoryProgressFill
@@ -106,7 +109,7 @@ Item {
                 deviceNumber: cardDelegate.deviceNumber
                 hostname: cardDelegate.hostname
                 online: cardDelegate.online
-                selected: cardDelegate.selected
+                selected: root.selectedIndex === cardDelegate.index
                 cpuMetric: cardDelegate.cpuMetric
                 memoryMetric: cardDelegate.memoryMetric
                 cpuUsageRatio: cardDelegate.cpuUsageRatio
@@ -127,17 +130,12 @@ Item {
                 totalMemory: cardDelegate.totalMemory
                 onExpansionRequested: {
                     root.focusedIndex = cardDelegate.index
-                if (card.expanded)
-                {
-                    root.expandedIndexBeforeModelReset = -1
-                    root.expandedIndex = -1
-                } else {
-                    root.expandCard(cardDelegate.index)
-                }
-                }
-                onSelectionRequested: {
-                    if (!cardDelegate.selected && root.deviceModel.setProperty)
-                        root.deviceModel.setProperty(cardDelegate.index, "selected", true)
+                    if (card.expanded) {
+                        root.expandedIndexBeforeModelReset = -1
+                        root.expandedIndex = -1
+                    } else {
+                        root.expandCard(cardDelegate.index)
+                    }
                 }
             }
         }

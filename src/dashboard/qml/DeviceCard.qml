@@ -32,7 +32,6 @@ Control {
     readonly property string chevronAccessibleName: root.expanded ? qsTr("Collapse %1").arg(root.hostname) : qsTr("Expand %1").arg(root.hostname)
     readonly property bool expandedContentLoaded: detailsLoader.status === Loader.Ready
     signal expansionRequested()
-    signal selectionRequested()
 
     height: root.expanded ? root.expandedHeight : Theme.deviceHeaderHeight
     padding: Theme.cardFrameInset
@@ -112,41 +111,6 @@ Control {
         }
     }
 
-    component FooterButton: Button {
-        required property url actionIcon
-        property bool selectedStyle: false
-        readonly property bool selectedSurfaceVisible: selectedStyle
-        readonly property bool disabledSurfaceVisible: !enabled
-        checkable: false
-        checked: selectedStyle
-        Accessible.name: text
-        contentItem: Row {
-            spacing: 10; anchors.centerIn: parent
-            Image {
-                width: 20; height: 20; source: parent.parent.actionIcon; sourceSize.width: 20; sourceSize.height: 20
-                opacity: parent.parent.selectedStyle ? 1 : 0.58; Accessible.ignored: true
-            }
-            Text {
-                anchors.verticalCenter: parent.verticalCenter; text: parent.parent.text; textFormat: Text.PlainText
-                color: parent.parent.selectedStyle ? Theme.selectedActionContent : Theme.disabledActionContent
-                font.family: Theme.fixedFontFamily; font.pixelSize: Theme.actionTextSize; font.weight: Theme.technicalFontWeight
-            }
-        }
-        background: Shape {
-            ShapePath {
-                fillColor: parent.selectedStyle ? Theme.selectedActionSurface : Theme.disabledActionSurface
-                strokeColor: parent.selectedStyle ? Theme.selectedActionFrame : Theme.disabledActionFrame
-                strokeWidth: 1; joinStyle: ShapePath.MiterJoin; startX: 0; startY: Theme.actionChamfer
-                PathLine { x: Theme.actionChamfer; y: 0 }
-                PathLine { x: parent.width; y: 0 }
-                PathLine { x: parent.width; y: parent.height - Theme.actionChamfer }
-                PathLine { x: parent.width - Theme.actionChamfer; y: parent.height }
-                PathLine { x: 0; y: parent.height }
-                PathLine { x: 0; y: Theme.actionChamfer }
-            }
-        }
-    }
-
     background: Item {
         Shape {
             id: outerFrame
@@ -192,7 +156,7 @@ Control {
                 id: statusBadge
                 x: 314; anchors.verticalCenter: parent.verticalCenter; width: Theme.statusBadgeWidth; height: Theme.statusBadgeHeight; Accessible.ignored: true
                 ShapePath {
-                    fillColor: Theme.badgeSurface; strokeColor: root.online ? Theme.onlineFrame : Theme.disabledActionFrame; strokeWidth: 1
+                    fillColor: Theme.badgeSurface; strokeColor: root.online ? Theme.onlineFrame : Theme.passiveBorder; strokeWidth: 1
                     startX: 0; startY: 0
                     PathLine { x: statusBadge.width - Theme.badgeChamfer; y: 0 }
                     PathLine { x: statusBadge.width; y: statusBadge.height / 2 }
@@ -264,7 +228,7 @@ Control {
         Item {
             Item {
                 id: body
-                anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top; anchors.bottom: footerSeparator.top
+                anchors.fill: parent
                 anchors.margins: Theme.spacingSmall
                 Item {
                     id: details
@@ -362,17 +326,6 @@ Control {
                         }
                     }
                 }
-            }
-            Rectangle { id: footerSeparator; anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: footer.top; height: 1; color: Theme.sectionDividerStrong }
-            Row {
-                id: footer
-                objectName: "deviceFooter"
-                anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom
-                height: Theme.deviceFooterHeight; spacing: Theme.footerGap
-                FooterButton { id: selectActive; objectName: "selectActiveButton"; width: (footer.width - footer.spacing * 3) / 4; height: footer.height; text: qsTr("SELECT ACTIVE"); actionIcon: Qt.resolvedUrl("icons/check.svg"); selectedStyle: root.selected; onClicked: root.selectionRequested() }
-                FooterButton { objectName: "viewStreamsButton"; width: (footer.width - footer.spacing * 3) / 4; height: footer.height; text: qsTr("VIEW STREAMS"); actionIcon: Qt.resolvedUrl("icons/streams.svg"); enabled: false }
-                FooterButton { objectName: "terminalButton"; width: (footer.width - footer.spacing * 3) / 4; height: footer.height; text: qsTr("TERMINAL"); actionIcon: Qt.resolvedUrl("icons/terminal.svg"); enabled: false }
-                FooterButton { objectName: "moreButton"; width: (footer.width - footer.spacing * 3) / 4; height: footer.height; text: qsTr("MORE"); actionIcon: Qt.resolvedUrl("icons/more.svg"); enabled: false }
             }
         }
     }

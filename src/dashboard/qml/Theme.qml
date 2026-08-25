@@ -36,12 +36,6 @@ QtObject {
     readonly property color onlineFrame: "#258667"
     readonly property color detailRailSurface: "#08283A"
     readonly property color detailRailFrame: "#21789B"
-    readonly property color selectedActionSurface: "#0D6587"
-    readonly property color selectedActionFrame: "#20D4F7"
-    readonly property color selectedActionContent: "#D5F7FF"
-    readonly property color disabledActionSurface: "#102236"
-    readonly property color disabledActionFrame: "#3D617E"
-    readonly property color disabledActionContent: "#91A5BB"
     readonly property int spacingSmall: 8
     readonly property int spacingMedium: 16
     readonly property int spacingLarge: 24
@@ -69,15 +63,11 @@ QtObject {
     readonly property int plotRightPadding: 8
     readonly property int plotTopPadding: 30
     readonly property int plotBottomPadding: 18
-    readonly property int deviceFooterHeight: 48
-    readonly property int footerGap: 8
-    readonly property int actionChamfer: 8
     readonly property int headingTextSize: 22
     readonly property int metricTextSize: 18
     readonly property int metricLabelTextSize: 12
     readonly property int bodyTextSize: 14
     readonly property int sectionTitleTextSize: 12
-    readonly property int actionTextSize: 13
     readonly property int captionTextSize: 10
     readonly property int axisTextSize: 9
 
