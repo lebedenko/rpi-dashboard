@@ -260,7 +260,12 @@ ApplicationWindow {
             Layout.fillWidth: true
             Layout.fillHeight: true
 
-            OverviewPage { id: overviewPage; objectName: "overviewPage"; deviceModel: root.localDeviceModel }
+            OverviewPage {
+                id: overviewPage
+                objectName: "overviewPage"
+                deviceModel: root.localDeviceModel
+                usageHistoryModel: root.sysMetricsService ? root.sysMetricsService.usageHistoryModel : null
+            }
             DashboardPage { id: systemsPage; objectName: "systemsPage"; heading: qsTr("Systems") }
             DashboardPage { id: projectsPage; objectName: "projectsPage"; heading: qsTr("Projects") }
             DashboardPage { id: weatherPage; objectName: "weatherPage"; heading: qsTr("Weather") }

@@ -15,6 +15,7 @@ Control {
     property string memoryMetric: "—"
     property real cpuUsageRatio: -1
     property real memoryUsageRatio: -1
+    property var usageHistoryModel: null
     property string temperatureMetric: "—"
     property string uptimeMetric: "—"
     property string osDescription: "—"
@@ -302,17 +303,45 @@ Control {
                     }
                     Row {
                         anchors.right: parent.right; anchors.top: parent.top; spacing: 18
-                        Row { spacing: 6; Rectangle { anchors.verticalCenter: parent.verticalCenter; width: 8; height: 8; radius: 4; color: Theme.cpuSeries } Text { text: qsTr("CPU"); textFormat: Text.PlainText; color: Theme.textSecondary; font.family: Theme.fixedFontFamily; font.pixelSize: Theme.captionTextSize } }
-                        Row { spacing: 6; Rectangle { anchors.verticalCenter: parent.verticalCenter; width: 8; height: 8; radius: 4; color: Theme.memorySeries } Text { text: qsTr("MEMORY"); textFormat: Text.PlainText; color: Theme.textSecondary; font.family: Theme.fixedFontFamily; font.pixelSize: Theme.captionTextSize } }
+                        Row { spacing: 6; Rectangle { anchors.verticalCenter: parent.verticalCenter; width: 8; height: 8; radius: 4; color: Theme.cpuSeries } Text { objectName: "cpuHistoryLegend"; text: qsTr("CPU %"); textFormat: Text.PlainText; color: Theme.textSecondary; font.family: Theme.fixedFontFamily; font.pixelSize: Theme.captionTextSize } }
+                        Row { spacing: 6; Rectangle { anchors.verticalCenter: parent.verticalCenter; width: 8; height: 8; radius: 4; color: Theme.memorySeries } Text { objectName: "memoryHistoryLegend"; text: qsTr("MEM %"); textFormat: Text.PlainText; color: Theme.textSecondary; font.family: Theme.fixedFontFamily; font.pixelSize: Theme.captionTextSize } }
                     }
                     Item {
                         id: plot
                         objectName: "historyGrid"
+                        clip: true
                         anchors.fill: parent
                         anchors.leftMargin: Theme.plotLeftPadding; anchors.rightMargin: Theme.plotRightPadding
                         anchors.topMargin: Theme.plotTopPadding; anchors.bottomMargin: Theme.plotBottomPadding
-                        Repeater { model: 5; delegate: Rectangle { required property int index; y: index * (plot.height - 1) / 4; width: plot.width; height: 1; color: Theme.chartGrid } }
-                        Repeater { model: 5; delegate: Rectangle { required property int index; x: index * (plot.width - 1) / 4; width: 1; height: plot.height; color: Theme.chartGrid } }
+                        Repeater {
+                            model: 5
+                            delegate: Row {
+                                required property int index
+                                y: index * (plot.height - 1) / 4
+                                spacing: 4
+                                Repeater { model: Math.max(0, Math.ceil(plot.width / 10)); delegate: Rectangle { required property int index; width: 6; height: 1; color: Theme.chartGrid } }
+                            }
+                        }
+                        Repeater {
+                            model: 5
+                            delegate: Column {
+                                required property int index
+                                x: index * (plot.width - 1) / 4
+                                spacing: 4
+                                Repeater { model: Math.max(0, Math.ceil(plot.height / 10)); delegate: Rectangle { required property int index; width: 1; height: 6; color: Theme.chartGrid } }
+                            }
+                        }
+                        Rectangle { objectName: "historyLeftAxis"; width: 1; height: parent.height; color: Theme.chartAxis }
+                        Rectangle { objectName: "historyBottomAxis"; y: parent.height - 1; width: parent.width; height: 1; color: Theme.chartAxis }
+                        ResourceHistorySeries {
+                            id: historySeries
+                            objectName: "resourceHistorySeries"
+                            anchors.fill: parent
+                            model: root.usageHistoryModel
+                            cpuColor: Theme.cpuSeries
+                            memoryColor: Theme.memorySeries
+                            Accessible.ignored: true
+                        }
                     }
                     Repeater {
                         model: 5

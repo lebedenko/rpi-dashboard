@@ -5,6 +5,7 @@ Item {
     id: root
 
     required property var deviceModel
+    property var usageHistoryModel: null
     property int expandedIndex: 0
     property int focusedIndex: 0
     property bool modelInitialized: false
@@ -110,6 +111,7 @@ Item {
                 memoryMetric: cardDelegate.memoryMetric
                 cpuUsageRatio: cardDelegate.cpuUsageRatio
                 memoryUsageRatio: cardDelegate.memoryUsageRatio
+                usageHistoryModel: root.usageHistoryModel
                 temperatureMetric: cardDelegate.temperatureMetric
                 uptimeMetric: cardDelegate.uptimeMetric
                 expanded: root.expandedIndex === cardDelegate.index

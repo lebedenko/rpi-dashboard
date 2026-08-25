@@ -1,5 +1,6 @@
 #include "sysmetrics/linux_sys_metrics_collector.h"
 #include "sysmetrics/sys_metrics_service.h"
+#include "sysmetrics/system_metric_history_model.h"
 
 #include <QHash>
 #include <QtTest>
@@ -13,6 +14,7 @@ using dashboard::sysmetrics::LinuxSysMetricsCollector;
 using dashboard::sysmetrics::SysMetricsCollectionResult;
 using dashboard::sysmetrics::SysMetricsCollector;
 using dashboard::sysmetrics::SysMetricsService;
+using dashboard::sysmetrics::SystemMetricHistoryModel;
 
 namespace {
 class FakeAccess final : public LinuxSysMetricsAccess {
@@ -77,6 +79,7 @@ class SystemMetricsTest : public QObject {
   void classifiesSnapshots();
   void calculatesSecondSampleDeltas();
   void serviceReplacesAndPreservesSnapshots();
+  void historyRecordsOptionalValuesAndPrunesOldSamples();
 };
 
 void SystemMetricsTest::classifiesSnapshots() {  // NOLINT(readability-convert-member-functions-to-static)
@@ -126,6 +129,35 @@ void SystemMetricsTest::
   QTRY_COMPARE(service.state(), SysMetricsService::State::Error);
   QCOMPARE(service.lastSuccessUtc(), success);
   QCOMPARE(service.cpuUsageRatio(), QVariant(0.5));
+  auto* history = service.usageHistoryModel();
+  QCOMPARE(history->rowCount(), 3);
+  const auto roles = history->roleNames();
+  const QModelIndex gap = history->index(2, 0);
+  QVERIFY(!history->data(gap, roles.key(QByteArrayLiteral("cpuUsageRatio"))).isValid());
+  QVERIFY(!history->data(gap, roles.key(QByteArrayLiteral("memoryUsageRatio"))).isValid());
+}
+
+void SystemMetricsTest::
+    historyRecordsOptionalValuesAndPrunesOldSamples() {  // NOLINT(readability-convert-member-functions-to-static)
+  SystemMetricHistoryModel model;
+  model.appendSample(1'000, 0.25, std::nullopt);
+  model.appendSample(61'000, std::nullopt, 0.75);
+  QCOMPARE(model.rowCount(), 2);
+  const auto roles = model.roleNames();
+  const int elapsed = roles.key(QByteArrayLiteral("elapsedMilliseconds"));
+  const int cpu = roles.key(QByteArrayLiteral("cpuUsageRatio"));
+  const int memory = roles.key(QByteArrayLiteral("memoryUsageRatio"));
+  QCOMPARE(model.data(model.index(0, 0), elapsed).toLongLong(), 1'000);
+  QCOMPARE(model.data(model.index(0, 0), cpu), QVariant(0.25));
+  QVERIFY(!model.data(model.index(0, 0), memory).isValid());
+  QCOMPARE(model.data(model.index(1, 0), elapsed).toLongLong(), 61'000);
+  QVERIFY(!model.data(model.index(1, 0), cpu).isValid());
+  QCOMPARE(model.data(model.index(1, 0), memory), QVariant(0.75));
+
+  model.appendSample(61'001, 0.5, 0.6);
+  QCOMPARE(model.rowCount(), 2);
+  QCOMPARE(model.data(model.index(0, 0), elapsed).toLongLong(), 61'000);
+  QCOMPARE(model.data(model.index(1, 0), elapsed).toLongLong(), 61'001);
 }
 
 QTEST_MAIN(SystemMetricsTest)

@@ -1,8 +1,10 @@
 #pragma once
 
 #include "sysmetrics/sys_metrics_collector.h"
+#include "sysmetrics/system_metric_history_model.h"
 
 #include <QDateTime>
+#include <QElapsedTimer>
 #include <QFutureWatcher>
 #include <QObject>
 #include <QTimer>
@@ -23,12 +25,13 @@ class SysMetricsService final : public QObject {
   Q_PROPERTY(QVariant memoryUsageRatio READ memoryUsageRatio NOTIFY currentMetricsChanged)
   Q_PROPERTY(QVariant cpuTemperatureCelsius READ cpuTemperatureCelsius NOTIFY currentMetricsChanged)
   Q_PROPERTY(QVariant uptimeSeconds READ uptimeSeconds NOTIFY currentMetricsChanged)
+  Q_PROPERTY(QAbstractItemModel* usageHistoryModel READ usageHistoryModel CONSTANT)
 
  public:
   enum class State : std::uint8_t { Idle, Collecting, Ready, Partial, Error };
   Q_ENUM(State)
 
-  explicit SysMetricsService(std::shared_ptr<SysMetricsCollector> collector, int sampling_interval_ms = 2000,
+  explicit SysMetricsService(std::shared_ptr<SysMetricsCollector> collector, int sampling_interval_ms = 1000,
                              QObject* parent = nullptr);
   [[nodiscard]] State state() const;
   [[nodiscard]] protocol::SystemMetrics currentMetrics() const;
@@ -38,6 +41,7 @@ class SysMetricsService final : public QObject {
   [[nodiscard]] QVariant memoryUsageRatio() const;
   [[nodiscard]] QVariant cpuTemperatureCelsius() const;
   [[nodiscard]] QVariant uptimeSeconds() const;
+  [[nodiscard]] QAbstractItemModel* usageHistoryModel();
 
  public slots:
   void refresh();
@@ -59,6 +63,8 @@ class SysMetricsService final : public QObject {
   protocol::SystemMetrics current_metrics_;
   QDateTime last_success_utc_;
   QStringList diagnostics_;
+  QElapsedTimer elapsed_timer_;
+  SystemMetricHistoryModel usage_history_model_;
 };
 
 }  // namespace dashboard::sysmetrics

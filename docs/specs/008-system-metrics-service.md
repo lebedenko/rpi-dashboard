@@ -2,7 +2,7 @@
 
 ## Goal
 
-Collect a source-neutral snapshot of live Linux system metrics every two seconds without blocking the GUI thread. Raspberry Pi systems may add truthful sysfs enrichment; ordinary Linux systems remain supported.
+Collect a source-neutral snapshot of live Linux system metrics every second without blocking the GUI thread. Raspberry Pi systems may add truthful sysfs enrichment; ordinary Linux systems remain supported.
 
 ## Observable contract
 
@@ -11,8 +11,9 @@ Collect a source-neutral snapshot of live Linux system metrics every two seconds
 - A snapshot is `Ready` when aggregate CPU usage, uptime, physical-memory total/available bytes, and primary-filesystem total/available bytes are present. A nonempty snapshot missing any baseline value is `Partial`; an empty snapshot is `Error`.
 - Linux collection uses bounded local reads of `/proc` and documented sysfs files plus `QStorageInfo`. CPU utilization and network rates require a prior sample and are therefore absent on the first sample.
 - Missing, malformed, reset, or disappearing optional sources omit only affected values and produce concise diagnostics.
-- `SysMetricsService` samples off the GUI thread, starts immediately, defaults to a 2000 ms interval, prevents overlap, and coalesces refresh requests made while collecting.
+- `SysMetricsService` samples off the GUI thread, starts immediately, defaults to a 1000 ms interval, prevents overlap, and coalesces refresh requests made while collecting.
 - Ready and partial results replace the whole snapshot and update `lastSuccessUtc`. Errors preserve the last successful snapshot and timestamp.
+- Every completed attempt is recorded in the non-persistent rolling usage-history model described in `009-live-resource-history.md`; failed or missing metrics are recorded as gaps.
 - QML receives CPU usage, memory usage, CPU/SoC temperature, and uptime projections. The local card formats percentages as rounded integers, temperature as rounded Celsius, and uptime compactly. Missing values remain `—`.
 
 ## Non-goals

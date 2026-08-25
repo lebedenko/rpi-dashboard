@@ -139,6 +139,9 @@ Item {
             compare(findChild(card, "moreButton").enabled, false);
             verify(!!findChild(card, "resourceHistory"));
             verify(!!findChild(card, "historyGrid"));
+            verify(!!findChild(card, "resourceHistorySeries"));
+            compare(findChild(card, "cpuHistoryLegend").text, "CPU %");
+            compare(findChild(card, "memoryHistoryLegend").text, "MEM %");
             const history = findChild(card, "resourceHistory");
             compare(history.width >= 600, true);
             compare(history.x + history.width <= card.width, true);
@@ -151,6 +154,7 @@ Item {
             tryCompare(card, "expanded", false);
             compare(card.height, 64);
             tryCompare(card, "expandedContentLoaded", false);
+            tryVerify(() => findChild(card, "resourceHistorySeries") === null);
             compare(card.chevronAccessibleName, "Expand PI-DASH");
             chevron.forceActiveFocus();
             keyClick(Qt.Key_Space);
@@ -279,6 +283,20 @@ Item {
             keyClick(Qt.Key_F5);
             tryCompare(card.chevronButton, "activeFocus", true);
             fakeMetricsService.cpuUsageRatio = 0.995;
+            const series = findChild(card, "resourceHistorySeries");
+            compare(series.model, fakeMetricsService.usageHistoryModel);
+            fakeMetricsService.usageHistoryModel.append({"elapsedMilliseconds": 2000,
+                                                         "cpuUsageRatio": 0.995,
+                                                         "memoryUsageRatio": 0.68});
+            fakeMetricsService.usageHistoryModel.append({"elapsedMilliseconds": 3000,
+                                                         "memoryUsageRatio": 0.64});
+            fakeMetricsService.usageHistoryModel.append({"elapsedMilliseconds": 4000,
+                                                         "cpuUsageRatio": 0.73});
+            fakeMetricsService.usageHistoryModel.append({"elapsedMilliseconds": 5000,
+                                                         "cpuUsageRatio": 0.81,
+                                                         "memoryUsageRatio": 0.66});
+            compare(fakeMetricsService.usageHistoryModel.count, 5);
+            compare(findChild(card, "resourceHistorySeries"), series);
             tryCompare(card, "cpuMetric", "100%");
             tryCompare(card, "cpuUsageRatio", 0.995);
             compare(card.expanded, true);
@@ -405,6 +423,9 @@ Item {
             property double memoryUsageRatio: 0.68
             property double cpuTemperatureCelsius: 52.6
             property double uptimeSeconds: 93600
+            property ListModel usageHistoryModel: ListModel {
+                ListElement { elapsedMilliseconds: 0; cpuUsageRatio: 0.42; memoryUsageRatio: 0.68 }
+            }
             signal currentMetricsChanged()
             onCpuUsageRatioChanged: currentMetricsChanged()
             onMemoryUsageRatioChanged: currentMetricsChanged()

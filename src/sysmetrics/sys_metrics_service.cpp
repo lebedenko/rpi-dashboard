@@ -17,6 +17,7 @@ SysMetricsService::SysMetricsService(std::shared_ptr<SysMetricsCollector> collec
                                      QObject* parent)
     : QObject(parent), collector_(std::move(collector)) {
   Q_ASSERT(collector_);
+  elapsed_timer_.start();
   timer_.setInterval(qMax(1, sampling_interval_ms));
   connect(&timer_, &QTimer::timeout, this, &SysMetricsService::refresh);
   connect(&watcher_, &QFutureWatcherBase::finished, this, &SysMetricsService::collectionFinished);
@@ -41,6 +42,7 @@ QVariant SysMetricsService::memoryUsageRatio() const {
   return 1.0 - (static_cast<double>(*current_metrics_.memory.available_bytes) /
                 static_cast<double>(*current_metrics_.memory.total_bytes));
 }
+QAbstractItemModel* SysMetricsService::usageHistoryModel() { return &usage_history_model_; }
 void SysMetricsService::refresh() {
   if (state_ == State::Collecting) {
     refresh_pending_ = true;
@@ -52,6 +54,15 @@ void SysMetricsService::refresh() {
 }
 void SysMetricsService::collectionFinished() {
   SysMetricsCollectionResult result = watcher_.result();
+  const auto cpu_usage_ratio = result.metrics.cpu.usage_ratio;
+  std::optional<double> memory_usage_ratio;
+  if (result.metrics.memory.total_bytes && result.metrics.memory.available_bytes &&
+      *result.metrics.memory.total_bytes > 0 &&
+      *result.metrics.memory.available_bytes <= *result.metrics.memory.total_bytes) {
+    memory_usage_ratio = 1.0 - (static_cast<double>(*result.metrics.memory.available_bytes) /
+                                static_cast<double>(*result.metrics.memory.total_bytes));
+  }
+  usage_history_model_.appendSample(elapsed_timer_.elapsed(), cpu_usage_ratio, memory_usage_ratio);
   if (diagnostics_ != result.diagnostics) {
     diagnostics_ = std::move(result.diagnostics);
     emit diagnosticsChanged();

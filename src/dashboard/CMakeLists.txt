@@ -7,6 +7,9 @@ set_source_files_properties(qml/Theme.qml PROPERTIES
 qt_add_qml_module(holonight-dashboard-qml
     URI HoloNight.Dashboard
     OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/HoloNight/Dashboard
+    SOURCES
+        resource_history_series.cpp
+        resource_history_series.h
     QML_FILES
         qml/DashboardPage.qml
         qml/DeviceCard.qml
@@ -35,6 +38,7 @@ qt_add_qml_module(holonight-dashboard-qml
 
 target_link_libraries(holonight-dashboard-qml
     PRIVATE
+        Qt6::Qml
         Qt6::Quick
 )
 
