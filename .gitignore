@@ -25,6 +25,7 @@ cmake-build-*/
 /.cache/
 /.qt/
 /build/
+/profiler/runs/
 compile_commands.json
 
 # Project
