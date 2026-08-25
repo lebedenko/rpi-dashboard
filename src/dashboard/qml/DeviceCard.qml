@@ -274,7 +274,7 @@ Control {
                     Text {
                         anchors.left: parent.left; anchors.leftMargin: Theme.detailIconRailWidth + 10; anchors.top: parent.top
                         text: qsTr("DEVICE DETAILS"); textFormat: Text.PlainText; color: Theme.cardAccent
-                        font.family: Theme.fixedFontFamily; font.pixelSize: Theme.sectionTitleTextSize; font.weight: Theme.technicalFontWeight
+                        font.family: Theme.sansFontFamily; font.pixelSize: Theme.sectionTitleTextSize; font.weight: Theme.technicalFontWeight
                     }
                     Rectangle {
                         anchors.left: parent.left; anchors.top: parent.top; anchors.topMargin: Theme.detailHeaderHeight; anchors.bottom: parent.bottom
@@ -299,7 +299,7 @@ Control {
                     anchors.left: bodyDivider.right; anchors.leftMargin: Theme.sectionGap / 2; anchors.right: parent.right; anchors.top: parent.top; anchors.bottom: parent.bottom
                     Text {
                         anchors.left: parent.left; anchors.top: parent.top; text: qsTr("RESOURCE HISTORY"); textFormat: Text.PlainText; color: Theme.cardAccent
-                        font.family: Theme.fixedFontFamily; font.pixelSize: Theme.sectionTitleTextSize; font.weight: Theme.technicalFontWeight
+                        font.family: Theme.sansFontFamily; font.pixelSize: Theme.sectionTitleTextSize; font.weight: Theme.technicalFontWeight
                     }
                     Row {
                         anchors.right: parent.right; anchors.top: parent.top; spacing: 18
