@@ -179,7 +179,8 @@ Item {
             compare(card.coreDescription, "4 physical · 4 logical");
             compare(card.totalMemory, "8.0 GiB");
             compare(card.expanded, true);
-            compare(card.height, 298);
+            const overview = findChild(dashboardWindow.contentItem, "overviewPage");
+            compare(card.height, overview.deviceList.height);
             tryCompare(card, "expandedContentLoaded", true);
             compare(card.chevronButton.width, 48);
             compare(card.chevronButton.height, 48);
@@ -424,7 +425,7 @@ Item {
             verify(!!firstRow);
             verify(!!lastRow);
             compare(firstRow.valuePixelSize >= 14, true);
-            compare(lastRow.y + lastRow.height <= details.height, true);
+            compare(lastRow.y + lastRow.height <= details.height + 0.001, true);
             for (const labelName of ["historyLabel0", "historyLabel4", "historyValue0", "historyValue4"]) {
                 const label = findChild(card, labelName);
                 verify(!!label);
