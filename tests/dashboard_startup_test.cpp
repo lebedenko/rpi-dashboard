@@ -50,12 +50,20 @@ void DashboardStartupTest::
 
   const auto sidebarSurface = source.sliced(sidebarStart, contentStart - sidebarStart);
   QVERIFY2(!sidebarSurface.contains(QStringLiteral("border.")), "sidebar surface must not border physical edges");
+  QVERIFY(source.contains(QStringLiteral("id: sidebarBackground")));
+  QVERIFY(sidebarSurface.contains(QStringLiteral("fillColor: Theme.surface")));
+  QVERIFY(sidebarSurface.contains(QStringLiteral("startX: 0")));
+  QVERIFY(sidebarSurface.contains(QStringLiteral("PathLine { x: sidebarBackground.width - Theme.sidebarChamfer; y: 0 }")));
+  QVERIFY(sidebarSurface.contains(QStringLiteral("PathLine { x: sidebarBackground.width; y: Theme.sidebarChamfer }")));
+  QVERIFY(sidebarSurface.contains(QStringLiteral("PathLine { x: sidebarBackground.width; y: sidebarBackground.height }")));
+  QVERIFY(sidebarSurface.contains(QStringLiteral("PathLine { x: 0; y: sidebarBackground.height }")));
+  QVERIFY(sidebarSurface.contains(QStringLiteral("PathLine { x: 0; y: 0 }")));
   QVERIFY(source.contains(QStringLiteral("id: sidebarSeparator")));
   QVERIFY(sidebarSurface.contains(QStringLiteral("startX: sidebarSeparator.width - Theme.sidebarChamfer")));
   QVERIFY(sidebarSurface.contains(QStringLiteral("PathLine { x: sidebarSeparator.width; y: Theme.sidebarChamfer }")));
   QVERIFY(
       sidebarSurface.contains(QStringLiteral("PathLine { x: sidebarSeparator.width; y: sidebarSeparator.height }")));
-  QCOMPARE(sidebarSurface.count(QStringLiteral("PathLine")), 2);
+  QCOMPARE(sidebarSurface.count(QStringLiteral("PathLine")), 7);
 }
 
 void DashboardStartupTest::

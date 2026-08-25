@@ -181,12 +181,30 @@ ApplicationWindow {
         anchors.fill: parent
         spacing: 0
 
-        Rectangle {
+        Item {
             id: sidebarSurface
 
-            color: Theme.surface
             Layout.preferredWidth: Theme.sidebarWidth
             Layout.fillHeight: true
+
+            Shape {
+                id: sidebarBackground
+
+                anchors.fill: parent
+                Accessible.ignored: true
+
+                ShapePath {
+                    fillColor: Theme.surface
+                    strokeColor: "transparent"
+                    startX: 0
+                    startY: 0
+                    PathLine { x: sidebarBackground.width - Theme.sidebarChamfer; y: 0 }
+                    PathLine { x: sidebarBackground.width; y: Theme.sidebarChamfer }
+                    PathLine { x: sidebarBackground.width; y: sidebarBackground.height }
+                    PathLine { x: 0; y: sidebarBackground.height }
+                    PathLine { x: 0; y: 0 }
+                }
+            }
 
             Shape {
                 id: sidebarSeparator

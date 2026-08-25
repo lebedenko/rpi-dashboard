@@ -6,7 +6,7 @@ The dashboard sidebar should match the compact visual language of `docs/mockups/
 
 ## Functional requirements
 
-- The sidebar is an 88 logical-pixel-wide full-height surface.
+- The sidebar is an 88 logical-pixel-wide full-height surface whose background follows the 12-pixel top-right chamfer and does not paint beyond its separator boundary.
 - The sidebar contains no visible title or navigation labels. Each navigation button retains a translated accessible name.
 - Four 56×56 icon-only buttons are vertically centered with 16 px spacing. Their visible frames remain inside the 11 px display-safe inset.
 - Overview is selected at startup. Touch/click selection, tab focus, Left, Right, Home, and F5 behavior remain unchanged.
@@ -24,6 +24,7 @@ The dashboard sidebar should match the compact visual language of `docs/mockups/
 - SVG decoding is an explicit build and deployment dependency, and startup emits no icon decoding errors.
 - The fixed navigation buttons are instantiated directly without dynamic loaders or intermediary binding objects.
 - Each button exposes its translated page name to accessibility and activates the corresponding page.
+- The sidebar background ends at the top-right chamfer; pixels above the diagonal remain the dashboard background.
 - The separator consists only of the top-right chamfer and internal vertical edge.
 - The focused startup test, `task test`, and `task check` pass.
 - At 1480×320 and on the physical display, button frames are unobscured and all interaction states and navigation paths are distinct and functional.
