@@ -73,6 +73,26 @@ Item {
             compare(dashboardWindow.visibility, Window.Windowed);
         }
 
+        function test_vibrantPaletteUsesSpecifiedSemanticColors() {
+            compare(Theme.background, "#020a13");
+            compare(Theme.surface, "#061321");
+            compare(Theme.surfaceElevated, "#0a1a2b");
+            compare(Theme.surfaceRaised, "#10283c");
+            compare(Theme.cardSurface, "#041321");
+            compare(Theme.selectedSurface, "#09283c");
+            compare(Theme.textPrimary, "#f2f7fc");
+            compare(Theme.textSecondary, "#b7c7d9");
+            compare(Theme.textMuted, "#8295ac");
+            compare(Theme.chartText, Theme.textMuted);
+            compare(Theme.primaryAccent, "#19d3f3");
+            compare(Theme.focusAccent, "#5de7ff");
+            compare(Theme.cardAccent, "#20d4f7");
+            compare(Theme.cpuSeries, "#36b9ff");
+            compare(Theme.memorySeries, "#a66cff");
+            compare(Theme.onlineStatus, "#50f0a0");
+            compare(dashboardWindow.color, Theme.background);
+        }
+
         function test_pageSelectionAndBoundedNavigation() {
             compare(dashboardWindow.currentPageIndex, 0);
             keyClick(Qt.Key_Left);

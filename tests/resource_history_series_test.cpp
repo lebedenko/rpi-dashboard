@@ -18,6 +18,7 @@ class ResourceHistorySeriesTest : public QObject {
   Q_OBJECT
 
  private slots:
+  void defaultsMatchDashboardTheme();
   void irregularFrontRemovalPreservesVisiblePrefixAndPredecessor();
   void advancingTimestampAnimatesWindow();
   void smoothstepInterpolationIsDeterministic();
@@ -30,6 +31,13 @@ class ResourceHistorySeriesTest : public QObject {
 };
 
 // NOLINTBEGIN(readability-convert-member-functions-to-static) Qt invokes test slots as members.
+void ResourceHistorySeriesTest::defaultsMatchDashboardTheme() {
+  const ResourceHistorySeries series;
+  QCOMPARE(series.cpuColor(), QColor(QStringLiteral("#36B9FF")));
+  QCOMPARE(series.memoryColor(), QColor(QStringLiteral("#A66CFF")));
+  QCOMPARE(series.plotBackgroundColor(), QColor(QStringLiteral("#041321")));
+}
+
 void ResourceHistorySeriesTest::irregularFrontRemovalPreservesVisiblePrefixAndPredecessor() {
   sysmetrics::SystemMetricHistoryModel model;
   ResourceHistorySeries series;

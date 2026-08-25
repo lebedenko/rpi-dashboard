@@ -63,9 +63,9 @@ class ResourceHistorySeries : public QQuickItem {
   void cacheModel(bool animate);
   QPointer<QAbstractItemModel> model_;
   Snapshot snapshot_;
-  QColor cpu_color_{QStringLiteral("#35A7FF")};
-  QColor memory_color_{QStringLiteral("#A875F5")};
-  QColor plot_background_color_{QStringLiteral("#0E1823")};
+  QColor cpu_color_{QStringLiteral("#36B9FF")};
+  QColor memory_color_{QStringLiteral("#A66CFF")};
+  QColor plot_background_color_{QStringLiteral("#041321")};
   int transition_duration_{350};
   qreal window_start_milliseconds_{};
   qreal window_current_milliseconds_{};

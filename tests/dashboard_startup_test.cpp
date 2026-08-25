@@ -10,6 +10,7 @@ class DashboardStartupTest : public QObject {
   void sidebarDrawsInsetClosedBorder();
   void sidebarButtonExposesInteractionStates();
   void sidebarIconsAreTintableSvgResources();
+  void iconFallbackColorsMatchThemeRoles();
   void declaresAndUsesTypographyRoles();
   void deviceCardSourcesAndChevronArePackaged();
   void initializesQmlAndKeepsRunning();
@@ -127,6 +128,30 @@ void DashboardStartupTest::
   QVERIFY2(mainQml.open(QIODevice::ReadOnly | QIODevice::Text), qPrintable(mainQml.errorString()));
   const auto mainSource = QString::fromUtf8(mainQml.readAll());
   QCOMPARE(mainSource.count(QStringLiteral("iconSource: Qt.resolvedUrl(\"icons/")), 4);
+}
+
+void DashboardStartupTest::
+    iconFallbackColorsMatchThemeRoles() {  // NOLINT(readability-convert-member-functions-to-static)
+  const auto verifyIconsContain = [](const QStringList& icon_names, const QString& expected_color) {
+    for (const auto& icon_name : icon_names) {
+      QFile icon(QStringLiteral(DASHBOARD_ICON_DIRECTORY) + QLatin1Char('/') + icon_name);
+      QVERIFY2(icon.open(QIODevice::ReadOnly | QIODevice::Text), qPrintable(icon.errorString()));
+      const auto source = QString::fromUtf8(icon.readAll());
+      QVERIFY2(source.contains(expected_color), qPrintable(icon_name));
+    }
+  };
+
+  verifyIconsContain({QStringLiteral("overview.svg"), QStringLiteral("systems.svg"), QStringLiteral("projects.svg"),
+                      QStringLiteral("weather.svg")},
+                     QStringLiteral("#F2F7FC"));
+  verifyIconsContain(
+      {QStringLiteral("detail-arch.svg"), QStringLiteral("detail-cores.svg"), QStringLiteral("detail-cpu.svg"),
+       QStringLiteral("detail-hardware.svg"), QStringLiteral("detail-kernel.svg"), QStringLiteral("detail-memory.svg"),
+       QStringLiteral("detail-os.svg")},
+      QStringLiteral("#20D4F7"));
+  verifyIconsContain({QStringLiteral("check.svg")}, QStringLiteral("#D5F7FF"));
+  verifyIconsContain({QStringLiteral("streams.svg"), QStringLiteral("terminal.svg"), QStringLiteral("more.svg")},
+                     QStringLiteral("#91A5BB"));
 }
 
 void DashboardStartupTest::declaresAndUsesTypographyRoles() {  // NOLINT(readability-convert-member-functions-to-static)
