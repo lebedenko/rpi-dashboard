@@ -11,6 +11,7 @@ class DashboardStartupTest : public QObject {
   void sidebarButtonExposesInteractionStates();
   void sidebarIconsAreTintableSvgResources();
   void declaresAndUsesTypographyRoles();
+  void deviceCardSourcesAndChevronArePackaged();
   void initializesQmlAndKeepsRunning();
 };
 
@@ -32,12 +33,12 @@ void DashboardStartupTest::sidebarUsesIconOnlySafeLayout() {  // NOLINT(readabil
   QVERIFY(!source.contains(QStringLiteral("delegate: Loader")));
   QVERIFY(!source.contains(QStringLiteral("qsTr(\"Dashboard\")")));
   QVERIFY(!source.contains(QStringLiteral("Binding {")));
-  QVERIFY(!source.contains(QStringLiteral("Connections {")));
   QVERIFY(source.contains(QStringLiteral("tooltipText: qsTr(\"Overview\")")));
   QVERIFY(source.contains(QStringLiteral("onClicked: pageStack.currentIndex = 0")));
 }
 
-void DashboardStartupTest::sidebarDrawsOnlyChamferedInternalSeparator() {  // NOLINT(readability-convert-member-functions-to-static)
+void DashboardStartupTest::
+    sidebarDrawsOnlyChamferedInternalSeparator() {  // NOLINT(readability-convert-member-functions-to-static)
   QFile mainQml(QStringLiteral(DASHBOARD_MAIN_QML));
   QVERIFY2(mainQml.open(QIODevice::ReadOnly | QIODevice::Text), qPrintable(mainQml.errorString()));
   const auto source = QString::fromUtf8(mainQml.readAll());
@@ -52,11 +53,13 @@ void DashboardStartupTest::sidebarDrawsOnlyChamferedInternalSeparator() {  // NO
   QVERIFY(source.contains(QStringLiteral("id: sidebarSeparator")));
   QVERIFY(sidebarSurface.contains(QStringLiteral("startX: sidebarSeparator.width - Theme.sidebarChamfer")));
   QVERIFY(sidebarSurface.contains(QStringLiteral("PathLine { x: sidebarSeparator.width; y: Theme.sidebarChamfer }")));
-  QVERIFY(sidebarSurface.contains(QStringLiteral("PathLine { x: sidebarSeparator.width; y: sidebarSeparator.height }")));
+  QVERIFY(
+      sidebarSurface.contains(QStringLiteral("PathLine { x: sidebarSeparator.width; y: sidebarSeparator.height }")));
   QCOMPARE(sidebarSurface.count(QStringLiteral("PathLine")), 2);
 }
 
-void DashboardStartupTest::sidebarButtonExposesInteractionStates() {  // NOLINT(readability-convert-member-functions-to-static)
+void DashboardStartupTest::
+    sidebarButtonExposesInteractionStates() {  // NOLINT(readability-convert-member-functions-to-static)
   QFile buttonQml(QStringLiteral(DASHBOARD_SIDEBAR_BUTTON_QML));
   QVERIFY2(buttonQml.open(QIODevice::ReadOnly | QIODevice::Text), qPrintable(buttonQml.errorString()));
   const auto source = QString::fromUtf8(buttonQml.readAll());
@@ -77,10 +80,11 @@ void DashboardStartupTest::sidebarButtonExposesInteractionStates() {  // NOLINT(
   QCOMPARE(source.count(QStringLiteral("PathLine")), 6);
 }
 
-void DashboardStartupTest::sidebarIconsAreTintableSvgResources() {  // NOLINT(readability-convert-member-functions-to-static)
+void DashboardStartupTest::
+    sidebarIconsAreTintableSvgResources() {  // NOLINT(readability-convert-member-functions-to-static)
   const QStringList iconNames = {QStringLiteral("overview.svg"), QStringLiteral("systems.svg"),
                                  QStringLiteral("projects.svg"), QStringLiteral("weather.svg")};
-  for (const auto &iconName : iconNames) {
+  for (const auto& iconName : iconNames) {
     QFile icon(QStringLiteral(DASHBOARD_ICON_DIRECTORY) + QLatin1Char('/') + iconName);
     QVERIFY2(icon.open(QIODevice::ReadOnly | QIODevice::Text), qPrintable(icon.errorString()));
     const auto source = QString::fromUtf8(icon.readAll());
@@ -126,6 +130,31 @@ void DashboardStartupTest::declaresAndUsesTypographyRoles() {  // NOLINT(readabi
   QCOMPARE(pageSource.count(QStringLiteral("font.family: Theme.sansFontFamily")), 2);
   QVERIFY(pageSource.contains(QStringLiteral("font.weight: Theme.headingFontWeight")));
   QVERIFY(pageSource.contains(QStringLiteral("font.weight: Theme.informationFontWeight")));
+}
+
+void DashboardStartupTest::
+    deviceCardSourcesAndChevronArePackaged() {  // NOLINT(readability-convert-member-functions-to-static)
+  for (const auto& path : {QStringLiteral(DASHBOARD_DEVICE_CARD_QML), QStringLiteral(DASHBOARD_OVERVIEW_PAGE_QML)}) {
+    QFile source(path);
+    QVERIFY2(source.open(QIODevice::ReadOnly | QIODevice::Text), qPrintable(source.errorString()));
+    const auto contents = QString::fromUtf8(source.readAll());
+    QVERIFY(!contents.isEmpty());
+  }
+
+  QFile deviceCard(QStringLiteral(DASHBOARD_DEVICE_CARD_QML));
+  QVERIFY2(deviceCard.open(QIODevice::ReadOnly | QIODevice::Text), qPrintable(deviceCard.errorString()));
+  const auto cardSource = QString::fromUtf8(deviceCard.readAll());
+  QVERIFY(cardSource.contains(QStringLiteral("Loader {")));
+  QVERIFY(cardSource.contains(QStringLiteral("active: root.expanded")));
+  QVERIFY(!cardSource.contains(QStringLiteral("Timer {")));
+  QVERIFY(!cardSource.contains(QStringLiteral("Behavior on height")));
+
+  QFile chevron(QStringLiteral(DASHBOARD_ICON_DIRECTORY) + QStringLiteral("/chevron.svg"));
+  QVERIFY2(chevron.open(QIODevice::ReadOnly | QIODevice::Text), qPrintable(chevron.errorString()));
+  const auto chevronSource = QString::fromUtf8(chevron.readAll());
+  QVERIFY(chevronSource.contains(QStringLiteral("viewBox=\"0 0 24 24\"")));
+  QVERIFY(chevronSource.contains(QStringLiteral("stroke-width=\"2\"")));
+  QVERIFY(!chevronSource.contains(QStringLiteral("#000")));
 }
 
 void DashboardStartupTest::initializesQmlAndKeepsRunning() {  // NOLINT(readability-convert-member-functions-to-static)

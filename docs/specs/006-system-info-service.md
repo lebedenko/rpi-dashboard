@@ -46,6 +46,8 @@ sentinels, zero counts, and zero byte values are absent rather than published.
   baseline field, and `Error` when collection yields no usable value.
 - Ready and partial results replace the complete current snapshot and update the last-success UTC timestamp. A total
   failure preserves the previous successful snapshot and timestamp while replacing diagnostics.
+- The service exposes QML-bindable scalar projections for the Overview device card. Optional fields remain invalid
+  variants when absent; presentation formatting stays in QML.
 
 ## Privacy exclusions
 
@@ -56,7 +58,7 @@ virtualization status.
 ## Non-goals
 
 - No JSON or UDP representation and no change to `DeviceSnapshot` protocol version.
-- No QML registration or presentation.
+- No direct QML type registration or presentation logic in the service.
 - No remote collection, registry integration, periodic sampling, or freshness policy.
 - No macOS production collector in this slice.
 

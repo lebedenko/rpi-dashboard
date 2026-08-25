@@ -38,11 +38,12 @@ int main(int argc, char* argv[]) {
     parser.showHelp(EXIT_FAILURE);
   }
 
-  QQmlApplicationEngine engine;
   dashboard::sysinfo::SysInfoService sys_info_service(std::make_shared<dashboard::sysinfo::LinuxSysInfoCollector>());
+  QQmlApplicationEngine engine;
   engine.setInitialProperties({{QStringLiteral("windowed"), parser.isSet(windowedOption)},
                                {QStringLiteral("windowWidth"), windowWidth},
-                               {QStringLiteral("windowHeight"), windowHeight}});
+                               {QStringLiteral("windowHeight"), windowHeight},
+                               {QStringLiteral("sysInfoService"), QVariant::fromValue(&sys_info_service)}});
   QObject::connect(
       &engine, &QQmlApplicationEngine::objectCreationFailed, &application, [] { QCoreApplication::exit(EXIT_FAILURE); },
       Qt::QueuedConnection);

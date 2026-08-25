@@ -6,6 +6,13 @@
 
 namespace dashboard::sysinfo {
 
+namespace {
+template <typename T>
+QVariant optionalVariant(const std::optional<T>& value) {
+  return value ? QVariant::fromValue(*value) : QVariant{};
+}
+}  // namespace
+
 SysInfoService::SysInfoService(std::shared_ptr<const SysInfoCollector> collector, QObject* parent)
     : QObject(parent), collector_(std::move(collector)) {
   Q_ASSERT(collector_);
@@ -20,6 +27,22 @@ protocol::SystemInfo SysInfoService::currentInfo() const { return current_info_;
 QDateTime SysInfoService::lastSuccessUtc() const { return last_success_utc_; }
 
 QStringList SysInfoService::diagnostics() const { return diagnostics_; }
+
+QVariant SysInfoService::hostname() const { return optionalVariant(current_info_.host.host_name); }
+QVariant SysInfoService::osFamily() const { return optionalVariant(current_info_.os.os_family); }
+QVariant SysInfoService::osId() const { return optionalVariant(current_info_.os.os_id); }
+QVariant SysInfoService::osVersion() const { return optionalVariant(current_info_.os.os_version); }
+QVariant SysInfoService::osPrettyName() const { return optionalVariant(current_info_.os.os_pretty_name); }
+QVariant SysInfoService::kernelType() const { return optionalVariant(current_info_.kernel.kernel_type); }
+QVariant SysInfoService::kernelVersion() const { return optionalVariant(current_info_.kernel.kernel_version); }
+QVariant SysInfoService::architecture() const { return optionalVariant(current_info_.cpu.architecture); }
+QVariant SysInfoService::hardwareManufacturer() const { return optionalVariant(current_info_.hardware.manufacturer); }
+QVariant SysInfoService::hardwareModel() const { return optionalVariant(current_info_.hardware.model); }
+QVariant SysInfoService::cpuVendor() const { return optionalVariant(current_info_.cpu.vendor); }
+QVariant SysInfoService::cpuModel() const { return optionalVariant(current_info_.cpu.model); }
+QVariant SysInfoService::physicalCoreCount() const { return optionalVariant(current_info_.cpu.physical_core_count); }
+QVariant SysInfoService::logicalCpuCount() const { return optionalVariant(current_info_.cpu.logical_cpu_count); }
+QVariant SysInfoService::totalMemoryBytes() const { return optionalVariant(current_info_.memory.total_bytes); }
 
 void SysInfoService::refresh() {
   if (state_ == State::Collecting) {

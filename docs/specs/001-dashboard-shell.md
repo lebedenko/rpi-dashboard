@@ -10,9 +10,9 @@ The Raspberry Pi dashboard needs a complete kiosk runtime chain from a local TTY
 - A fixed 88-pixel icon-only sidebar selects Overview, Systems, Projects, and Weather.
 - Navigation controls expose selected and keyboard-focus states, provide accessible names, and use 56×56 logical-pixel touch targets.
 - Pages cannot be changed by swiping.
-- Every page shows a translated heading and a centered `Not implemented yet` empty state.
+- Overview shows the collapsible local-device card; Systems, Projects, and Weather show a translated heading and centered `Not implemented yet` empty state.
 - Left and Right select the adjacent page without wrapping, and Home selects Overview.
-- F5 focuses the current empty state without changing pages or claiming that data was refreshed.
+- F5 focuses the Overview card chevron or the current empty state on other pages without changing pages or claiming that data was refreshed.
 - Failure to create the root QML object terminates the dashboard with a nonzero status.
 - The TTY launcher starts Cage without decorations and with VT switching enabled for manual recovery, explicitly selects Qt Wayland, and leaves startup diagnostics visible on stderr.
 - The Cage session configures `HDMI-A-1` with the hardware-validated wlroots transform `270` before starting the dashboard.
@@ -25,7 +25,7 @@ The Raspberry Pi dashboard needs a complete kiosk runtime chain from a local TTY
 - The dashboard starts through Cage from a local TTY, transforms the panel's native 320×1480 mode with wlroots transform `270`, and fills the resulting logical 1480×320 display without stretching or rectangular-edge clipping.
 - Touching each sidebar entry selects its corresponding page.
 - Left, Right, Home, and F5 behave as specified, including visible keyboard focus.
-- Overview, Systems, Projects, and Weather each display `Not implemented yet`.
+- Overview displays the local-device card; Systems, Projects, and Weather display `Not implemented yet`.
 - Missing Cage, missing `wlr-randr`, failed output configuration, a missing dashboard executable, or root-QML initialization failure returns a nonzero status with a diagnostic visible on the TTY.
 - The launcher preserves an explicitly supplied dashboard path, passes it through the Cage session helper, and propagates the session's exit status.
 

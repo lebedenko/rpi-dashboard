@@ -10,13 +10,15 @@ ApplicationWindow {
     property bool windowed: false
     property int windowWidth: 1480
     property int windowHeight: 320
+    property var sysInfoService: null
     readonly property alias currentPageIndex: pageStack.currentIndex
-    readonly property bool currentPageHasFocus: root.currentPlaceholder.activeFocus
+    readonly property bool currentPageHasFocus: root.currentFocusTarget ? root.currentFocusTarget.activeFocus : false
 
-    readonly property var currentPlaceholder: pageStack.currentIndex === 0 ? overviewPage.placeholder
+    readonly property var currentFocusTarget: pageStack.currentIndex === 0 ? overviewPage.focusTarget
                                                : pageStack.currentIndex === 1 ? systemsPage.placeholder
                                                : pageStack.currentIndex === 2 ? projectsPage.placeholder
                                                : weatherPage.placeholder
+    readonly property alias localDeviceModel: localDevices
 
     width: root.windowWidth
     height: root.windowHeight
@@ -32,10 +34,99 @@ ApplicationWindow {
         pageStack.currentIndex = Math.min(pageStack.count - 1, pageStack.currentIndex + 1)
     }
 
+    function isAvailable(value): bool {
+        return value !== undefined && value !== null && String(value).length > 0
+    }
+
+    function valueOrPlaceholder(value): string {
+        return root.isAvailable(value) ? String(value) : "—"
+    }
+
+    function combine(first, second): string {
+        const values = [first, second].filter(value => root.isAvailable(value))
+        return values.length > 0 ? values.join(" · ") : "—"
+    }
+
+    function formatCores(physical, logical): string {
+        if (root.isAvailable(physical) && root.isAvailable(logical))
+            return qsTr("%1 physical · %2 logical").arg(physical).arg(logical)
+        if (root.isAvailable(logical))
+            return qsTr("%1 logical").arg(logical)
+        if (root.isAvailable(physical))
+            return qsTr("%1 physical").arg(physical)
+        return "—"
+    }
+
+    function formatBytes(bytes): string {
+        if (!root.isAvailable(bytes))
+            return "—"
+        return qsTr("%1 GiB").arg((Number(bytes) / 1073741824).toFixed(1))
+    }
+
+    function refreshLocalDevice(): void {
+        const service = root.sysInfoService
+        localDevices.setProperty(0, "hostname", root.valueOrPlaceholder(service ? service.hostname : undefined).toUpperCase())
+        localDevices.setProperty(0, "osDescription", root.combine(service ? service.osPrettyName : undefined,
+                                                                  service ? service.osVersion : undefined))
+        localDevices.setProperty(0, "kernelDescription", root.combine(service ? service.kernelType : undefined,
+                                                                      service ? service.kernelVersion : undefined))
+        localDevices.setProperty(0, "architecture", root.valueOrPlaceholder(service ? service.architecture : undefined))
+        localDevices.setProperty(0, "hardwareDescription", root.combine(service ? service.hardwareManufacturer : undefined,
+                                                                        service ? service.hardwareModel : undefined))
+        localDevices.setProperty(0, "cpuDescription", root.combine(service ? service.cpuVendor : undefined,
+                                                                   service ? service.cpuModel : undefined))
+        localDevices.setProperty(0, "coreDescription", root.formatCores(service ? service.physicalCoreCount : undefined,
+                                                                        service ? service.logicalCpuCount : undefined))
+        localDevices.setProperty(0, "totalMemory", root.formatBytes(service ? service.totalMemoryBytes : undefined))
+    }
+
+    ListModel {
+        id: localDevices
+        ListElement {
+            deviceNumber: "01"
+            hostname: "—"
+            online: true
+            selected: true
+            cpuMetric: "—"
+            memoryMetric: "—"
+            temperatureMetric: "—"
+            uptimeMetric: "—"
+            osDescription: "—"
+            kernelDescription: "—"
+            architecture: "—"
+            hardwareDescription: "—"
+            cpuDescription: "—"
+            coreDescription: "—"
+            totalMemory: "—"
+        }
+    }
+
+    Connections {
+        target: root.sysInfoService
+        ignoreUnknownSignals: true
+        function onHostnameChanged(): void { root.refreshLocalDevice() }
+        function onOsFamilyChanged(): void { root.refreshLocalDevice() }
+        function onOsIdChanged(): void { root.refreshLocalDevice() }
+        function onOsVersionChanged(): void { root.refreshLocalDevice() }
+        function onOsPrettyNameChanged(): void { root.refreshLocalDevice() }
+        function onKernelTypeChanged(): void { root.refreshLocalDevice() }
+        function onKernelVersionChanged(): void { root.refreshLocalDevice() }
+        function onArchitectureChanged(): void { root.refreshLocalDevice() }
+        function onHardwareManufacturerChanged(): void { root.refreshLocalDevice() }
+        function onHardwareModelChanged(): void { root.refreshLocalDevice() }
+        function onCpuVendorChanged(): void { root.refreshLocalDevice() }
+        function onCpuModelChanged(): void { root.refreshLocalDevice() }
+        function onPhysicalCoreCountChanged(): void { root.refreshLocalDevice() }
+        function onLogicalCpuCountChanged(): void { root.refreshLocalDevice() }
+        function onTotalMemoryBytesChanged(): void { root.refreshLocalDevice() }
+    }
+
+    Component.onCompleted: root.refreshLocalDevice()
+
     Shortcut { sequence: "Home"; onActivated: pageStack.currentIndex = 0 }
     Shortcut { sequence: "Left"; onActivated: root.selectPreviousPage() }
     Shortcut { sequence: "Right"; onActivated: root.selectNextPage() }
-    Shortcut { sequence: "F5"; onActivated: root.currentPlaceholder.forceActiveFocus() }
+    Shortcut { sequence: "F5"; onActivated: { if (root.currentFocusTarget) root.currentFocusTarget.forceActiveFocus() } }
 
     RowLayout {
         anchors.fill: parent
@@ -120,7 +211,7 @@ ApplicationWindow {
             Layout.fillWidth: true
             Layout.fillHeight: true
 
-            DashboardPage { id: overviewPage; objectName: "overviewPage"; heading: qsTr("Overview") }
+            OverviewPage { id: overviewPage; objectName: "overviewPage"; deviceModel: root.localDeviceModel }
             DashboardPage { id: systemsPage; objectName: "systemsPage"; heading: qsTr("Systems") }
             DashboardPage { id: projectsPage; objectName: "projectsPage"; heading: qsTr("Projects") }
             DashboardPage { id: weatherPage; objectName: "weatherPage"; heading: qsTr("Weather") }

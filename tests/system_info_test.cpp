@@ -101,6 +101,8 @@ class SystemInfoTest : public QObject {
   void doesNotLeakSensitiveCpuInfo();
   void serviceCollectsAtStartupAndCoalescesRefresh();
   void serviceReportsPartialResult();
+  void serviceProjectsCompleteSnapshot();
+  void serviceProjectsMissingFieldsAsInvalidVariants();
   void servicePreservesLastSuccessAfterFailure();
 };
 
@@ -206,6 +208,49 @@ void SystemInfoTest::serviceReportsPartialResult() {
   QTRY_COMPARE_WITH_TIMEOUT(service.state(), SysInfoService::State::Partial, 2000);
   QVERIFY(service.lastSuccessUtc().isValid());
   QCOMPARE(service.currentInfo().os.os_family, QStringLiteral("linux"));
+}
+
+void SystemInfoTest::serviceProjectsCompleteSnapshot() {  // NOLINT(readability-convert-member-functions-to-static)
+  SystemInfo info = completeInfo();
+  info.hardware.manufacturer = QStringLiteral("Acme");
+  info.hardware.model = QStringLiteral("Board");
+  info.cpu.vendor = QStringLiteral("Vendor");
+  info.cpu.model = QStringLiteral("Processor");
+  info.cpu.physical_core_count = 2;
+  auto collector = std::make_shared<SequenceCollector>(QList<SysInfoCollectionResult>{{.info = info}});
+  SysInfoService service(collector);
+
+  QTRY_COMPARE_WITH_TIMEOUT(service.state(), SysInfoService::State::Ready, 2000);
+  QCOMPARE(service.hostname(), QVariant(QStringLiteral("dashboard")));
+  QCOMPARE(service.osFamily(), QVariant(QStringLiteral("linux")));
+  QCOMPARE(service.osId(), QVariant(QStringLiteral("debian")));
+  QCOMPARE(service.osVersion(), QVariant(QStringLiteral("13")));
+  QCOMPARE(service.osPrettyName(), QVariant(QStringLiteral("Debian GNU/Linux 13")));
+  QCOMPARE(service.kernelType(), QVariant(QStringLiteral("linux")));
+  QCOMPARE(service.kernelVersion(), QVariant(QStringLiteral("6.12.34+rpt-rpi-2712")));
+  QCOMPARE(service.architecture(), QVariant(QStringLiteral("x86_64")));
+  QCOMPARE(service.hardwareManufacturer(), QVariant(QStringLiteral("Acme")));
+  QCOMPARE(service.hardwareModel(), QVariant(QStringLiteral("Board")));
+  QCOMPARE(service.cpuVendor(), QVariant(QStringLiteral("Vendor")));
+  QCOMPARE(service.cpuModel(), QVariant(QStringLiteral("Processor")));
+  QCOMPARE(service.physicalCoreCount(), QVariant::fromValue<quint32>(2));
+  QCOMPARE(service.logicalCpuCount(), QVariant::fromValue<quint32>(4));
+  QCOMPARE(service.totalMemoryBytes(), QVariant::fromValue<quint64>(16'777'216'000ULL));
+}
+
+void SystemInfoTest::
+    serviceProjectsMissingFieldsAsInvalidVariants() {  // NOLINT(readability-convert-member-functions-to-static)
+  SystemInfo partial;
+  partial.os.os_family = QStringLiteral("linux");
+  auto collector = std::make_shared<SequenceCollector>(QList<SysInfoCollectionResult>{{.info = partial}});
+  SysInfoService service(collector);
+
+  QTRY_COMPARE_WITH_TIMEOUT(service.state(), SysInfoService::State::Partial, 2000);
+  QCOMPARE(service.osFamily(), QVariant(QStringLiteral("linux")));
+  QVERIFY(!service.hostname().isValid());
+  QVERIFY(!service.hardwareModel().isValid());
+  QVERIFY(!service.physicalCoreCount().isValid());
+  QVERIFY(!service.totalMemoryBytes().isValid());
 }
 
 // NOLINTNEXTLINE(readability-convert-member-functions-to-static)

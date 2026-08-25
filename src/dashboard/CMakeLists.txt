@@ -9,13 +9,27 @@ qt_add_qml_module(holonight-dashboard-qml
     OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/HoloNight/Dashboard
     QML_FILES
         qml/DashboardPage.qml
+        qml/DeviceCard.qml
         qml/Main.qml
+        qml/OverviewPage.qml
         qml/Theme.qml
         qml/SidebarButton.qml
     RESOURCES
+        qml/icons/chevron.svg
+        qml/icons/check.svg
+        qml/icons/detail-arch.svg
+        qml/icons/detail-cores.svg
+        qml/icons/detail-cpu.svg
+        qml/icons/detail-hardware.svg
+        qml/icons/detail-kernel.svg
+        qml/icons/detail-memory.svg
+        qml/icons/detail-os.svg
+        qml/icons/more.svg
         qml/icons/overview.svg
         qml/icons/projects.svg
         qml/icons/systems.svg
+        qml/icons/streams.svg
+        qml/icons/terminal.svg
         qml/icons/weather.svg
 )
 
