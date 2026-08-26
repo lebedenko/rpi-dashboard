@@ -43,11 +43,13 @@ configured GitHub user or organization.
   tracked-project CI health, and reports unique online/total self-hosted runners only when every
   required runner request succeeds; otherwise it shows `— RUNNERS`.
 - Requests time out independently after 10 seconds with at most four in flight. Authenticated data
-  refreshes every five minutes. Anonymous polling is calculated to remain within 50 requests/hour
-  and is never faster than 15 minutes.
-- Rate-limit reset and `Retry-After` responses delay polling. Conditional responses are used where
-  available. A failed refresh retains the last successful snapshot, marks it stale, and exposes the
-  last-success UTC time and a concise diagnostic.
+  refreshes every minute. Anonymous polling is calculated from the requests made during repository
+  discovery and run loading to remain within 50 requests/hour and is never faster than 15 minutes.
+- `Retry-After` delays polling only for `403` and `429` responses. `X-RateLimit-Reset` delays polling
+  only when `X-RateLimit-Remaining` is zero. The normal authenticated or anonymous interval is
+  restored after every successful refresh. Conditional responses are used where available. A
+  failed refresh retains the last successful snapshot, marks it stale, and exposes the last-success
+  UTC time and a concise diagnostic.
 - All custom controls expose accessible roles/names, touch targets are at least 48 logical pixels,
   and visible strings are translatable.
 
@@ -57,5 +59,6 @@ configured GitHub user or organization.
 - No stage-detail or pipeline-history page, log viewer, retry, deploy, terminal, edit, or overflow
   actions.
 - No additional CI provider.
+- No settings UI or configurable polling interval.
 - No inferred external-service uptime, generic coverage, or compiler-warning totals.
 - Runner availability is best-effort and never affects repository health.

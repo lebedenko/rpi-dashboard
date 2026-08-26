@@ -10,7 +10,9 @@
 using dashboard::projects::Health;
 using dashboard::projects::healthForRun;
 using dashboard::projects::loadGitHubCredential;
+using dashboard::projects::pollIntervalMs;
 using dashboard::projects::ProjectsListModel;
+using dashboard::projects::rateLimitBackoffMs;
 using dashboard::projects::shouldReadReplyBody;
 
 class ProjectsServiceTest : public QObject {
@@ -22,6 +24,13 @@ class ProjectsServiceTest : public QObject {
   void marksOldSuccessStale();
   void listModelPublishesProviderNeutralRoles();
   void failedNetworkReplyIsNotRead();
+  void authenticatedPollingUsesOneMinuteBaseline();
+  void anonymousPollingUsesMeasuredRequestCount_data();  // NOLINT(readability-identifier-naming)
+  void anonymousPollingUsesMeasuredRequestCount();
+  void ignoresInapplicableRateLimitHeaders_data();  // NOLINT(readability-identifier-naming)
+  void ignoresInapplicableRateLimitHeaders();
+  void appliesRateLimitBackoff_data();  // NOLINT(readability-identifier-naming)
+  void appliesRateLimitBackoff();
   void loadsEnvironmentCredentialWhenFileIsNotConfigured();
   void fileCredentialTakesPrecedenceAndRemovesNewlines();
   void invalidFileCredentialFallsBackAnonymously_data();  // NOLINT(readability-identifier-naming)
@@ -77,6 +86,73 @@ void ProjectsServiceTest::failedNetworkReplyIsNotRead() {  // NOLINT(readability
   QVERIFY(!shouldReadReplyBody(QNetworkReply::ConnectionRefusedError, 0, false));
   QVERIFY(!shouldReadReplyBody(QNetworkReply::NoError, 304, true));
   QVERIFY(shouldReadReplyBody(QNetworkReply::NoError, 200, false));
+}
+
+void ProjectsServiceTest::
+    authenticatedPollingUsesOneMinuteBaseline() {  // NOLINT(readability-convert-member-functions-to-static)
+  QCOMPARE(pollIntervalMs(true, 200), 60'000);
+}
+
+void ProjectsServiceTest::
+    anonymousPollingUsesMeasuredRequestCount_data() {  // NOLINT(readability-identifier-naming,readability-convert-member-functions-to-static)
+  QTest::addColumn<int>("requestCount");
+  QTest::addColumn<int>("expectedIntervalMs");
+  QTest::newRow("minimum") << 1 << 15 * 60'000;
+  QTest::newRow("floor-boundary") << 12 << 15 * 60'000;
+  QTest::newRow("above-floor") << 13 << 936'000;
+  QTest::newRow("larger-refresh") << 50 << 60 * 60'000;
+}
+
+void ProjectsServiceTest::
+    anonymousPollingUsesMeasuredRequestCount() {  // NOLINT(readability-convert-member-functions-to-static)
+  QFETCH(int, requestCount);
+  QFETCH(int, expectedIntervalMs);
+  const auto interval = pollIntervalMs(false, requestCount);
+  QCOMPARE(interval, expectedIntervalMs);
+  QVERIFY(interval >= 15 * 60'000);
+  QVERIFY(static_cast<qint64>(requestCount) * 60 * 60'000 / interval <= 50);
+}
+
+void ProjectsServiceTest::
+    ignoresInapplicableRateLimitHeaders_data() {  // NOLINT(readability-identifier-naming,readability-convert-member-functions-to-static)
+  QTest::addColumn<int>("status");
+  QTest::addColumn<QByteArray>("retryAfter");
+  QTest::addColumn<QByteArray>("remaining");
+  QTest::newRow("ordinary-forbidden") << 403 << QByteArray{} << QByteArrayLiteral("42");
+  QTest::newRow("not-found") << 404 << QByteArrayLiteral("120") << QByteArrayLiteral("42");
+  QTest::newRow("server-error") << 500 << QByteArrayLiteral("120") << QByteArrayLiteral("42");
+}
+
+void ProjectsServiceTest::
+    ignoresInapplicableRateLimitHeaders() {  // NOLINT(readability-convert-member-functions-to-static)
+  QFETCH(int, status);
+  QFETCH(QByteArray, retryAfter);
+  QFETCH(QByteArray, remaining);
+  QCOMPARE(rateLimitBackoffMs(status, retryAfter, remaining, QByteArrayLiteral("2000"), 1000), 0);
+}
+
+void ProjectsServiceTest::
+    appliesRateLimitBackoff_data() {  // NOLINT(readability-identifier-naming,readability-convert-member-functions-to-static)
+  QTest::addColumn<int>("status");
+  QTest::addColumn<QByteArray>("retryAfter");
+  QTest::addColumn<QByteArray>("remaining");
+  QTest::addColumn<QByteArray>("reset");
+  QTest::addColumn<int>("expectedDelayMs");
+  QTest::newRow("forbidden-retry-after") << 403 << QByteArrayLiteral("120") << QByteArrayLiteral("42")
+                                         << QByteArrayLiteral("2000") << 120'000;
+  QTest::newRow("too-many-requests") << 429 << QByteArrayLiteral("90") << QByteArrayLiteral("42") << QByteArray{}
+                                     << 90'000;
+  QTest::newRow("exhausted-quota") << 403 << QByteArray{} << QByteArrayLiteral("0") << QByteArrayLiteral("1120")
+                                   << 120'000;
+}
+
+void ProjectsServiceTest::appliesRateLimitBackoff() {  // NOLINT(readability-convert-member-functions-to-static)
+  QFETCH(int, status);
+  QFETCH(QByteArray, retryAfter);
+  QFETCH(QByteArray, remaining);
+  QFETCH(QByteArray, reset);
+  QFETCH(int, expectedDelayMs);
+  QCOMPARE(rateLimitBackoffMs(status, retryAfter, remaining, reset, 1000), expectedDelayMs);
 }
 
 void ProjectsServiceTest::

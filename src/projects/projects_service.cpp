@@ -15,8 +15,9 @@ namespace dashboard::projects {
 namespace {
 constexpr int kRequestTimeoutMs = 10'000;
 constexpr int kMaximumConcurrentRequests = 4;
-constexpr int kAuthenticatedPollMs = 5 * 60 * 1000;
+constexpr int kAuthenticatedPollMs = 60 * 1000;
 constexpr int kAnonymousMinimumPollMs = 15 * 60 * 1000;
+constexpr int kAnonymousRequestBudgetPerHour = 50;
 
 QDateTime date(const QJsonValue& value) { return QDateTime::fromString(value.toString(), Qt::ISODate); }
 
@@ -36,6 +37,42 @@ bool isDeployName(const QString& name) {
 bool shouldReadReplyBody(QNetworkReply::NetworkError error, int http_status, bool has_cached_body) {
   const auto successful_status = http_status >= 200 && http_status < 300;
   return error == QNetworkReply::NoError && successful_status && !(http_status == 304 && has_cached_body);
+}
+
+int pollIntervalMs(bool authenticated, int request_count) {
+  if (authenticated) return kAuthenticatedPollMs;
+  const auto measured_requests = std::max(1, request_count);
+  constexpr qint64 milliseconds_per_hour = 60LL * 60 * 1000;
+  const auto budgeted_interval =
+      (static_cast<qint64>(measured_requests) * milliseconds_per_hour + kAnonymousRequestBudgetPerHour - 1) /
+      kAnonymousRequestBudgetPerHour;
+  return static_cast<int>(
+      std::min<qint64>(std::max<qint64>(kAnonymousMinimumPollMs, budgeted_interval), std::numeric_limits<int>::max()));
+}
+
+int rateLimitBackoffMs(int http_status, const QByteArray& retry_after, const QByteArray& rate_limit_remaining,
+                       const QByteArray& rate_limit_reset, qint64 current_epoch_seconds) {
+  qint64 delay_ms = 0;
+  if (http_status == 403 || http_status == 429) {
+    bool retry_ok = false;
+    const auto retry_seconds = retry_after.toLongLong(&retry_ok);
+    if (retry_ok && retry_seconds > 0) {
+      delay_ms = std::min<qint64>(retry_seconds, std::numeric_limits<int>::max() / 1000) * 1000;
+    }
+  }
+
+  bool remaining_ok = false;
+  const auto remaining = rate_limit_remaining.toLongLong(&remaining_ok);
+  if (remaining_ok && remaining == 0) {
+    bool reset_ok = false;
+    const auto reset = rate_limit_reset.toLongLong(&reset_ok);
+    if (reset_ok && reset > current_epoch_seconds) {
+      const auto reset_seconds =
+          std::min<qint64>(reset - current_epoch_seconds, std::numeric_limits<int>::max() / 1000);
+      delay_ms = std::max(delay_ms, reset_seconds * 1000);
+    }
+  }
+  return static_cast<int>(std::min<qint64>(delay_ms, std::numeric_limits<int>::max()));
 }
 
 ProjectsListModel::ProjectsListModel(QObject* parent) : QAbstractListModel(parent) {}
@@ -86,7 +123,7 @@ ProjectsService::ProjectsService(QString owner, QByteArray token, QObject* paren
       stages_(this),
       history_(this) {
   poll_timer_.setSingleShot(false);
-  poll_timer_.setInterval(token_.isEmpty() ? kAnonymousMinimumPollMs : kAuthenticatedPollMs);
+  poll_timer_.setInterval(pollIntervalMs(!token_.isEmpty(), 0));
   connect(&poll_timer_, &QTimer::timeout, this, &ProjectsService::refresh);
   poll_timer_.start();
   QTimer::singleShot(0, this, &ProjectsService::refresh);
@@ -157,6 +194,8 @@ void ProjectsService::refresh() {
   if (state_ == QStringLiteral("loading") && active_requests_ > 0) {
     return;
   }
+  refresh_request_count_ = 0;
+  counting_refresh_requests_ = true;
   setState(QStringLiteral("loading"));
   discoverRepositories(1, {});
 }
@@ -471,6 +510,7 @@ void ProjectsService::startRequests() {
     const auto cache_key = pending.url.toString();
     if (etags_.contains(cache_key)) request.setRawHeader("If-None-Match", etags_.value(cache_key));
     auto* reply = network_.get(request);
+    if (counting_refresh_requests_) ++refresh_request_count_;
     ++active_requests_;
     connect(reply, &QNetworkReply::finished, this, [this, reply, pending = std::move(pending)] {
       --active_requests_;
@@ -495,17 +535,10 @@ void ProjectsService::startRequests() {
         } else
           pending.failure(QStringLiteral("GitHub returned malformed JSON"));
       } else {
-        const auto retry_after = reply->rawHeader("Retry-After").toInt();
-        if (retry_after > 0) poll_timer_.setInterval(std::max(poll_timer_.interval(), retry_after * 1000));
-        const auto reset = reply->rawHeader("X-RateLimit-Reset").toLongLong();
-        if (reset > 0) {
-          const auto delay =
-              QDateTime::currentSecsSinceEpoch() < reset
-                  ? static_cast<int>(std::min<qint64>((reset - QDateTime::currentSecsSinceEpoch()) * 1000,
-                                                      std::numeric_limits<int>::max()))
-                  : 0;
-          if (delay > 0) poll_timer_.setInterval(std::max(poll_timer_.interval(), delay));
-        }
+        const auto delay =
+            rateLimitBackoffMs(status, reply->rawHeader("Retry-After"), reply->rawHeader("X-RateLimit-Remaining"),
+                               reply->rawHeader("X-RateLimit-Reset"), QDateTime::currentSecsSinceEpoch());
+        if (delay > 0) poll_timer_.setInterval(std::max(poll_timer_.interval(), delay));
         pending.failure(QStringLiteral("GitHub request failed (%1)").arg(status));
       }
       reply->deleteLater();
@@ -517,11 +550,8 @@ void ProjectsService::startRequests() {
 void ProjectsService::finishRefresh() {
   last_success_ = QDateTime::currentDateTimeUtc();
   stale_ = false;
-  if (token_.isEmpty()) {
-    const auto estimated_requests = std::max(1, projects_.rowCount() + 3);
-    const auto budgeted_minutes = std::max(15, (estimated_requests * 60 + 49) / 50);
-    poll_timer_.setInterval(budgeted_minutes * 60 * 1000);
-  }
+  counting_refresh_requests_ = false;
+  poll_timer_.setInterval(pollIntervalMs(!token_.isEmpty(), refresh_request_count_));
   setState(projects_.rowCount() == 0 ? QStringLiteral("empty") : QStringLiteral("ready"));
   emit snapshotChanged();
   emit selectedProjectChanged();
@@ -529,6 +559,7 @@ void ProjectsService::finishRefresh() {
 }
 
 void ProjectsService::failRefresh(const QString& diagnostic) {
+  counting_refresh_requests_ = false;
   stale_ = projects_.rowCount() > 0;
   setState(stale_ ? QStringLiteral("ready") : QStringLiteral("error"), diagnostic);
 }

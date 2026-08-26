@@ -20,6 +20,10 @@
 namespace dashboard::projects {
 
 [[nodiscard]] bool shouldReadReplyBody(QNetworkReply::NetworkError error, int http_status, bool has_cached_body);
+[[nodiscard]] int pollIntervalMs(bool authenticated, int request_count);
+[[nodiscard]] int rateLimitBackoffMs(int http_status, const QByteArray& retry_after,
+                                     const QByteArray& rate_limit_remaining, const QByteArray& rate_limit_reset,
+                                     qint64 current_epoch_seconds);
 
 class ProjectsListModel final : public QAbstractListModel {
   Q_OBJECT
@@ -144,6 +148,7 @@ class ProjectsService final : public QObject {
   QTimer poll_timer_;
   QQueue<Request> requests_;
   int active_requests_{0};
+  int refresh_request_count_{0};
   int pending_run_requests_{0};
   int pending_runner_requests_{0};
   int selected_index_{-1};
@@ -152,6 +157,7 @@ class ProjectsService final : public QObject {
   QString diagnostics_;
   QDateTime last_success_;
   bool stale_{false};
+  bool counting_refresh_requests_{false};
   int online_runners_{-1};
   int total_runners_{-1};
   QSet<qint64> runner_ids_;
