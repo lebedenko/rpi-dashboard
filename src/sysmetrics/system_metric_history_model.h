@@ -24,7 +24,7 @@ class SystemMetricHistoryModel final : public QAbstractListModel {
 
  private:
   struct Sample {
-    qint64 elapsed_milliseconds;
+    qint64 elapsed_milliseconds{};
     std::optional<double> cpu_usage_ratio;
     std::optional<double> memory_usage_ratio;
   };

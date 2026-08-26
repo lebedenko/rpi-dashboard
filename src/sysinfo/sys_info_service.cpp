@@ -17,7 +17,7 @@ SysInfoService::SysInfoService(std::shared_ptr<const SysInfoCollector> collector
     : QObject(parent), collector_(std::move(collector)) {
   Q_ASSERT(collector_);
   connect(&watcher_, &QFutureWatcherBase::finished, this, &SysInfoService::collectionFinished);
-  QMetaObject::invokeMethod(this, &SysInfoService::refresh, Qt::QueuedConnection);
+  QMetaObject::invokeMethod(this, "refresh", Qt::QueuedConnection);
 }
 
 SysInfoService::State SysInfoService::state() const { return state_; }

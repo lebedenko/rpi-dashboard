@@ -23,7 +23,9 @@ the normal debug build, clang-tidy, AddressSanitizer, and UndefinedBehaviorSanit
 - The clang-tidy configuration is accepted by the clang-tidy versions provided by Ubuntu 24.04,
   while the tidy build removes GCC's `-mno-direct-extern-access` compiler argument before invoking
   clang-tidy, excludes CMake- and Qt-generated translation units under the binary directory, and
-  forwards every other argument for project-owned translation units unchanged.
+  forwards every other argument for project-owned translation units unchanged. Project code must
+  also pass the shared checks with the runner-provided clang-tidy version without diagnostics caused
+  by known analyzer limitations in Qt's callable and guarded-pointer implementations.
 - CI installs Qt 6.8 with Qt SVG support from the base desktop archive and caches only the
   downloaded Qt installation. It must not request Qt SVG as a separately downloadable module.
 - Third-party actions are pinned to immutable commit SHAs with their release versions documented

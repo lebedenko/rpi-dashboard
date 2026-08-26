@@ -22,7 +22,7 @@ SysMetricsService::SysMetricsService(std::shared_ptr<SysMetricsCollector> collec
   connect(&timer_, &QTimer::timeout, this, &SysMetricsService::refresh);
   connect(&watcher_, &QFutureWatcherBase::finished, this, &SysMetricsService::collectionFinished);
   timer_.start();
-  QMetaObject::invokeMethod(this, &SysMetricsService::refresh, Qt::QueuedConnection);
+  QMetaObject::invokeMethod(this, "refresh", Qt::QueuedConnection);
 }
 SysMetricsService::State SysMetricsService::state() const { return state_; }
 protocol::SystemMetrics SysMetricsService::currentMetrics() const { return current_metrics_; }
@@ -81,7 +81,7 @@ void SysMetricsService::collectionFinished() {
     setState(current_metrics_.hasAllBaselineFields() ? State::Ready : State::Partial);
   }
   if (std::exchange(refresh_pending_, false)) {
-    QMetaObject::invokeMethod(this, &SysMetricsService::refresh, Qt::QueuedConnection);
+    QMetaObject::invokeMethod(this, "refresh", Qt::QueuedConnection);
   }
 }
 void SysMetricsService::setState(State state) {

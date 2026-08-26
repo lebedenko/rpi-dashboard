@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <memory>
 
 namespace dashboard::ui {
 
@@ -26,6 +27,7 @@ class ResourceHistorySeriesTest : public QObject {
   void interruptedTransitionStartsFromDisplayedPosition();
   void nonAdvancingUpdateDoesNotRestartTransition();
   void modelReplacementRepaintsImmediately();
+  void modelDestructionClearsSeriesAndNotifies();
   void animationFramesReuseSceneGraphGeometry();
   void activeTransitionKeepsItsDuration();
   void endpointAssemblyIsHorizontalAndTracksNow();
@@ -135,6 +137,20 @@ void ResourceHistorySeriesTest::modelReplacementRepaintsImmediately() {
   QCOMPARE(series.transition_animation_.state(), QAbstractAnimation::Stopped);
   QCOMPARE(series.currentWindowEnd(), 8'000.0);
   QVERIFY(series.snapshot_.retained_prefix.isEmpty());
+}
+
+void ResourceHistorySeriesTest::modelDestructionClearsSeriesAndNotifies() {
+  auto model = std::make_unique<sysmetrics::SystemMetricHistoryModel>();
+  model->appendSample(1'000, 0.1, 0.2);
+  ResourceHistorySeries series;
+  series.setModel(model.get());
+  QSignalSpy model_spy(&series, &ResourceHistorySeries::modelChanged);
+
+  model.reset();
+
+  QCOMPARE(series.model(), nullptr);
+  QCOMPARE(model_spy.count(), 1);
+  QVERIFY(series.snapshot_.samples.isEmpty());
 }
 
 void ResourceHistorySeriesTest::animationFramesReuseSceneGraphGeometry() {

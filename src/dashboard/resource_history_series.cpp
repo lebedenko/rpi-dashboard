@@ -298,7 +298,7 @@ void ResourceHistorySeries::setModel(QAbstractItemModel* model) {
   if (model_ == model) {
     return;
   }
-  if (model_) {
+  if (model_ != nullptr) {
     disconnect(model_, nullptr, this, nullptr);
   }
   model_ = model;
@@ -338,7 +338,7 @@ void ResourceHistorySeries::setTransitionDuration(int duration) {
 }
 
 void ResourceHistorySeries::reconnectModel() {
-  if (!model_) {
+  if (model_ == nullptr) {
     return;
   }
   const auto refresh = [this] { cacheModel(true); };
@@ -348,7 +348,6 @@ void ResourceHistorySeries::reconnectModel() {
   connect(model_, &QAbstractItemModel::dataChanged, this, refresh);
   connect(model_, &QAbstractItemModel::modelReset, this, refresh);
   connect(model_, &QObject::destroyed, this, [this] {
-    model_ = nullptr;
     cacheModel(false);
     emit modelChanged();
   });
