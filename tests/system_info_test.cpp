@@ -171,8 +171,9 @@ void SystemInfoTest::doesNotLeakSensitiveCpuInfo() {  // NOLINT(readability-conv
                        QByteArrayLiteral("Serial: do-not-leak\nMachine ID: private\nRevision: d04170\n"));
 
   const SystemInfo info = LinuxSysInfoCollector(access).collect().info;
-  const QStringList published = {info.hardware.board_revision.value_or({}), info.hardware.model.value_or({}),
-                                 info.cpu.vendor.value_or({}), info.cpu.model.value_or({})};
+  const QStringList published = {info.hardware.board_revision.value_or(QString{}),
+                                 info.hardware.model.value_or(QString{}), info.cpu.vendor.value_or(QString{}),
+                                 info.cpu.model.value_or(QString{})};
   QVERIFY(!published.join(' ').contains(QStringLiteral("do-not-leak")));
   QVERIFY(!published.join(' ').contains(QStringLiteral("private")));
 }

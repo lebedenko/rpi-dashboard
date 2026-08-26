@@ -1,9 +1,6 @@
 ExtraArgsBefore:
   - -Wno-error=unknown-argument
 
-RemovedArgs:
-  - -mno-direct-extern-access
-
 Checks: >
   clang-diagnostic-*,
   clang-analyzer-*,

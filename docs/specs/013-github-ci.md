@@ -18,6 +18,11 @@ the normal debug build, clang-tidy, AddressSanitizer, and UndefinedBehaviorSanit
 ## Observable acceptance criteria
 
 - All four configurations run on the pinned Ubuntu 24.04 hosted runner with a 30-minute timeout.
+- The normal, sanitizer, and clang-tidy builds compile with GCC 13, including test code that
+  supplies explicit fallback values to `std::optional<QString>::value_or()`.
+- The clang-tidy configuration is accepted by the clang-tidy versions provided by Ubuntu 24.04,
+  while the tidy build removes GCC's `-mno-direct-extern-access` compiler argument before invoking
+  clang-tidy and forwards every other argument unchanged.
 - CI installs Qt 6.8 with Qt SVG support from the base desktop archive and caches only the
   downloaded Qt installation. It must not request Qt SVG as a separately downloadable module.
 - Third-party actions are pinned to immutable commit SHAs with their release versions documented
@@ -34,6 +39,7 @@ the normal debug build, clang-tidy, AddressSanitizer, and UndefinedBehaviorSanit
 - Cross-compilation, hosted ARM64 coverage, or physical Raspberry Pi display and input validation.
 - Caching build directories or introducing an additional task-runner dependency in CI.
 - Changing application APIs, CMake targets, presets, or project dependencies.
+- Removing `-mno-direct-extern-access` from normal GCC compilation or from clangd's compile flags.
 
 ## Verification
 

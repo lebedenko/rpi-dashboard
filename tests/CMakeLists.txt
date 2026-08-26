@@ -156,6 +156,14 @@ add_test(
 )
 
 add_test(
+    NAME clang_tidy_launcher_test
+    COMMAND
+        sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/clang_tidy_launcher_test.sh
+        ${CMAKE_SOURCE_DIR}/scripts/clang-tidy-launcher.sh
+)
+
+add_test(
     NAME install_flow_test
     COMMAND
         sh

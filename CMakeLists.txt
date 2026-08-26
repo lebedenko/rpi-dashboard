@@ -34,7 +34,9 @@ qt_standard_project_setup(REQUIRES 6.8)
 
 if(ENABLE_CLANG_TIDY)
     find_program(CLANG_TIDY_EXECUTABLE NAMES clang-tidy REQUIRED)
-    set(CMAKE_CXX_CLANG_TIDY "${CLANG_TIDY_EXECUTABLE}")
+    set(CMAKE_CXX_CLANG_TIDY
+        "${CMAKE_SOURCE_DIR}/scripts/clang-tidy-launcher.sh;${CLANG_TIDY_EXECUTABLE}"
+    )
 endif()
 
 include(CTest)
