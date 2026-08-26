@@ -37,6 +37,11 @@ ctest --preset dev
 
 Use `task check` for the clang-tidy build. If Qt is installed outside the system prefix, set `CMAKE_PREFIX_PATH` or `Qt6_ROOT` when configuring.
 
+Use `task ci` for the authoritative pre-push check in the digest-locked project container, or
+`scripts/run-ci-container.sh tidy` for a targeted containerized clang-tidy run. The initial image
+publication and digest-lock procedure is documented in
+[the reproducible CI toolchain specification](docs/specs/016-reproducible-ci-toolchain.md).
+
 For exact-geometry laptop UI work, `task run-windowed` opens a normal 1480×320 window; production launches remain fullscreen. `task test-asan` and `task test-ubsan` run separate sanitizer builds. `QT_SCALE_FACTOR` may be varied for extra DPI robustness checks, but the primary geometry is scale 1 at logical 1480×320.
 
 To run the complete suite natively on an SSH-accessible ARM64 Raspberry Pi, choose a dedicated remote source/build directory and run:

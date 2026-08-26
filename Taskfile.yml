@@ -25,6 +25,14 @@ tasks:
       - cmake --build --preset tidy
       - ctest --preset tidy
 
+  ci:
+    desc: Run the authoritative containerized CI preflight
+    cmds:
+      - scripts/run-ci-container.sh dev
+      - scripts/run-ci-container.sh tidy
+      - scripts/run-ci-container.sh asan
+      - scripts/run-ci-container.sh ubsan
+
   run:
     desc: Run the dashboard locally
     deps: [build]
