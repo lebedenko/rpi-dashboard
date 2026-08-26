@@ -18,6 +18,8 @@ QtObject {
     readonly property color textMuted: "#8295AC"
     readonly property color primaryAccent: "#19D3F3"
     readonly property color focusAccent: "#5DE7FF"
+    readonly property color blueAccent: "#36B9FF"
+    readonly property color violetAccent: "#A66CFF"
     readonly property color passiveBorder: "#3B6888"
     readonly property color onlineStatus: "#50F0A0"
     readonly property color cpuSeries: "#36B9FF"
@@ -65,7 +67,7 @@ QtObject {
     readonly property int plotTopPadding: 30
     readonly property int plotBottomPadding: 18
     readonly property int headingTextSize: 22
-    readonly property int clockTimeTextSize: 28
+    readonly property int clockTimeTextSize: 48
     readonly property int clockDateTextSize: 14
     readonly property int metricTextSize: 18
     readonly property int metricLabelTextSize: 12

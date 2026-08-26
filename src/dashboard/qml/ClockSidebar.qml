@@ -44,7 +44,7 @@ Item {
 
     Column {
         anchors.top: parent.top
-        anchors.topMargin: Theme.spacingMedium
+        anchors.topMargin: Theme.spacingSmall
         anchors.left: parent.left
         anchors.right: parent.right
         spacing: Theme.spacingSmall
@@ -54,7 +54,7 @@ Item {
 
             objectName: "clockTimeLabel"
             width: parent.width
-            color: Theme.textPrimary
+            color: Theme.primaryAccent
             font.family: Theme.sansFontFamily
             font.pixelSize: Theme.clockTimeTextSize
             font.weight: Theme.metricFontWeight
@@ -68,7 +68,7 @@ Item {
 
             objectName: "clockDateLabel"
             width: parent.width
-            color: Theme.textSecondary
+            color: Theme.violetAccent
             elide: Text.ElideRight
             font.family: Theme.sansFontFamily
             font.pixelSize: Theme.clockDateTextSize
