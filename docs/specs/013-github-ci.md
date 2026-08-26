@@ -22,7 +22,8 @@ the normal debug build, clang-tidy, AddressSanitizer, and UndefinedBehaviorSanit
   supplies explicit fallback values to `std::optional<QString>::value_or()`.
 - The clang-tidy configuration is accepted by the clang-tidy versions provided by Ubuntu 24.04,
   while the tidy build removes GCC's `-mno-direct-extern-access` compiler argument before invoking
-  clang-tidy and forwards every other argument unchanged.
+  clang-tidy, excludes CMake- and Qt-generated translation units under the binary directory, and
+  forwards every other argument for project-owned translation units unchanged.
 - CI installs Qt 6.8 with Qt SVG support from the base desktop archive and caches only the
   downloaded Qt installation. It must not request Qt SVG as a separately downloadable module.
 - Third-party actions are pinned to immutable commit SHAs with their release versions documented
