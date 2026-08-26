@@ -49,8 +49,24 @@ if [ -z "$image" ]; then
     fi
 fi
 
+source_build_dir=$source_dir/build
+remove_source_build=
+if [ ! -e "$source_build_dir" ]; then
+    mkdir "$source_build_dir"
+    remove_source_build=1
+elif [ ! -d "$source_build_dir" ]; then
+    echo "run-ci-container: build path is not a directory: $source_build_dir" >&2
+    exit 2
+fi
+
 build_dir=$(mktemp -d "${TMPDIR:-/tmp}/rpi-dashboard-ci-${preset}-XXXXXX")
-trap 'rm -rf -- "$build_dir"' EXIT HUP INT TERM
+cleanup() {
+    rm -rf -- "$build_dir"
+    if [ -n "$remove_source_build" ]; then
+        rmdir "$source_build_dir"
+    fi
+}
+trap cleanup EXIT HUP INT TERM
 
 echo "CI image: $image"
 "$docker_command" run --rm \
