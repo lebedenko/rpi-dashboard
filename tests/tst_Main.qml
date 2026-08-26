@@ -16,6 +16,18 @@ Item {
             "memoryUsageRatio": memoryUsageRatio,
             "temperatureMetric": temperatureMetric,
             "uptimeMetric": uptimeMetric,
+            "uptimeSeconds": -1,
+            "cpuFrequencyHz": -1,
+            "memoryUsedBytes": -1,
+            "swapUsedBytes": -1,
+            "boardTemperatureCelsius": -1,
+            "gpuUsageRatio": -1,
+            "gpuCoreClockHz": -1,
+            "gpuTemperatureCelsius": -1,
+            "networkReceiveRate": -1,
+            "networkTransmitRate": -1,
+            "networkInterfaceName": "",
+            "bootTimeMs": -1,
             "osDescription": "—",
             "kernelDescription": "—",
             "architecture": "—",
@@ -228,6 +240,73 @@ Item {
             tryCompare(dashboardWindow, "currentPageIndex", 1);
             keyClick(Qt.Key_F5);
             tryCompare(dashboardWindow, "currentPageHasFocus", true);
+        }
+
+        function test_systemPageSharesPointerAndKeyboardSelection() {
+            dashboardWindow.localDeviceModel.append(deviceEntry("02", "REMOTE"));
+            const systemsButton = findChild(dashboardWindow.contentItem, "systemsButton");
+            mouseClick(systemsButton);
+            tryCompare(dashboardWindow, "currentPageIndex", 1);
+            const secondTab = findChild(dashboardWindow.contentItem, "systemDeviceTab1");
+            verify(!!secondTab);
+            compare(secondTab.height, 48);
+            mouseClick(secondTab);
+            tryCompare(dashboardWindow, "selectedDeviceIndex", 1);
+            const overviewButton = findChild(dashboardWindow.contentItem, "overviewButton");
+            mouseClick(overviewButton);
+            compare(findChild(dashboardWindow.contentItem, "overviewPage").selectedIndex, 1);
+            mouseClick(systemsButton);
+            const firstTab = findChild(dashboardWindow.contentItem, "systemDeviceTab0");
+            firstTab.forceActiveFocus();
+            keyClick(Qt.Key_Return);
+            tryCompare(dashboardWindow, "selectedDeviceIndex", 0);
+            keyClick(Qt.Key_F5);
+            tryCompare(firstTab, "activeFocus", true);
+            compare(firstTab.Accessible.role, Accessible.Button);
+            verify(firstTab.Accessible.name.includes("PI-DASH"));
+        }
+
+        function test_systemPageSixPanelsFitAndExposeAccessibleSummaries() {
+            mouseClick(findChild(dashboardWindow.contentItem, "systemsButton"));
+            const panels = findChild(dashboardWindow.contentItem, "systemPanels");
+            verify(!!panels);
+            const names = ["cpuPanel", "gpuPanel", "memoryPanel", "thermalsPanel", "networkPanel", "uptimePanel"];
+            for (const name of names) {
+                const panel = findChild(dashboardWindow.contentItem, name);
+                verify(!!panel, name);
+                const position = panel.mapToItem(dashboardWindow.contentItem, 0, 0);
+                verify(position.x >= Theme.displaySafeInset);
+                verify(position.y >= Theme.displaySafeInset);
+                verify(position.x + panel.width <= dashboardWindow.width - Theme.statusSidebarWidth - Theme.displaySafeInset);
+                verify(position.y + panel.height <= dashboardWindow.height - Theme.displaySafeInset);
+                compare(panel.Accessible.role, Accessible.StaticText);
+                verify(panel.Accessible.name.length > 0);
+            }
+            compare(panels.children.filter(child => child instanceof SystemMetricPanel).length, 6);
+        }
+
+        function test_systemPageFormatsLiveAndUnavailableValuesTruthfully() {
+            mouseClick(findChild(dashboardWindow.contentItem, "systemsButton"));
+            compare(findChild(dashboardWindow.contentItem, "gpuPanelPrimary").text, "—");
+            compare(findChild(dashboardWindow.contentItem, "networkPanelPrimary").text, "↓ —");
+            fakeMetricsService.averageCpuFrequencyHz = 2200000000;
+            fakeMetricsService.gpuUsageRatio = 0.25;
+            fakeMetricsService.gpuCoreClockHz = 500000000;
+            fakeMetricsService.memoryUsedBytes = 3221225472;
+            fakeMetricsService.swapUsedBytes = 536870912;
+            fakeMetricsService.gpuTemperatureCelsius = 61.2;
+            fakeMetricsService.networkReceiveBytesPerSecond = 1572864;
+            fakeMetricsService.networkTransmitBytesPerSecond = 524288;
+            fakeMetricsService.networkInterfaceName = "eth0";
+            fakeMetricsService.bootTimeUtc = new Date(2026, 7, 27, 8, 30);
+            fakeMetricsService.currentMetricsChanged();
+            tryCompare(findChild(dashboardWindow.contentItem, "cpuPanelSecondary"), "text", "2.20 GHz");
+            compare(findChild(dashboardWindow.contentItem, "gpuPanelPrimary").text, "25%");
+            compare(findChild(dashboardWindow.contentItem, "memoryPanelPrimary").text, "3072 MiB");
+            compare(findChild(dashboardWindow.contentItem, "thermalsPanelSecondary").text, "61°C");
+            compare(findChild(dashboardWindow.contentItem, "networkPanelPrimary").text, "↓ 1.5 MiB/s");
+            verify(findChild(dashboardWindow.contentItem, "networkPanel").heading.includes("eth0"));
+            verify(findChild(dashboardWindow.contentItem, "uptimePanelSecondary").text.includes("08:30"));
         }
 
         function test_localDeviceContentAndExpandedState() {
@@ -646,6 +725,16 @@ Item {
             property double memoryUsageRatio: 0.68
             property double cpuTemperatureCelsius: 52.6
             property double uptimeSeconds: 93600
+            property double averageCpuFrequencyHz: -1
+            property double memoryUsedBytes: -1
+            property double swapUsedBytes: -1
+            property double gpuUsageRatio: -1
+            property double gpuCoreClockHz: -1
+            property double gpuTemperatureCelsius: -1
+            property double networkReceiveBytesPerSecond: -1
+            property double networkTransmitBytesPerSecond: -1
+            property string networkInterfaceName: ""
+            property var bootTimeUtc: undefined
             property ListModel usageHistoryModel: ListModel {
                 ListElement { elapsedMilliseconds: 0; cpuUsageRatio: 0.42; memoryUsageRatio: 0.68 }
             }

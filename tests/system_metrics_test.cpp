@@ -79,6 +79,8 @@ class SystemMetricsTest : public QObject {
   void classifiesSnapshots();
   void calculatesSecondSampleDeltas();
   void serviceReplacesAndPreservesSnapshots();
+  void serviceProjectsDetailedMetrics();
+  void serviceKeepsMissingDetailedMetricsInvalid();
   void historyRecordsOptionalValuesAndPrunesOldSamples();
 };
 
@@ -135,6 +137,82 @@ void SystemMetricsTest::
   const QModelIndex gap = history->index(2, 0);
   QVERIFY(!history->data(gap, roles.key(QByteArrayLiteral("cpuUsageRatio"))).isValid());
   QVERIFY(!history->data(gap, roles.key(QByteArrayLiteral("memoryUsageRatio"))).isValid());
+}
+
+void SystemMetricsTest::serviceProjectsDetailedMetrics() {  // NOLINT(readability-convert-member-functions-to-static)
+  SystemMetrics metrics = readyMetrics();
+  metrics.cpu.logical_cpus = {{.name = QStringLiteral("cpu0"), .frequency_hz = 2'000'000'000},
+                              {.name = QStringLiteral("cpu1"), .frequency_hz = 2'400'000'000},
+                              {.name = QStringLiteral("cpu2")}};
+  metrics.memory.total_bytes = 8'000;
+  metrics.memory.available_bytes = 3'000;
+  metrics.memory.swap_total_bytes = 2'000;
+  metrics.memory.swap_available_bytes = 750;
+  metrics.gpus = {{.name = QStringLiteral("gpu0"),
+                   .usage_ratio = 0.25,
+                   .memory_total_bytes = 1'000,
+                   .memory_used_bytes = 400,
+                   .core_clock_hz = 500'000'000,
+                   .memory_clock_hz = 800'000'000,
+                   .temperature_celsius = 51.5},
+                  {.name = QStringLiteral("ignored"), .usage_ratio = 0.9}};
+  metrics.network_interfaces = {
+      {.name = QStringLiteral("lo"), .rx_bytes_per_second = 999.0, .tx_bytes_per_second = 999.0},
+      {.name = QStringLiteral("eth0"), .rx_bytes_per_second = 100.0, .tx_bytes_per_second = 40.0},
+      {.name = QStringLiteral("wlan0"), .rx_bytes_per_second = 25.0, .tx_bytes_per_second = 10.0}};
+  auto collector = std::make_shared<SequenceCollector>();
+  collector->values = {{.metrics = metrics}};
+  SysMetricsService service(collector, 60'000);
+  QTRY_COMPARE(service.state(), SysMetricsService::State::Ready);
+  QCOMPARE(service.averageCpuFrequencyHz(), QVariant(2'200'000'000.0));
+  QCOMPARE(service.memoryTotalBytes(), QVariant::fromValue<quint64>(8'000));
+  QCOMPARE(service.memoryAvailableBytes(), QVariant::fromValue<quint64>(3'000));
+  QCOMPARE(service.memoryUsedBytes(), QVariant::fromValue<quint64>(5'000));
+  QCOMPARE(service.swapTotalBytes(), QVariant::fromValue<quint64>(2'000));
+  QCOMPARE(service.swapAvailableBytes(), QVariant::fromValue<quint64>(750));
+  QCOMPARE(service.swapUsedBytes(), QVariant::fromValue<quint64>(1'250));
+  QCOMPARE(service.gpuName(), QVariant(QStringLiteral("gpu0")));
+  QCOMPARE(service.gpuUsageRatio(), QVariant(0.25));
+  QCOMPARE(service.gpuMemoryTotalBytes(), QVariant::fromValue<quint64>(1'000));
+  QCOMPARE(service.gpuMemoryUsedBytes(), QVariant::fromValue<quint64>(400));
+  QCOMPARE(service.gpuCoreClockHz(), QVariant::fromValue<quint64>(500'000'000));
+  QCOMPARE(service.gpuMemoryClockHz(), QVariant::fromValue<quint64>(800'000'000));
+  QCOMPARE(service.gpuTemperatureCelsius(), QVariant(51.5));
+  QCOMPARE(service.networkReceiveBytesPerSecond(), QVariant(125.0));
+  QCOMPARE(service.networkTransmitBytesPerSecond(), QVariant(50.0));
+  QVERIFY(!service.networkInterfaceName().isValid());
+  const auto boot = service.bootTimeUtc().toDateTime();
+  QVERIFY(boot.isValid());
+  QCOMPARE(boot.msecsTo(service.lastSuccessUtc()), 60'000);
+
+  collector->values.append({.metrics = {}, .diagnostics = {QStringLiteral("failed")}});
+  service.refresh();
+  QTRY_COMPARE(service.state(), SysMetricsService::State::Error);
+  QCOMPARE(service.bootTimeUtc().toDateTime(), boot);
+}
+
+void SystemMetricsTest::
+    serviceKeepsMissingDetailedMetricsInvalid() {  // NOLINT(readability-convert-member-functions-to-static)
+  SystemMetrics metrics;
+  metrics.system.load_average_1m = 0.1;
+  metrics.memory.total_bytes = 10;
+  metrics.memory.available_bytes = 11;
+  metrics.memory.swap_total_bytes = 5;
+  metrics.memory.swap_available_bytes = 6;
+  metrics.network_interfaces = {{.name = QStringLiteral("eth0")}};
+  auto collector = std::make_shared<SequenceCollector>();
+  collector->values = {{.metrics = metrics}};
+  SysMetricsService service(collector, 60'000);
+  QTRY_COMPARE(service.state(), SysMetricsService::State::Partial);
+  QVERIFY(!service.averageCpuFrequencyHz().isValid());
+  QVERIFY(!service.memoryUsedBytes().isValid());
+  QVERIFY(!service.swapUsedBytes().isValid());
+  QVERIFY(!service.gpuName().isValid());
+  QVERIFY(!service.gpuUsageRatio().isValid());
+  QVERIFY(!service.networkReceiveBytesPerSecond().isValid());
+  QVERIFY(!service.networkTransmitBytesPerSecond().isValid());
+  QCOMPARE(service.networkInterfaceName(), QVariant(QStringLiteral("eth0")));
+  QVERIFY(!service.bootTimeUtc().isValid());
 }
 
 void SystemMetricsTest::

@@ -25,6 +25,24 @@ class SysMetricsService final : public QObject {
   Q_PROPERTY(QVariant memoryUsageRatio READ memoryUsageRatio NOTIFY currentMetricsChanged)
   Q_PROPERTY(QVariant cpuTemperatureCelsius READ cpuTemperatureCelsius NOTIFY currentMetricsChanged)
   Q_PROPERTY(QVariant uptimeSeconds READ uptimeSeconds NOTIFY currentMetricsChanged)
+  Q_PROPERTY(QVariant averageCpuFrequencyHz READ averageCpuFrequencyHz NOTIFY currentMetricsChanged)
+  Q_PROPERTY(QVariant memoryTotalBytes READ memoryTotalBytes NOTIFY currentMetricsChanged)
+  Q_PROPERTY(QVariant memoryAvailableBytes READ memoryAvailableBytes NOTIFY currentMetricsChanged)
+  Q_PROPERTY(QVariant memoryUsedBytes READ memoryUsedBytes NOTIFY currentMetricsChanged)
+  Q_PROPERTY(QVariant swapTotalBytes READ swapTotalBytes NOTIFY currentMetricsChanged)
+  Q_PROPERTY(QVariant swapAvailableBytes READ swapAvailableBytes NOTIFY currentMetricsChanged)
+  Q_PROPERTY(QVariant swapUsedBytes READ swapUsedBytes NOTIFY currentMetricsChanged)
+  Q_PROPERTY(QVariant gpuName READ gpuName NOTIFY currentMetricsChanged)
+  Q_PROPERTY(QVariant gpuUsageRatio READ gpuUsageRatio NOTIFY currentMetricsChanged)
+  Q_PROPERTY(QVariant gpuMemoryTotalBytes READ gpuMemoryTotalBytes NOTIFY currentMetricsChanged)
+  Q_PROPERTY(QVariant gpuMemoryUsedBytes READ gpuMemoryUsedBytes NOTIFY currentMetricsChanged)
+  Q_PROPERTY(QVariant gpuCoreClockHz READ gpuCoreClockHz NOTIFY currentMetricsChanged)
+  Q_PROPERTY(QVariant gpuMemoryClockHz READ gpuMemoryClockHz NOTIFY currentMetricsChanged)
+  Q_PROPERTY(QVariant gpuTemperatureCelsius READ gpuTemperatureCelsius NOTIFY currentMetricsChanged)
+  Q_PROPERTY(QVariant networkReceiveBytesPerSecond READ networkReceiveBytesPerSecond NOTIFY currentMetricsChanged)
+  Q_PROPERTY(QVariant networkTransmitBytesPerSecond READ networkTransmitBytesPerSecond NOTIFY currentMetricsChanged)
+  Q_PROPERTY(QVariant networkInterfaceName READ networkInterfaceName NOTIFY currentMetricsChanged)
+  Q_PROPERTY(QVariant bootTimeUtc READ bootTimeUtc NOTIFY currentMetricsChanged)
   Q_PROPERTY(QAbstractItemModel* usageHistoryModel READ usageHistoryModel CONSTANT)
 
  public:
@@ -41,6 +59,24 @@ class SysMetricsService final : public QObject {
   [[nodiscard]] QVariant memoryUsageRatio() const;
   [[nodiscard]] QVariant cpuTemperatureCelsius() const;
   [[nodiscard]] QVariant uptimeSeconds() const;
+  [[nodiscard]] QVariant averageCpuFrequencyHz() const;
+  [[nodiscard]] QVariant memoryTotalBytes() const;
+  [[nodiscard]] QVariant memoryAvailableBytes() const;
+  [[nodiscard]] QVariant memoryUsedBytes() const;
+  [[nodiscard]] QVariant swapTotalBytes() const;
+  [[nodiscard]] QVariant swapAvailableBytes() const;
+  [[nodiscard]] QVariant swapUsedBytes() const;
+  [[nodiscard]] QVariant gpuName() const;
+  [[nodiscard]] QVariant gpuUsageRatio() const;
+  [[nodiscard]] QVariant gpuMemoryTotalBytes() const;
+  [[nodiscard]] QVariant gpuMemoryUsedBytes() const;
+  [[nodiscard]] QVariant gpuCoreClockHz() const;
+  [[nodiscard]] QVariant gpuMemoryClockHz() const;
+  [[nodiscard]] QVariant gpuTemperatureCelsius() const;
+  [[nodiscard]] QVariant networkReceiveBytesPerSecond() const;
+  [[nodiscard]] QVariant networkTransmitBytesPerSecond() const;
+  [[nodiscard]] QVariant networkInterfaceName() const;
+  [[nodiscard]] QVariant bootTimeUtc() const;
   [[nodiscard]] QAbstractItemModel* usageHistoryModel();
 
  public slots:

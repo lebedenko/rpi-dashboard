@@ -3,6 +3,7 @@
 #include <QtConcurrentRun>
 
 #include <cmath>
+#include <limits>
 #include <utility>
 
 namespace dashboard::sysmetrics {
@@ -33,6 +34,110 @@ QVariant SysMetricsService::cpuTemperatureCelsius() const {
   return optionalVariant(current_metrics_.cpu.temperature_celsius);
 }
 QVariant SysMetricsService::uptimeSeconds() const { return optionalVariant(current_metrics_.system.uptime_seconds); }
+QVariant SysMetricsService::averageCpuFrequencyHz() const {
+  quint64 sum = 0;
+  quint64 count = 0;
+  for (const auto& cpu : current_metrics_.cpu.logical_cpus) {
+    if (!cpu.frequency_hz || *cpu.frequency_hz > std::numeric_limits<quint64>::max() - sum) {
+      continue;
+    }
+    sum += *cpu.frequency_hz;
+    ++count;
+  }
+  return count > 0 ? QVariant::fromValue(static_cast<double>(sum) / static_cast<double>(count)) : QVariant{};
+}
+QVariant SysMetricsService::memoryTotalBytes() const { return optionalVariant(current_metrics_.memory.total_bytes); }
+QVariant SysMetricsService::memoryAvailableBytes() const {
+  return optionalVariant(current_metrics_.memory.available_bytes);
+}
+QVariant SysMetricsService::memoryUsedBytes() const {
+  const auto& memory = current_metrics_.memory;
+  if (!memory.total_bytes || !memory.available_bytes || *memory.available_bytes > *memory.total_bytes) {
+    return {};
+  }
+  return QVariant::fromValue(*memory.total_bytes - *memory.available_bytes);
+}
+QVariant SysMetricsService::swapTotalBytes() const { return optionalVariant(current_metrics_.memory.swap_total_bytes); }
+QVariant SysMetricsService::swapAvailableBytes() const {
+  return optionalVariant(current_metrics_.memory.swap_available_bytes);
+}
+QVariant SysMetricsService::swapUsedBytes() const {
+  const auto& memory = current_metrics_.memory;
+  if (!memory.swap_total_bytes || !memory.swap_available_bytes ||
+      *memory.swap_available_bytes > *memory.swap_total_bytes) {
+    return {};
+  }
+  return QVariant::fromValue(*memory.swap_total_bytes - *memory.swap_available_bytes);
+}
+QVariant SysMetricsService::gpuName() const {
+  return current_metrics_.gpus.isEmpty() || current_metrics_.gpus.first().name.isEmpty()
+             ? QVariant{}
+             : QVariant::fromValue(current_metrics_.gpus.first().name);
+}
+QVariant SysMetricsService::gpuUsageRatio() const {
+  return current_metrics_.gpus.isEmpty() ? QVariant{} : optionalVariant(current_metrics_.gpus.first().usage_ratio);
+}
+QVariant SysMetricsService::gpuMemoryTotalBytes() const {
+  return current_metrics_.gpus.isEmpty() ? QVariant{}
+                                         : optionalVariant(current_metrics_.gpus.first().memory_total_bytes);
+}
+QVariant SysMetricsService::gpuMemoryUsedBytes() const {
+  return current_metrics_.gpus.isEmpty() ? QVariant{}
+                                         : optionalVariant(current_metrics_.gpus.first().memory_used_bytes);
+}
+QVariant SysMetricsService::gpuCoreClockHz() const {
+  return current_metrics_.gpus.isEmpty() ? QVariant{} : optionalVariant(current_metrics_.gpus.first().core_clock_hz);
+}
+QVariant SysMetricsService::gpuMemoryClockHz() const {
+  return current_metrics_.gpus.isEmpty() ? QVariant{} : optionalVariant(current_metrics_.gpus.first().memory_clock_hz);
+}
+QVariant SysMetricsService::gpuTemperatureCelsius() const {
+  return current_metrics_.gpus.isEmpty() ? QVariant{}
+                                         : optionalVariant(current_metrics_.gpus.first().temperature_celsius);
+}
+QVariant SysMetricsService::networkReceiveBytesPerSecond() const {
+  double total = 0.0;
+  bool available = false;
+  for (const auto& interface : current_metrics_.network_interfaces) {
+    if (interface.name == QStringLiteral("lo") || !interface.rx_bytes_per_second) {
+      continue;
+    }
+    total += *interface.rx_bytes_per_second;
+    available = true;
+  }
+  return available ? QVariant(total) : QVariant{};
+}
+QVariant SysMetricsService::networkTransmitBytesPerSecond() const {
+  double total = 0.0;
+  bool available = false;
+  for (const auto& interface : current_metrics_.network_interfaces) {
+    if (interface.name == QStringLiteral("lo") || !interface.tx_bytes_per_second) {
+      continue;
+    }
+    total += *interface.tx_bytes_per_second;
+    available = true;
+  }
+  return available ? QVariant(total) : QVariant{};
+}
+QVariant SysMetricsService::networkInterfaceName() const {
+  QString name;
+  for (const auto& interface : current_metrics_.network_interfaces) {
+    if (interface.name == QStringLiteral("lo")) {
+      continue;
+    }
+    if (!name.isEmpty()) {
+      return {};
+    }
+    name = interface.name;
+  }
+  return name.isEmpty() ? QVariant{} : QVariant(name);
+}
+QVariant SysMetricsService::bootTimeUtc() const {
+  if (!current_metrics_.system.uptime_seconds || !last_success_utc_.isValid()) {
+    return {};
+  }
+  return last_success_utc_.addMSecs(-qRound64(*current_metrics_.system.uptime_seconds * 1000.0));
+}
 QVariant SysMetricsService::memoryUsageRatio() const {
   if (!current_metrics_.memory.total_bytes || !current_metrics_.memory.available_bytes ||
       *current_metrics_.memory.total_bytes == 0 ||
@@ -75,8 +180,8 @@ void SysMetricsService::collectionFinished() {
     setState(State::Error);
   } else {
     current_metrics_ = std::move(result.metrics);
-    emit currentMetricsChanged();
     last_success_utc_ = QDateTime::currentDateTimeUtc();
+    emit currentMetricsChanged();
     emit lastSuccessUtcChanged();
     setState(current_metrics_.hasAllBaselineFields() ? State::Ready : State::Partial);
   }

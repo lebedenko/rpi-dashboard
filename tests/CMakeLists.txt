@@ -100,6 +100,8 @@ target_compile_definitions(dashboard_startup_test
         DASHBOARD_DEVICE_CARD_QML="${CMAKE_SOURCE_DIR}/src/dashboard/qml/DeviceCard.qml"
         DASHBOARD_OVERVIEW_PAGE_QML="${CMAKE_SOURCE_DIR}/src/dashboard/qml/OverviewPage.qml"
         DASHBOARD_PROJECTS_PAGE_QML="${CMAKE_SOURCE_DIR}/src/dashboard/qml/ProjectsPage.qml"
+        DASHBOARD_SYSTEM_PAGE_QML="${CMAKE_SOURCE_DIR}/src/dashboard/qml/SystemPage.qml"
+        DASHBOARD_SYSTEM_METRIC_PANEL_QML="${CMAKE_SOURCE_DIR}/src/dashboard/qml/SystemMetricPanel.qml"
         DASHBOARD_PAGE_QML="${CMAKE_SOURCE_DIR}/src/dashboard/qml/DashboardPage.qml"
         DASHBOARD_SIDEBAR_BUTTON_QML="${CMAKE_SOURCE_DIR}/src/dashboard/qml/SidebarButton.qml"
         DASHBOARD_THEME_QML="${CMAKE_SOURCE_DIR}/src/dashboard/qml/Theme.qml"

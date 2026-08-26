@@ -13,12 +13,13 @@ ApplicationWindow {
     property var sysInfoService: null
     property var sysMetricsService: null
     property var projectsService: null
+    property int selectedDeviceIndex: 0
     readonly property alias currentPageIndex: pageStack.currentIndex
     readonly property bool currentPageHasFocus: pageStack.currentIndex === 2 ? projectsPage.selectedRowHasFocus
                                                                             : root.currentFocusTarget ? root.currentFocusTarget.activeFocus : false
 
     readonly property var currentFocusTarget: pageStack.currentIndex === 0 ? overviewPage.focusTarget
-                                               : pageStack.currentIndex === 1 ? systemsPage.placeholder
+                                               : pageStack.currentIndex === 1 ? systemsPage.focusTarget
                                                : pageStack.currentIndex === 2 ? projectsPage.focusTarget
                                                : weatherPage.placeholder
     readonly property alias localDeviceModel: localDevices
@@ -74,6 +75,10 @@ ApplicationWindow {
         return root.isAvailable(ratio) ? Number(ratio) : -1
     }
 
+    function numberOrUnavailable(value): real {
+        return root.isAvailable(value) ? Number(value) : -1
+    }
+
     function formatTemperature(celsius): string {
         return root.isAvailable(celsius) ? qsTr("%1°C").arg(Math.round(Number(celsius))) : "—"
     }
@@ -101,6 +106,20 @@ ApplicationWindow {
         localDevices.setProperty(0, "memoryUsageRatio", root.usageRatioOrUnavailable(service ? service.memoryUsageRatio : undefined))
         localDevices.setProperty(0, "temperatureMetric", root.formatTemperature(service ? service.cpuTemperatureCelsius : undefined))
         localDevices.setProperty(0, "uptimeMetric", root.formatUptime(service ? service.uptimeSeconds : undefined))
+        localDevices.setProperty(0, "uptimeSeconds", root.numberOrUnavailable(service ? service.uptimeSeconds : undefined))
+        localDevices.setProperty(0, "cpuFrequencyHz", root.numberOrUnavailable(service ? service.averageCpuFrequencyHz : undefined))
+        localDevices.setProperty(0, "memoryUsedBytes", root.numberOrUnavailable(service ? service.memoryUsedBytes : undefined))
+        localDevices.setProperty(0, "swapUsedBytes", root.numberOrUnavailable(service ? service.swapUsedBytes : undefined))
+        localDevices.setProperty(0, "boardTemperatureCelsius", root.numberOrUnavailable(service ? service.cpuTemperatureCelsius : undefined))
+        localDevices.setProperty(0, "gpuUsageRatio", root.numberOrUnavailable(service ? service.gpuUsageRatio : undefined))
+        localDevices.setProperty(0, "gpuCoreClockHz", root.numberOrUnavailable(service ? service.gpuCoreClockHz : undefined))
+        localDevices.setProperty(0, "gpuTemperatureCelsius", root.numberOrUnavailable(service ? service.gpuTemperatureCelsius : undefined))
+        localDevices.setProperty(0, "networkReceiveRate", root.numberOrUnavailable(service ? service.networkReceiveBytesPerSecond : undefined))
+        localDevices.setProperty(0, "networkTransmitRate", root.numberOrUnavailable(service ? service.networkTransmitBytesPerSecond : undefined))
+        localDevices.setProperty(0, "networkInterfaceName", root.isAvailable(service ? service.networkInterfaceName : undefined)
+                                                       ? String(service.networkInterfaceName) : "")
+        const bootTime = service ? service.bootTimeUtc : undefined
+        localDevices.setProperty(0, "bootTimeMs", root.isAvailable(bootTime) ? new Date(bootTime).getTime() : -1)
     }
 
     function refreshLocalDevice(): void {
@@ -132,6 +151,18 @@ ApplicationWindow {
             memoryUsageRatio: -1
             temperatureMetric: "—"
             uptimeMetric: "—"
+            uptimeSeconds: -1
+            cpuFrequencyHz: -1
+            memoryUsedBytes: -1
+            swapUsedBytes: -1
+            boardTemperatureCelsius: -1
+            gpuUsageRatio: -1
+            gpuCoreClockHz: -1
+            gpuTemperatureCelsius: -1
+            networkReceiveRate: -1
+            networkTransmitRate: -1
+            networkInterfaceName: ""
+            bootTimeMs: -1
             osDescription: "—"
             kernelDescription: "—"
             architecture: "—"
@@ -181,6 +212,8 @@ ApplicationWindow {
         onActivated: {
             if (pageStack.currentIndex === 2)
                 projectsPage.focusSelected()
+            else if (pageStack.currentIndex === 1)
+                systemsPage.focusSelected()
             else if (root.currentFocusTarget)
                 root.currentFocusTarget.forceActiveFocus()
         }
@@ -291,8 +324,16 @@ ApplicationWindow {
                 objectName: "overviewPage"
                 deviceModel: root.localDeviceModel
                 usageHistoryModel: root.sysMetricsService ? root.sysMetricsService.usageHistoryModel : null
+                selectedIndex: root.selectedDeviceIndex
+                onSelectionRequested: index => root.selectedDeviceIndex = index
             }
-            DashboardPage { id: systemsPage; objectName: "systemsPage"; heading: qsTr("Systems") }
+            SystemPage {
+                id: systemsPage
+                objectName: "systemsPage"
+                deviceModel: root.localDeviceModel
+                selectedIndex: root.selectedDeviceIndex
+                onSelectionRequested: index => root.selectedDeviceIndex = index
+            }
             ProjectsPage {
                 id: projectsPage
                 objectName: "projectsPage"

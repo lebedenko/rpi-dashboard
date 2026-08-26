@@ -7,7 +7,8 @@ Item {
     required property var deviceModel
     property var usageHistoryModel: null
     property int expandedIndex: 0
-    property int selectedIndex: 0
+    required property int selectedIndex
+    signal selectionRequested(int index)
     property int focusedIndex: 0
     property bool modelInitialized: false
     property int expandedIndexBeforeModelReset: 0
@@ -21,7 +22,9 @@ Item {
 
     function normalizeIndices(): void {
         root.focusedIndex = root.normalizedIndex(root.focusedIndex)
-        root.selectedIndex = root.normalizedIndex(root.selectedIndex)
+        const selected = root.normalizedIndex(root.selectedIndex)
+        if (selected !== root.selectedIndex)
+            root.selectionRequested(selected)
         if (deviceList.count === 0) {
             if (root.expandedIndex >= 0)
                 root.expandedIndexBeforeModelReset = root.expandedIndex
@@ -43,7 +46,7 @@ Item {
             return
         root.focusedIndex = normalized
         root.expandedIndex = normalized
-        root.selectedIndex = normalized
+        root.selectionRequested(normalized)
         Qt.callLater(() => {
             deviceList.forceLayout()
             deviceList.positionViewAtIndex(normalized, ListView.Beginning)

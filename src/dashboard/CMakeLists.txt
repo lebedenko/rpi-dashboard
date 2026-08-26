@@ -19,6 +19,8 @@ qt_add_qml_module(rpi-dashboard-qml
         qml/Main.qml
         qml/OverviewPage.qml
         qml/ProjectsPage.qml
+        qml/SystemMetricPanel.qml
+        qml/SystemPage.qml
         qml/Theme.qml
         qml/SidebarButton.qml
     RESOURCES
