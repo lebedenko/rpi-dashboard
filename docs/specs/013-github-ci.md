@@ -18,7 +18,8 @@ the normal debug build, clang-tidy, AddressSanitizer, and UndefinedBehaviorSanit
 ## Observable acceptance criteria
 
 - All four configurations run on the pinned Ubuntu 24.04 hosted runner with a 30-minute timeout.
-- CI installs Qt 6.8 with Qt SVG support and caches only the downloaded Qt installation.
+- CI installs Qt 6.8 with Qt SVG support from the base desktop archive and caches only the
+  downloaded Qt installation. It must not request Qt SVG as a separately downloadable module.
 - Third-party actions are pinned to immutable commit SHAs with their release versions documented
   alongside the pins.
 - Each configuration invokes its matching repository configure, build, and test presets directly:
