@@ -23,14 +23,19 @@ void DashboardStartupTest::
   QVERIFY2(clockQml.open(QIODevice::ReadOnly | QIODevice::Text), qPrintable(clockQml.errorString()));
   const auto source = QString::fromUtf8(clockQml.readAll());
 
-  QVERIFY(source.contains(QStringLiteral("Qt.formatTime(root.currentTimestamp, Locale.ShortFormat)")));
-  QVERIFY(source.contains(QStringLiteral("Qt.formatDate(root.currentTimestamp, Locale.ShortFormat)")));
+  QVERIFY(source.contains(QStringLiteral("Qt.formatTime(root.currentTimestamp, \"hh:mm\")")));
+  QVERIFY(source.contains(QStringLiteral("Qt.formatDate(root.currentTimestamp, \"ddd dd MMM\")")));
   QVERIFY(source.contains(QStringLiteral("interval: 1000")));
   QVERIFY(source.contains(QStringLiteral("Accessible.role: Accessible.StaticText")));
   QVERIFY(source.contains(QStringLiteral("color: Theme.textPrimary")));
   QVERIFY(source.contains(QStringLiteral("color: Theme.textSecondary")));
   QVERIFY(source.contains(QStringLiteral("font.pixelSize: Theme.clockTimeTextSize")));
   QVERIFY(source.contains(QStringLiteral("font.pixelSize: Theme.clockDateTextSize")));
+  QCOMPARE(source.count(QStringLiteral("font.family: Theme.sansFontFamily")), 2);
+  QVERIFY(source.contains(QStringLiteral("startX: Theme.sidebarCornerRadius")));
+  QVERIFY(source.contains(QStringLiteral("startY: 0")));
+  QVERIFY(source.contains(QStringLiteral("x: sidebarBackground.width - Theme.sidebarChamfer; y: 0")));
+  QVERIFY(source.contains(QStringLiteral("x: 0; y: Theme.sidebarCornerRadius")));
 
   QFile themeQml(QStringLiteral(DASHBOARD_THEME_QML));
   QVERIFY2(themeQml.open(QIODevice::ReadOnly | QIODevice::Text), qPrintable(themeQml.errorString()));

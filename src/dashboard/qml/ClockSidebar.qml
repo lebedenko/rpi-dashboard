@@ -5,8 +5,8 @@ Item {
     id: root
 
     property date currentTimestamp: new Date()
-    readonly property string timeText: Qt.formatTime(root.currentTimestamp, Locale.ShortFormat)
-    readonly property string dateText: Qt.formatDate(root.currentTimestamp, Locale.ShortFormat)
+    readonly property string timeText: Qt.formatTime(root.currentTimestamp, "hh:mm")
+    readonly property string dateText: Qt.formatDate(root.currentTimestamp, "ddd dd MMM")
     readonly property string accessibleText: qsTr("%1, %2").arg(root.timeText).arg(root.dateText)
 
     objectName: "clockSidebar"
@@ -24,21 +24,21 @@ Item {
             strokeColor: Theme.passiveBorder
             strokeWidth: 1
             joinStyle: ShapePath.MiterJoin
-            startX: Theme.sidebarChamfer
+            startX: Theme.sidebarCornerRadius
             startY: 0
-            PathLine { x: sidebarBackground.width - Theme.sidebarCornerRadius; y: 0 }
-            PathArc {
-                x: sidebarBackground.width
-                y: Theme.sidebarCornerRadius
-                radiusX: Theme.sidebarCornerRadius
-                radiusY: Theme.sidebarCornerRadius
-            }
+            PathLine { x: sidebarBackground.width - Theme.sidebarChamfer; y: 0 }
+            PathLine { x: sidebarBackground.width; y: Theme.sidebarChamfer }
             PathLine { x: sidebarBackground.width; y: sidebarBackground.height - Theme.sidebarChamfer }
             PathLine { x: sidebarBackground.width - Theme.sidebarChamfer; y: sidebarBackground.height }
             PathLine { x: Theme.sidebarChamfer; y: sidebarBackground.height }
             PathLine { x: 0; y: sidebarBackground.height - Theme.sidebarChamfer }
-            PathLine { x: 0; y: Theme.sidebarChamfer }
-            PathLine { x: Theme.sidebarChamfer; y: 0 }
+            PathLine { x: 0; y: Theme.sidebarCornerRadius }
+            PathArc {
+                x: Theme.sidebarCornerRadius
+                y: 0
+                radiusX: Theme.sidebarCornerRadius
+                radiusY: Theme.sidebarCornerRadius
+            }
         }
     }
 
@@ -55,7 +55,7 @@ Item {
             objectName: "clockTimeLabel"
             width: parent.width
             color: Theme.textPrimary
-            font.family: Theme.fixedFontFamily
+            font.family: Theme.sansFontFamily
             font.pixelSize: Theme.clockTimeTextSize
             font.weight: Theme.metricFontWeight
             horizontalAlignment: Text.AlignHCenter

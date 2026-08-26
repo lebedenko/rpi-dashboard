@@ -175,14 +175,16 @@ Item {
             verify(dateLabel.mapToItem(dashboardWindow.contentItem, 0, dateLabel.height).y
                    <= dashboardWindow.height - Theme.displaySafeInset);
 
-            compare(sidebar.timeText, Qt.formatTime(sidebar.currentTimestamp, Locale.ShortFormat));
-            compare(sidebar.dateText, Qt.formatDate(sidebar.currentTimestamp, Locale.ShortFormat));
+            compare(sidebar.timeText, Qt.formatTime(sidebar.currentTimestamp, "hh:mm"));
+            compare(sidebar.dateText, Qt.formatDate(sidebar.currentTimestamp, "ddd dd MMM"));
             compare(timeLabel.text, sidebar.timeText);
             compare(dateLabel.text, sidebar.dateText);
             compare(timeLabel.color, Theme.textPrimary);
             compare(dateLabel.color, Theme.textSecondary);
             compare(timeLabel.font.pixelSize, Theme.clockTimeTextSize);
             compare(dateLabel.font.pixelSize, Theme.clockDateTextSize);
+            compare(timeLabel.font.family, Theme.sansFontFamily);
+            compare(dateLabel.font.family, Theme.sansFontFamily);
             compare(sidebar.Accessible.role, Accessible.StaticText);
             compare(sidebar.Accessible.name, sidebar.accessibleText);
             verify(sidebar.Accessible.name.includes(sidebar.timeText));
