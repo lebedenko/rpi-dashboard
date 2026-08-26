@@ -11,6 +11,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 
 namespace dashboard::ui {
 
@@ -152,9 +153,11 @@ void ResourceHistorySeriesTest::animationFramesReuseSceneGraphGeometry() {
   QSGNode* curves = clip->firstChild();
   QSGNode* geometry = curves->firstChild();
   QSGNode* cpu_marker = clip->nextSibling();
-  QSGNode* cpu_marker_geometry = cpu_marker->firstChild()->firstChild();
+  QSGNode* cpu_join_geometry = cpu_marker->firstChild()->firstChild();
+  QSGNode* cpu_ring_geometry = cpu_join_geometry->nextSibling();
   QSGNode* memory_marker = cpu_marker->nextSibling();
-  QSGNode* memory_marker_geometry = memory_marker->firstChild()->firstChild();
+  QSGNode* memory_join_geometry = memory_marker->firstChild()->firstChild();
+  QSGNode* memory_ring_geometry = memory_join_geometry->nextSibling();
   series.transition_animation_.setCurrentTime(500);
   QSGNode* updated = series.updatePaintNode(root, nullptr);
   QCOMPARE(updated, root);
@@ -162,9 +165,12 @@ void ResourceHistorySeriesTest::animationFramesReuseSceneGraphGeometry() {
   QCOMPARE(updated->firstChild()->firstChild(), curves);
   QCOMPARE(updated->firstChild()->firstChild()->firstChild(), geometry);
   QCOMPARE(updated->firstChild()->nextSibling(), cpu_marker);
-  QCOMPARE(updated->firstChild()->nextSibling()->firstChild()->firstChild(), cpu_marker_geometry);
+  QCOMPARE(updated->firstChild()->nextSibling()->firstChild()->firstChild(), cpu_join_geometry);
+  QCOMPARE(updated->firstChild()->nextSibling()->firstChild()->firstChild()->nextSibling(), cpu_ring_geometry);
   QCOMPARE(updated->firstChild()->nextSibling()->nextSibling(), memory_marker);
-  QCOMPARE(updated->firstChild()->nextSibling()->nextSibling()->firstChild()->firstChild(), memory_marker_geometry);
+  QCOMPARE(updated->firstChild()->nextSibling()->nextSibling()->firstChild()->firstChild(), memory_join_geometry);
+  QCOMPARE(updated->firstChild()->nextSibling()->nextSibling()->firstChild()->firstChild()->nextSibling(),
+           memory_ring_geometry);
   delete root;
 }
 
@@ -200,17 +206,65 @@ void ResourceHistorySeriesTest::endpointAssemblyIsHorizontalAndTracksNow() {
   QVERIFY(join != nullptr);
   const auto* join_vertices = join->geometry()->vertexDataAsColoredPoint2D();
   // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic) Qt exposes vertex buffers as pointers.
-  QCOMPARE(join_vertices[0].x, 0.0F);
-  QCOMPARE(join_vertices[1].x, 2.0F);
+  QCOMPARE(join->geometry()->vertexCount(), 12);
+  float minimum_join_x = join_vertices[0].x;
+  float maximum_join_x = join_vertices[0].x;
+  float minimum_join_y = join_vertices[0].y;
+  float maximum_join_y = join_vertices[0].y;
+  bool join_has_opaque_core = false;
+  for (int index = 0; index < join->geometry()->vertexCount(); ++index) {
+    minimum_join_x = std::min(minimum_join_x, join_vertices[index].x);
+    maximum_join_x = std::max(maximum_join_x, join_vertices[index].x);
+    minimum_join_y = std::min(minimum_join_y, join_vertices[index].y);
+    maximum_join_y = std::max(maximum_join_y, join_vertices[index].y);
+    if (join_vertices[index].a == std::uint8_t{255}) {
+      join_has_opaque_core = true;
+    }
+  }
+  QCOMPARE(minimum_join_x, -1.0F);
+  QCOMPARE(maximum_join_x, 6.0F);
+  QCOMPARE(minimum_join_y, -1.0F);
+  QCOMPARE(maximum_join_y, 1.0F);
+  QVERIFY(join_has_opaque_core);
+
+  QSGNode* cpu_core_node = root->firstChild()->firstChild()->firstChild();
+  for (int index = 0; index < 6; ++index) {
+    cpu_core_node = cpu_core_node->nextSibling();
+  }
+  auto* cpu_core = dynamic_cast<QSGGeometryNode*>(cpu_core_node);
+  QVERIFY(cpu_core != nullptr);
+  const auto* cpu_core_vertices = cpu_core->geometry()->vertexDataAsColoredPoint2D();
+  const auto distance = [](const QSGGeometry::ColoredPoint2D& first, const QSGGeometry::ColoredPoint2D& second) {
+    return std::hypot(first.x - second.x, first.y - second.y);
+  };
+  QVERIFY(std::abs(distance(join_vertices[0], join_vertices[6]) -
+                   distance(cpu_core_vertices[0], cpu_core_vertices[6])) < 5.0e-5F);
+
   auto* ring = dynamic_cast<QSGGeometryNode*>(join->nextSibling());
   QVERIFY(ring != nullptr);
   const auto* ring_vertices = ring->geometry()->vertexDataAsColoredPoint2D();
   float minimum_ring_x = ring_vertices[0].x;
+  bool has_transparent_outer_band = false;
+  bool has_opaque_ring = false;
+  bool has_background_inner_band = false;
   for (int index = 1; index < ring->geometry()->vertexCount(); ++index) {
     minimum_ring_x = std::min(minimum_ring_x, ring_vertices[index].x);
+    const float radius = std::hypot(ring_vertices[index].x - 6.0F, ring_vertices[index].y);
+    has_transparent_outer_band =
+        has_transparent_outer_band || (radius > 4.0F && ring_vertices[index].a == std::uint8_t{0});
+    has_opaque_ring =
+        has_opaque_ring || (radius >= 2.5F && radius <= 3.5F && ring_vertices[index].a == std::uint8_t{255} &&
+                            ring_vertices[index].b > ring_vertices[index].r);
+    has_background_inner_band =
+        has_background_inner_band || (radius < 2.0F && ring_vertices[index].a == std::uint8_t{255} &&
+                                      ring_vertices[index].b > ring_vertices[index].r);
   }
   // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-  QCOMPARE(minimum_ring_x, 2.0F);
+  QVERIFY(ring->geometry()->vertexCount() > 20 * 12);
+  QCOMPARE(minimum_ring_x, 1.5F);
+  QVERIFY(has_transparent_outer_band);
+  QVERIFY(has_opaque_ring);
+  QVERIFY(has_background_inner_band);
   QCOMPARE(cpu_marker->matrix()(0, 3), 590.0F);
   const float start_y = cpu_marker->matrix()(1, 3);
   QCOMPARE(opacity->opacity(), 1.0F);

@@ -156,66 +156,61 @@ void clearChildren(QSGNode* node) {
 }
 
 [[nodiscard]] QSGGeometryNode* joinNode(const QColor& color) {
-  auto* geometry = new QSGGeometry(QSGGeometry::defaultAttributes_ColoredPoint2D(), 6);
-  geometry->setDrawingMode(QSGGeometry::DrawTriangles);
-  geometry->setVertexDataPattern(QSGGeometry::StaticPattern);
-  auto* vertices = geometry->vertexDataAsColoredPoint2D();
-  const auto set = [&](int index, float x_position, float y_position) {
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic) Qt exposes a vertex buffer pointer.
-    vertices[index].set(x_position, y_position, static_cast<std::uint8_t>(color.red()),
-                        static_cast<std::uint8_t>(color.green()), static_cast<std::uint8_t>(color.blue()),
-                        static_cast<std::uint8_t>(color.alpha()));
-  };
-  set(0, 0.0F, -1.0F);
-  set(1, 2.0F, -1.0F);
-  set(2, 2.0F, 1.0F);
-  set(3, 0.0F, -1.0F);
-  set(4, 2.0F, 1.0F);
-  set(5, 0.0F, 1.0F);
-  auto* node = new QSGGeometryNode;
-  node->setGeometry(geometry);
-  node->setFlag(QSGNode::OwnsGeometry);
-  node->setMaterial(new QSGVertexColorMaterial);
-  node->setFlag(QSGNode::OwnsMaterial);
-  return node;
+  return lineNode({{.x = -1.0F, .y = 0.0F}, {.x = 6.0F, .y = 0.0F}}, color, 2.0F, 1.0);
 }
 
 [[nodiscard]] QSGGeometryNode* ringNode(const QColor& color, const QColor& background) {
-  constexpr int kSections = 20;
-  constexpr float kOuterRadius = 4.0F;
-  constexpr float kInnerRadius = 2.0F;
-  auto* geometry = new QSGGeometry(QSGGeometry::defaultAttributes_ColoredPoint2D(), kSections * 12);
+  constexpr int kSections = 48;
+  constexpr float kOuterFeatherRadius = 4.5F;
+  constexpr float kOuterSolidRadius = 3.5F;
+  constexpr float kInnerSolidRadius = 2.5F;
+  constexpr float kInnerFeatherRadius = 1.5F;
+  constexpr int kVerticesPerSection = 21;
+  auto* geometry = new QSGGeometry(QSGGeometry::defaultAttributes_ColoredPoint2D(), kSections * kVerticesPerSection);
   geometry->setDrawingMode(QSGGeometry::DrawTriangles);
   geometry->setVertexDataPattern(QSGGeometry::StaticPattern);
   auto* vertices = geometry->vertexDataAsColoredPoint2D();
   const auto write = [&](int index, float x_position, float y_position, const QColor& value) {
+    const auto alpha = static_cast<std::uint8_t>(value.alpha());
+    const auto premultiply = [alpha](int channel) {
+      return static_cast<std::uint8_t>((channel * static_cast<int>(alpha)) / 255);
+    };
     // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic) Qt exposes a vertex buffer pointer.
-    vertices[index].set(x_position, y_position, static_cast<std::uint8_t>(value.red()),
-                        static_cast<std::uint8_t>(value.green()), static_cast<std::uint8_t>(value.blue()),
-                        static_cast<std::uint8_t>(value.alpha()));
+    vertices[index].set(x_position, y_position, premultiply(value.red()), premultiply(value.green()),
+                        premultiply(value.blue()), alpha);
   };
+  QColor transparent_color = color;
+  transparent_color.setAlpha(0);
   constexpr float kTau = 6.2831853071795864769F;
   for (int section = 0; section < kSections; ++section) {
     const float angle_1 = kTau * static_cast<float>(section) / kSections;
     const float angle_2 = kTau * static_cast<float>(section + 1) / kSections;
-    const QPointF outer_1(std::cos(angle_1) * kOuterRadius, std::sin(angle_1) * kOuterRadius);
-    const QPointF outer_2(std::cos(angle_2) * kOuterRadius, std::sin(angle_2) * kOuterRadius);
-    const QPointF inner_1(std::cos(angle_1) * kInnerRadius, std::sin(angle_1) * kInnerRadius);
-    const QPointF inner_2(std::cos(angle_2) * kInnerRadius, std::sin(angle_2) * kInnerRadius);
-    const int vertex = section * 12;
     constexpr float kCenterX = 6.0F;
-    write(vertex, kCenterX, 0.0F, background);
-    write(vertex + 1, kCenterX + static_cast<float>(inner_1.x()), static_cast<float>(inner_1.y()), background);
-    write(vertex + 2, kCenterX + static_cast<float>(inner_2.x()), static_cast<float>(inner_2.y()), background);
-    write(vertex + 3, kCenterX + static_cast<float>(inner_1.x()), static_cast<float>(inner_1.y()), color);
-    write(vertex + 4, kCenterX + static_cast<float>(outer_1.x()), static_cast<float>(outer_1.y()), color);
-    write(vertex + 5, kCenterX + static_cast<float>(outer_2.x()), static_cast<float>(outer_2.y()), color);
-    write(vertex + 6, kCenterX + static_cast<float>(inner_1.x()), static_cast<float>(inner_1.y()), color);
-    write(vertex + 7, kCenterX + static_cast<float>(outer_2.x()), static_cast<float>(outer_2.y()), color);
-    write(vertex + 8, kCenterX + static_cast<float>(inner_2.x()), static_cast<float>(inner_2.y()), color);
-    write(vertex + 9, kCenterX, 0.0F, background);
-    write(vertex + 10, kCenterX + static_cast<float>(inner_2.x()), static_cast<float>(inner_2.y()), background);
-    write(vertex + 11, kCenterX + static_cast<float>(inner_1.x()), static_cast<float>(inner_1.y()), background);
+    const auto radialPoint = [&](float angle, float radius) {
+      return QPointF(kCenterX + (std::cos(angle) * radius), std::sin(angle) * radius);
+    };
+    int vertex = section * kVerticesPerSection;
+    const auto appendBand = [&](float outer_radius, const QColor& outer_color, float inner_radius,
+                                const QColor& inner_color) {
+      const QPointF outer_1 = radialPoint(angle_1, outer_radius);
+      const QPointF outer_2 = radialPoint(angle_2, outer_radius);
+      const QPointF inner_1 = radialPoint(angle_1, inner_radius);
+      const QPointF inner_2 = radialPoint(angle_2, inner_radius);
+      write(vertex++, static_cast<float>(outer_1.x()), static_cast<float>(outer_1.y()), outer_color);
+      write(vertex++, static_cast<float>(inner_1.x()), static_cast<float>(inner_1.y()), inner_color);
+      write(vertex++, static_cast<float>(inner_2.x()), static_cast<float>(inner_2.y()), inner_color);
+      write(vertex++, static_cast<float>(outer_1.x()), static_cast<float>(outer_1.y()), outer_color);
+      write(vertex++, static_cast<float>(inner_2.x()), static_cast<float>(inner_2.y()), inner_color);
+      write(vertex++, static_cast<float>(outer_2.x()), static_cast<float>(outer_2.y()), outer_color);
+    };
+    appendBand(kOuterFeatherRadius, transparent_color, kOuterSolidRadius, color);
+    appendBand(kOuterSolidRadius, color, kInnerSolidRadius, color);
+    appendBand(kInnerSolidRadius, color, kInnerFeatherRadius, background);
+    const QPointF inner_1 = radialPoint(angle_1, kInnerFeatherRadius);
+    const QPointF inner_2 = radialPoint(angle_2, kInnerFeatherRadius);
+    write(vertex++, kCenterX, 0.0F, background);
+    write(vertex++, static_cast<float>(inner_1.x()), static_cast<float>(inner_1.y()), background);
+    write(vertex, static_cast<float>(inner_2.x()), static_cast<float>(inner_2.y()), background);
   }
   auto* node = new QSGGeometryNode;
   node->setGeometry(geometry);
