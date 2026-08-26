@@ -164,6 +164,14 @@ add_test(
 )
 
 add_test(
+    NAME ci_container_runner_test
+    COMMAND
+        sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/ci_container_runner_test.sh
+        ${CMAKE_SOURCE_DIR}/scripts/run-ci-container.sh
+)
+
+add_test(
     NAME install_flow_test
     COMMAND
         sh

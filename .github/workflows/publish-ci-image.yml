@@ -1,0 +1,46 @@
+name: Publish CI image
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@9f698171ed81b15d1823a05fc7211befd50c8ae0 # v6.0.3
+
+      - name: Build image
+        run: docker build --platform linux/amd64 --tag ghcr.io/lebedenko/rpi-dashboard-ci:${GITHUB_SHA} --file ci/Dockerfile .
+
+      - name: Verify image toolchain
+        run: docker run --rm ghcr.io/lebedenko/rpi-dashboard-ci:${GITHUB_SHA} verify-ci-toolchain
+
+      - name: Validate all presets
+        env:
+          CI_IMAGE_OVERRIDE: ghcr.io/lebedenko/rpi-dashboard-ci:${{ github.sha }}
+        run: |
+          scripts/run-ci-container.sh dev
+          scripts/run-ci-container.sh tidy
+          scripts/run-ci-container.sh asan
+          scripts/run-ci-container.sh ubsan
+
+      - name: Log in to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.actor }}" --password-stdin
+
+      - name: Push image
+        run: docker push ghcr.io/lebedenko/rpi-dashboard-ci:${GITHUB_SHA}
+
+      - name: Report immutable reference
+        run: |
+          image=ghcr.io/lebedenko/rpi-dashboard-ci:${GITHUB_SHA}
+          digest=$(docker image inspect --format '{{index .RepoDigests 0}}' "$image")
+          echo "Published: $digest"
+          echo "Update ci/image.env only after making the GHCR package public and reviewing this digest." >> "$GITHUB_STEP_SUMMARY"
+          echo "\`CI_IMAGE=$digest\`" >> "$GITHUB_STEP_SUMMARY"
