@@ -2,8 +2,8 @@
 
 ## Intent
 
-Validate every proposed and integrated change on a reproducible hosted Linux environment using
-the repository's existing CMake configurations. Pull requests and pushes to `main` must exercise
+Validate every proposed and integrated change with the digest-locked project CI image using the
+repository's existing CMake configurations. Pull requests and pushes to `main` must exercise
 the normal debug build, clang-tidy, AddressSanitizer, and UndefinedBehaviorSanitizer independently.
 
 ## Triggers and required checks
@@ -17,7 +17,8 @@ the normal debug build, clang-tidy, AddressSanitizer, and UndefinedBehaviorSanit
 
 ## Observable acceptance criteria
 
-- All four configurations run on the pinned Ubuntu 24.04 hosted runner with a 30-minute timeout.
+- All four configurations use Ubuntu 24.04 only as a Docker host and run in the immutable image
+  locked by `ci/image.env`, with a 30-minute timeout.
 - The normal, sanitizer, and clang-tidy builds compile with GCC 13, including test code that
   supplies explicit fallback values to `std::optional<QString>::value_or()`.
 - The clang-tidy configuration is accepted by the clang-tidy versions provided by Ubuntu 24.04,
@@ -26,12 +27,11 @@ the normal debug build, clang-tidy, AddressSanitizer, and UndefinedBehaviorSanit
   forwards every other argument for project-owned translation units unchanged. Project code must
   also pass the shared checks with the runner-provided clang-tidy version without diagnostics caused
   by known analyzer limitations in Qt's callable and guarded-pointer implementations.
-- CI installs Qt 6.8 with Qt SVG support from the base desktop archive and caches only the
-  downloaded Qt installation. It must not request Qt SVG as a separately downloadable module.
+- CI receives Qt 6.8.3 with SVG support and all compilers and build tools from the project image.
 - Third-party actions are pinned to immutable commit SHAs with their release versions documented
   alongside the pins.
-- Each configuration invokes its matching repository configure, build, and test presets directly:
-  `cmake --preset`, `cmake --build --preset`, and `ctest --preset`.
+- Each configuration invokes `scripts/run-ci-container.sh` for its matching preset; the runner then
+  invokes `cmake --preset`, `cmake --build --preset`, and `ctest --preset` inside the image.
 - The workflow status is visible from the repository README.
 - A failure in configure, build, tests, sanitizer diagnostics, or clang-tidy produces a failed
   matrix job and therefore a failed overall workflow.
@@ -40,13 +40,14 @@ the normal debug build, clang-tidy, AddressSanitizer, and UndefinedBehaviorSanit
 
 - Deployment, packaging, releases, or branch-protection configuration.
 - Cross-compilation, hosted ARM64 coverage, or physical Raspberry Pi display and input validation.
-- Caching build directories or introducing an additional task-runner dependency in CI.
+- Caching build directories or using the host toolchain for compilation or tests.
 - Changing application APIs, CMake targets, presets, or project dependencies.
 - Removing `-mno-direct-extern-access` from normal GCC compilation or from clangd's compile flags.
 
 ## Verification
 
-- Validate the workflow as YAML and check the patch with `git diff --check`.
-- Run `task test`, `task check`, `task test-asan`, and `task test-ubsan` locally.
+- Validate the workflows as YAML and check the patch with `git diff --check`.
+- Run the focused `ci_container_runner_test`, then `task test` and `task check` natively.
+- After publishing and locking the first image, run `task ci` locally.
 - After the workflow is pushed to GitHub, confirm that all four matrix jobs execute and that a
   failing matrix job makes the overall workflow fail.
