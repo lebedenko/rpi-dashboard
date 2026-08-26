@@ -3,9 +3,8 @@
 
 int main(int argc, char* argv[]) {
   QCoreApplication application(argc, argv);
-  QCoreApplication::setApplicationName(QStringLiteral("HoloNight Dashboard Agent"));
+  QCoreApplication::setApplicationName(QStringLiteral("rpi-dashboard-agent"));
 
-  QTextStream(stdout) << "holonight-dashboard-agent: telemetry transport is not configured\n";
+  QTextStream(stdout) << "rpi-dashboard-agent: telemetry transport is not configured\n";
   return 0;
 }
-

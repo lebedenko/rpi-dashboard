@@ -7,7 +7,7 @@ qt_add_library(dashboard_protocol STATIC
     system_metrics.h
 )
 
-add_library(HoloNightDashboard::protocol ALIAS dashboard_protocol)
+add_library(RpiDashboard::protocol ALIAS dashboard_protocol)
 
 target_include_directories(dashboard_protocol
     PUBLIC

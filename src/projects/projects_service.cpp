@@ -465,7 +465,7 @@ void ProjectsService::startRequests() {
     QNetworkRequest request(pending.url);
     request.setRawHeader("Accept", "application/vnd.github+json");
     request.setRawHeader("X-GitHub-Api-Version", "2022-11-28");
-    request.setHeader(QNetworkRequest::UserAgentHeader, QStringLiteral("HoloNight-Dashboard/0.1"));
+    request.setHeader(QNetworkRequest::UserAgentHeader, QStringLiteral("rpi-dashboard/0.1"));
     request.setTransferTimeout(kRequestTimeoutMs);
     if (!token_.isEmpty()) request.setRawHeader("Authorization", QByteArrayLiteral("Bearer ") + token_);
     const auto cache_key = pending.url.toString();

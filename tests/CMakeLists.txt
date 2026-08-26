@@ -6,7 +6,7 @@ qt_add_executable(device_snapshot_test
 
 target_link_libraries(device_snapshot_test
     PRIVATE
-        HoloNightDashboard::protocol
+        RpiDashboard::protocol
         Qt6::Test
 )
 
@@ -18,7 +18,7 @@ qt_add_executable(system_info_test
 
 target_link_libraries(system_info_test
     PRIVATE
-        HoloNightDashboard::sysinfo
+        RpiDashboard::sysinfo
         Qt6::Test
 )
 
@@ -30,7 +30,7 @@ qt_add_executable(system_metrics_test
 
 target_link_libraries(system_metrics_test
     PRIVATE
-        HoloNightDashboard::sysmetrics
+        RpiDashboard::sysmetrics
         Qt6::Test
 )
 
@@ -42,7 +42,7 @@ qt_add_executable(projects_service_test
 
 target_link_libraries(projects_service_test
     PRIVATE
-        HoloNightDashboard::projects
+        RpiDashboard::projects
         Qt6::Test
 )
 
@@ -90,11 +90,11 @@ qt_add_executable(dashboard_startup_test
     dashboard_startup_test.cpp
 )
 
-add_dependencies(dashboard_startup_test holonight-dashboard)
+add_dependencies(dashboard_startup_test rpi-dashboard)
 
 target_compile_definitions(dashboard_startup_test
     PRIVATE
-        DASHBOARD_EXECUTABLE="$<TARGET_FILE:holonight-dashboard>"
+        DASHBOARD_EXECUTABLE="$<TARGET_FILE:rpi-dashboard>"
         DASHBOARD_CLOCK_SIDEBAR_QML="${CMAKE_SOURCE_DIR}/src/dashboard/qml/ClockSidebar.qml"
         DASHBOARD_MAIN_QML="${CMAKE_SOURCE_DIR}/src/dashboard/qml/Main.qml"
         DASHBOARD_DEVICE_CARD_QML="${CMAKE_SOURCE_DIR}/src/dashboard/qml/DeviceCard.qml"
@@ -134,7 +134,7 @@ set_property(TARGET dashboard_qml_test PROPERTY
 
 target_link_libraries(dashboard_qml_test
     PRIVATE
-        holonight-dashboard-qml
+        rpi-dashboard-qml
         Qt6::QuickTest
 )
 

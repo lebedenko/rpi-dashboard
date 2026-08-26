@@ -11,9 +11,9 @@ service without disrupting the current console session.
 
 - `task install` configures and builds the Release preset without privilege escalation. It uses
   `sudo` only to install the built files and run the provisioning helper.
-- The installed runtime consists of `/usr/local/bin/holonight-dashboard`, launcher and provisioning
-  helpers in `/usr/local/libexec/holonight-dashboard/`, and
-  `/usr/local/lib/systemd/system/holonight-dashboard.service`.
+- The installed runtime consists of `/usr/local/bin/rpi-dashboard`, launcher and provisioning
+  helpers in `/usr/local/libexec/rpi-dashboard/`, and
+  `/usr/local/lib/systemd/system/rpi-dashboard.service`.
 - Provisioning fails unless the host is an aarch64 Raspberry Pi 5 running systemd with `cage` and
   `wlr-randr` available. It does not install packages.
 - Provisioning creates `dashboard` when absent, with `/home/dashboard`, its own primary group,
@@ -21,7 +21,7 @@ service without disrupting the current console session.
 - An existing account is left unchanged only when its home, shell, primary group, supplementary
   groups, and password-lock state match the supported configuration. Any mismatch is reported and
   provisioning stops.
-- Provisioning reloads systemd and enables `holonight-dashboard.service`; it never starts or
+- Provisioning reloads systemd and enables `rpi-dashboard.service`; it never starts or
   restarts the service.
 - The service replaces `getty@tty1`, runs as `dashboard`, opens a PAM/logind session on tty1, lets
   Cage manage VT switching, restarts only after failure, and sends diagnostics to both the journal
@@ -46,7 +46,7 @@ sudo install -d -m 0700 /etc/credstore.encrypted
 sudo -v
 systemd-ask-password 'GitHub token' | \
   sudo systemd-creds encrypt --name=github-token - /etc/credstore.encrypted/github-token
-sudo systemctl restart holonight-dashboard.service
+sudo systemctl restart rpi-dashboard.service
 ```
 
 Systemd recommends credentials rather than environment variables for secrets; see the
@@ -59,7 +59,7 @@ Systemd recommends credentials rather than environment variables for secrets; se
   modify the account.
 - The personal access token is never installed by CMake, stored in `.profile`, placed in shell
   history, or configured through `EnvironmentFile`.
-- Runtime launch failures are visible on tty1 and through `journalctl -u holonight-dashboard`.
+- Runtime launch failures are visible on tty1 and through `journalctl -u rpi-dashboard`.
 
 ## Observable acceptance criteria
 

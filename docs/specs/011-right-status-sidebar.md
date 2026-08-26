@@ -24,7 +24,7 @@ Add a dedicated status rail to the right side of the 1480×320 dashboard while p
 - Both time and date use `Theme.sansFontFamily`.
 - Accessibility exposes one `Accessible.StaticText` description containing the displayed time and date.
 - The left navigation retains four 48×48 touch targets and all existing page selection and focus behavior.
-- `ClockSidebar.qml` is registered in the `HoloNight.Dashboard` QML module without a new dependency or C++ API.
+- `ClockSidebar.qml` is registered in the `Rpi.Dashboard` QML module without a new dependency or C++ API.
 
 ## Non-goals
 

@@ -3,7 +3,7 @@
 set -eu
 
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-dashboard_binary=${1:-"$script_dir/../build/release/src/dashboard/holonight-dashboard"}
+dashboard_binary=${1:-"$script_dir/../build/release/src/dashboard/rpi-dashboard"}
 session_helper="$script_dir/run-dashboard-session.sh"
 
 if ! command -v cage >/dev/null 2>&1; then
@@ -22,7 +22,7 @@ if [ ! -x "$session_helper" ]; then
 fi
 
 if [ -z "${XDG_RUNTIME_DIR:-}" ]; then
-    XDG_RUNTIME_DIR=$(mktemp -d "/tmp/holonight-runtime-$(id -u)-XXXXXX")
+    XDG_RUNTIME_DIR=$(mktemp -d "/tmp/rpi-dashboard-runtime-$(id -u)-XXXXXX")
     chmod 700 "$XDG_RUNTIME_DIR"
     export XDG_RUNTIME_DIR
 fi

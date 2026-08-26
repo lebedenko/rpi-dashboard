@@ -5,22 +5,22 @@ set -eu
 cmake_command=$1
 build_directory=$2
 source_directory=$3
-test_dir=$(mktemp -d "${TMPDIR:-/tmp}/holonight-install-test-XXXXXX")
+test_dir=$(mktemp -d "${TMPDIR:-/tmp}/rpi-dashboard-install-test-XXXXXX")
 trap 'rm -rf -- "$test_dir"' EXIT HUP INT TERM
 
 install_root="$test_dir/root"
 DESTDIR="$install_root" "$cmake_command" --install "$build_directory" --prefix /usr/local
 
-installed_bin="$install_root/usr/local/bin/holonight-dashboard"
-installed_libexec="$install_root/usr/local/libexec/holonight-dashboard"
-installed_service="$install_root/usr/local/lib/systemd/system/holonight-dashboard.service"
+installed_bin="$install_root/usr/local/bin/rpi-dashboard"
+installed_libexec="$install_root/usr/local/libexec/rpi-dashboard"
+installed_service="$install_root/usr/local/lib/systemd/system/rpi-dashboard.service"
 
 [ -x "$installed_bin" ]
 [ -x "$installed_libexec/run-kiosk.sh" ]
 [ -x "$installed_libexec/run-dashboard-session.sh" ]
 [ -x "$installed_libexec/provision.sh" ]
 [ -f "$installed_service" ]
-cmp "$source_directory/install/holonight-dashboard.service" "$installed_service"
+cmp "$source_directory/install/rpi-dashboard.service" "$installed_service"
 grep -Fqx 'OnSuccess=getty@tty1.service' "$installed_service"
 sh -n "$installed_libexec/run-kiosk.sh"
 sh -n "$installed_libexec/run-dashboard-session.sh"
@@ -79,9 +79,9 @@ chmod +x "$fake_bin"/*
 
 run_provision() {
   TEST_STATE="$state" \
-    HOLONIGHT_ALLOW_UNPRIVILEGED=1 \
-    HOLONIGHT_SYSTEMD_AVAILABLE=1 \
-    HOLONIGHT_MODEL_FILE="$test_dir/model" \
+    RPI_DASHBOARD_ALLOW_UNPRIVILEGED=1 \
+    RPI_DASHBOARD_SYSTEMD_AVAILABLE=1 \
+    RPI_DASHBOARD_MODEL_FILE="$test_dir/model" \
     PATH="$fake_bin:/usr/bin:/bin" \
     "$installed_libexec/provision.sh"
 }
@@ -92,7 +92,7 @@ run_provision
 [ "$(wc -l <"$state/useradd.log")" -eq 1 ]
 [ "$(wc -l <"$state/passwd.log")" -eq 1 ]
 [ "$(grep -Fxc 'daemon-reload' "$state/systemctl.log")" -eq 2 ]
-[ "$(grep -Fxc 'enable holonight-dashboard.service' "$state/systemctl.log")" -eq 2 ]
+[ "$(grep -Fxc 'enable rpi-dashboard.service' "$state/systemctl.log")" -eq 2 ]
 if grep -Eq '(^| )(start|restart)( |$)' "$state/systemctl.log"; then
   echo "install_flow_test: provisioning started the service" >&2
   exit 1

@@ -7,7 +7,7 @@ qt_add_library(dashboard_projects STATIC
     projects_service.h
 )
 
-add_library(HoloNightDashboard::projects ALIAS dashboard_projects)
+add_library(RpiDashboard::projects ALIAS dashboard_projects)
 
 target_include_directories(dashboard_projects
     PUBLIC

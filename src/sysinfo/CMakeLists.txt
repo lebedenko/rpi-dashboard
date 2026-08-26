@@ -6,7 +6,7 @@ qt_add_library(dashboard_sysinfo STATIC
     sys_info_service.h
 )
 
-add_library(HoloNightDashboard::sysinfo ALIAS dashboard_sysinfo)
+add_library(RpiDashboard::sysinfo ALIAS dashboard_sysinfo)
 
 target_include_directories(dashboard_sysinfo
     PUBLIC
@@ -15,7 +15,7 @@ target_include_directories(dashboard_sysinfo
 
 target_link_libraries(dashboard_sysinfo
     PUBLIC
-        HoloNightDashboard::protocol
+        RpiDashboard::protocol
         Qt6::Core
     PRIVATE
         Qt6::Concurrent

@@ -5,14 +5,14 @@ set -eu
 account=dashboard
 expected_home=/home/dashboard
 expected_shell=/usr/sbin/nologin
-model_file=${HOLONIGHT_MODEL_FILE:-/proc/device-tree/model}
+model_file=${RPI_DASHBOARD_MODEL_FILE:-/proc/device-tree/model}
 
 fail() {
-  echo "holonight-provision: $*" >&2
+  echo "rpi-dashboard-provision: $*" >&2
   exit 1
 }
 
-[ "${HOLONIGHT_ALLOW_UNPRIVILEGED:-0}" = 1 ] || [ "$(id -u)" -eq 0 ] || fail "must be run as root"
+[ "${RPI_DASHBOARD_ALLOW_UNPRIVILEGED:-0}" = 1 ] || [ "$(id -u)" -eq 0 ] || fail "must be run as root"
 [ "$(uname -m)" = aarch64 ] || fail "requires aarch64"
 [ -r "$model_file" ] || fail "cannot identify Raspberry Pi model"
 model=$(tr -d '\000' <"$model_file")
@@ -20,7 +20,7 @@ case "$model" in
   *"Raspberry Pi 5"*) ;;
   *) fail "requires a Raspberry Pi 5" ;;
 esac
-[ -d /run/systemd/system ] || [ "${HOLONIGHT_SYSTEMD_AVAILABLE:-0}" = 1 ] || fail "systemd is not running"
+[ -d /run/systemd/system ] || [ "${RPI_DASHBOARD_SYSTEMD_AVAILABLE:-0}" = 1 ] || fail "systemd is not running"
 command -v cage >/dev/null 2>&1 || fail "cage is not installed or not available in PATH"
 command -v wlr-randr >/dev/null 2>&1 || fail "wlr-randr is not installed or not available in PATH"
 
@@ -43,5 +43,5 @@ else
 fi
 
 systemctl daemon-reload
-systemctl enable holonight-dashboard.service
-echo "holonight-provision: installed and enabled; reboot or start the service explicitly"
+systemctl enable rpi-dashboard.service
+echo "rpi-dashboard-provision: installed and enabled; reboot or start the service explicitly"

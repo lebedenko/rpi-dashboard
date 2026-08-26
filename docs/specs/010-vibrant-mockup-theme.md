@@ -2,7 +2,7 @@
 
 ## Goal
 
-Bring the dashboard closer to the supplied HoloNight-inspired mockups with deep navy surfaces and luminous cyan, blue, purple, and green accents while preserving the existing information hierarchy and interaction model.
+Bring rpi-dashboard closer to the supplied vibrant mockups with deep navy surfaces and luminous cyan, blue, purple, and green accents while preserving the existing information hierarchy and interaction model.
 
 ## Observable contract
 

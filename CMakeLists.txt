@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.25)
 
-project(HoloNightDashboard
+project(RpiDashboard
     VERSION 0.1.0
     DESCRIPTION "Standalone Qt dashboard for local and remote system telemetry"
     LANGUAGES CXX
@@ -54,9 +54,9 @@ install(PROGRAMS
     scripts/run-dashboard-session.sh
     scripts/run-kiosk.sh
     install/provision.sh
-    DESTINATION ${CMAKE_INSTALL_LIBEXECDIR}/holonight-dashboard
+    DESTINATION ${CMAKE_INSTALL_LIBEXECDIR}/rpi-dashboard
 )
 
-install(FILES install/holonight-dashboard.service
+install(FILES install/rpi-dashboard.service
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/systemd/system
 )

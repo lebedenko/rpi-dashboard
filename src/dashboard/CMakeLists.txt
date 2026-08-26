@@ -1,12 +1,12 @@
-qt_add_library(holonight-dashboard-qml STATIC)
+qt_add_library(rpi-dashboard-qml STATIC)
 
 set_source_files_properties(qml/Theme.qml PROPERTIES
     QT_QML_SINGLETON_TYPE TRUE
 )
 
-qt_add_qml_module(holonight-dashboard-qml
-    URI HoloNight.Dashboard
-    OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/HoloNight/Dashboard
+qt_add_qml_module(rpi-dashboard-qml
+    URI Rpi.Dashboard
+    OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/Rpi/Dashboard
     SOURCES
         resource_history_geometry.cpp
         resource_history_geometry.h
@@ -36,40 +36,40 @@ qt_add_qml_module(holonight-dashboard-qml
         qml/icons/weather.svg
 )
 
-target_link_libraries(holonight-dashboard-qml
+target_link_libraries(rpi-dashboard-qml
     PRIVATE
         Qt6::Qml
         Qt6::Quick
 )
 
-qt_add_executable(holonight-dashboard
+qt_add_executable(rpi-dashboard
     MANUAL_FINALIZATION
     main.cpp
 )
 
-target_link_libraries(holonight-dashboard
+target_link_libraries(rpi-dashboard
     PRIVATE
-        HoloNightDashboard::protocol
-        HoloNightDashboard::projects
-        HoloNightDashboard::sysinfo
-        HoloNightDashboard::sysmetrics
-        holonight-dashboard-qml
-        holonight-dashboard-qmlplugin
-        holonight-dashboard-qmlplugin_init
+        RpiDashboard::protocol
+        RpiDashboard::projects
+        RpiDashboard::sysinfo
+        RpiDashboard::sysmetrics
+        rpi-dashboard-qml
+        rpi-dashboard-qmlplugin
+        rpi-dashboard-qmlplugin_init
         Qt6::Gui
         Qt6::Network
         Qt6::Qml
         Qt6::Quick
 )
 
-qt_import_qml_plugins(holonight-dashboard)
-qt_finalize_executable(holonight-dashboard)
+qt_import_qml_plugins(rpi-dashboard)
+qt_finalize_executable(rpi-dashboard)
 
-set_target_properties(holonight-dashboard PROPERTIES
+set_target_properties(rpi-dashboard PROPERTIES
     WIN32_EXECUTABLE TRUE
     MACOSX_BUNDLE TRUE
 )
 
-install(TARGETS holonight-dashboard
+install(TARGETS rpi-dashboard
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )

@@ -1,4 +1,4 @@
-# HoloNight Dashboard
+# rpi-dashboard
 
 [![CI](https://github.com/lebedenko/rpi-dashboard/actions/workflows/ci.yml/badge.svg)](https://github.com/lebedenko/rpi-dashboard/actions/workflows/ci.yml)
 
@@ -32,7 +32,7 @@ Without Task:
 cmake --preset dev
 cmake --build --preset dev
 ctest --preset dev
-./build/dev/src/dashboard/holonight-dashboard
+./build/dev/src/dashboard/rpi-dashboard
 ```
 
 Use `task check` for the clang-tidy build. If Qt is installed outside the system prefix, set `CMAKE_PREFIX_PATH` or `Qt6_ROOT` when configuring.
@@ -53,7 +53,7 @@ Log in on an active local Raspberry Pi TTY, then build natively and start Cage a
 
 ```sh
 cmake --preset release
-cmake --build --preset release --target holonight-dashboard
+cmake --build --preset release --target rpi-dashboard
 ./scripts/run-kiosk.sh
 ```
 

@@ -29,13 +29,13 @@ tasks:
     desc: Run the dashboard locally
     deps: [build]
     cmds:
-      - ./build/dev/src/dashboard/holonight-dashboard
+      - ./build/dev/src/dashboard/rpi-dashboard
 
   run-windowed:
     desc: Run at the target logical geometry in a development window
     deps: [build]
     cmds:
-      - ./build/dev/src/dashboard/holonight-dashboard --windowed --width 1480 --height 320
+      - ./build/dev/src/dashboard/rpi-dashboard --windowed --width 1480 --height 320
 
   install:
     desc: Build and install the Raspberry Pi kiosk
@@ -43,7 +43,7 @@ tasks:
       - cmake --preset release
       - cmake --build --preset release
       - sudo cmake --install build/release
-      - sudo /usr/local/libexec/holonight-dashboard/provision.sh
+      - sudo /usr/local/libexec/rpi-dashboard/provision.sh
 
   test-asan:
     desc: Build and run tests with AddressSanitizer

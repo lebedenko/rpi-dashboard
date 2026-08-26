@@ -1,4 +1,4 @@
-import HoloNight.Dashboard
+import Rpi.Dashboard
 import QtQuick
 import QtTest
 
@@ -40,7 +40,7 @@ Item {
             fakeService = fakeServiceComponent.createObject(root);
             fakeMetricsService = fakeMetricsServiceComponent.createObject(root);
             fakeProjectsService = fakeProjectsServiceComponent.createObject(root);
-            dashboardComponent = Qt.createComponent("qrc:/qt/qml/HoloNight/Dashboard/qml/Main.qml");
+            dashboardComponent = Qt.createComponent("qrc:/qt/qml/Rpi/Dashboard/qml/Main.qml");
             verify(dashboardComponent.status === Component.Ready, dashboardComponent.errorString());
             dashboardWindow = dashboardComponent.createObject(null, {
                 "windowed": true,

@@ -17,8 +17,8 @@
 
 int main(int argc, char* argv[]) {
   QGuiApplication application(argc, argv);
-  QGuiApplication::setApplicationName(QStringLiteral("HoloNight Dashboard"));
-  QGuiApplication::setOrganizationName(QStringLiteral("HoloNight"));
+  QGuiApplication::setApplicationName(QStringLiteral("rpi-dashboard"));
+  QGuiApplication::setOrganizationName(QStringLiteral("rpi-dashboard"));
 
   QCommandLineParser parser;
   parser.setApplicationDescription(QStringLiteral("Standalone Raspberry Pi dashboard"));
@@ -64,6 +64,6 @@ int main(int argc, char* argv[]) {
   QObject::connect(
       &engine, &QQmlApplicationEngine::objectCreationFailed, &application, [] { QCoreApplication::exit(EXIT_FAILURE); },
       Qt::QueuedConnection);
-  engine.loadFromModule("HoloNight.Dashboard", "Main");
+  engine.loadFromModule("Rpi.Dashboard", "Main");
   return QGuiApplication::exec();
 }

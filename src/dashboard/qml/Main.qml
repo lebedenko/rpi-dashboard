@@ -27,7 +27,7 @@ ApplicationWindow {
     height: root.windowHeight
     visibility: root.windowed ? Window.Windowed : Window.FullScreen
     color: Theme.background
-    title: qsTr("HoloNight Dashboard")
+    title: qsTr("rpi-dashboard")
 
     function selectPreviousPage(): void {
         pageStack.currentIndex = Math.max(0, pageStack.currentIndex - 1)

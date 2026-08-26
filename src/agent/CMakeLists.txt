@@ -1,11 +1,10 @@
-qt_add_executable(holonight-dashboard-agent
+qt_add_executable(rpi-dashboard-agent
     main.cpp
 )
 
-target_link_libraries(holonight-dashboard-agent
+target_link_libraries(rpi-dashboard-agent
     PRIVATE
-        HoloNightDashboard::protocol
+        RpiDashboard::protocol
         Qt6::Core
         Qt6::Network
 )
-

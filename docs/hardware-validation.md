@@ -53,8 +53,8 @@ enables the unit but intentionally does not start it in the current session. Ver
 identity, seat, and per-user runtime directory with:
 
 ```sh
-systemctl status holonight-dashboard.service
-journalctl -u holonight-dashboard.service -b
+systemctl status rpi-dashboard.service
+journalctl -u rpi-dashboard.service -b
 loginctl session-status
 loginctl seat-status seat0
 sudo -u dashboard test -d /run/user/$(id -u dashboard)
@@ -64,7 +64,7 @@ The service process must run as `dashboard`, the local session must own tty1 on 
 runtime-directory check must succeed. When the encrypted `github-token` credential is installed,
 confirm that private GitHub data loads without credential text appearing in the journal. Press
 Ctrl+Q and confirm that the clean exit starts `getty@tty1.service` and returns to a login prompt;
-restart the kiosk with `sudo systemctl start holonight-dashboard.service` if desired.
+restart the kiosk with `sudo systemctl start rpi-dashboard.service` if desired.
 Finally repeat the display transform, five-point touch, keyboard navigation, VT switching, and SSH
 recovery checks recorded above.
 

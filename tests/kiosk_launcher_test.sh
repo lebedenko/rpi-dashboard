@@ -4,7 +4,7 @@ set -eu
 
 launcher=$1
 session_helper=$2
-test_dir=$(mktemp -d "${TMPDIR:-/tmp}/holonight-kiosk-test-XXXXXX")
+test_dir=$(mktemp -d "${TMPDIR:-/tmp}/rpi-dashboard-kiosk-test-XXXXXX")
 trap 'rm -rf -- "$test_dir"' EXIT HUP INT TERM
 
 fake_bin="$test_dir/bin"

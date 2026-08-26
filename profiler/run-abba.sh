@@ -4,7 +4,7 @@ set -eu
 
 repo_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 build_dir="$repo_dir/build/profile"
-binary="$build_dir/src/dashboard/holonight-dashboard"
+binary="$build_dir/src/dashboard/rpi-dashboard"
 qmlprofiler=/usr/lib/qt6/bin/qmlprofiler
 sequence="opengl vulkan vulkan opengl"
 
@@ -44,7 +44,7 @@ for backend in $sequence; do
     read -r _ready
     echo "Use a stopwatch and follow profiler/workload.md exactly; close normally at 90 s."
     printf '%s\n' "$backend" >"$run_dir/backend.txt"
-    trace_name="qmlprofiler-trace-holonight-dashboard-$study_id-run-$run_number-$backend.qtd"
+    trace_name="qmlprofiler-trace-rpi-dashboard-$study_id-run-$run_number-$backend.qtd"
     if ! RUN_DIR="$run_dir" TRACE_NAME="$trace_name" QSG_RHI_BACKEND="$backend" QSG_INFO=1 \
         cage -s -d -- "$repo_dir/profiler/run-session.sh" "$binary"; then
         echo "run-abba: run $run_number exited abnormally; study stopped" >&2

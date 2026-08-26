@@ -1,5 +1,5 @@
 [Unit]
-Description=HoloNight dashboard kiosk
+Description=rpi-dashboard kiosk
 After=systemd-user-sessions.service plymouth-quit.service
 Conflicts=getty@tty1.service
 OnSuccess=getty@tty1.service
@@ -19,7 +19,7 @@ UtmpIdentifier=tty1
 UtmpMode=user
 Environment=GITHUB_TOKEN_FILE=%d/github-token
 LoadCredentialEncrypted=github-token
-ExecStart=/usr/local/libexec/holonight-dashboard/run-kiosk.sh /usr/local/bin/holonight-dashboard
+ExecStart=/usr/local/libexec/rpi-dashboard/run-kiosk.sh /usr/local/bin/rpi-dashboard
 Restart=on-failure
 RestartSec=3
 
