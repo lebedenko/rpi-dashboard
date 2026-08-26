@@ -1,4 +1,6 @@
 qt_add_library(dashboard_projects STATIC
+    github_credentials.cpp
+    github_credentials.h
     project_health.cpp
     project_health.h
     projects_service.cpp

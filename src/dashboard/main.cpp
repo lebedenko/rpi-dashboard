@@ -1,3 +1,4 @@
+#include "projects/github_credentials.h"
 #include "projects/projects_service.h"
 #include "sysinfo/linux_sys_info_collector.h"
 #include "sysinfo/sys_info_service.h"
@@ -6,6 +7,7 @@
 
 #include <QCommandLineOption>
 #include <QCommandLineParser>
+#include <QDebug>
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QVariantMap>
@@ -46,8 +48,12 @@ int main(int argc, char* argv[]) {
   dashboard::sysinfo::SysInfoService sys_info_service(std::make_shared<dashboard::sysinfo::LinuxSysInfoCollector>());
   dashboard::sysmetrics::SysMetricsService sys_metrics_service(
       std::make_shared<dashboard::sysmetrics::LinuxSysMetricsCollector>());
-  const auto token = qEnvironmentVariable("GITHUB_TOKEN").toUtf8();
-  dashboard::projects::ProjectsService projects_service(parser.value(githubOwnerOption), token);
+  const auto credential =
+      dashboard::projects::loadGitHubCredential(qgetenv("GITHUB_TOKEN_FILE"), qgetenv("GITHUB_TOKEN"));
+  if (!credential.diagnostic.isEmpty()) {
+    qWarning().noquote() << credential.diagnostic;
+  }
+  dashboard::projects::ProjectsService projects_service(parser.value(githubOwnerOption), credential.token);
   QQmlApplicationEngine engine;
   engine.setInitialProperties({{QStringLiteral("windowed"), parser.isSet(windowedOption)},
                                {QStringLiteral("windowWidth"), windowWidth},

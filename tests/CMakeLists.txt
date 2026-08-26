@@ -154,3 +154,13 @@ add_test(
         ${CMAKE_SOURCE_DIR}/scripts/run-kiosk.sh
         ${CMAKE_SOURCE_DIR}/scripts/run-dashboard-session.sh
 )
+
+add_test(
+    NAME install_flow_test
+    COMMAND
+        sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/install_flow_test.sh
+        ${CMAKE_COMMAND}
+        ${CMAKE_BINARY_DIR}
+        ${CMAKE_SOURCE_DIR}
+)

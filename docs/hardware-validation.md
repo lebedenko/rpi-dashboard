@@ -46,6 +46,28 @@ loginctl seat-status seat0
 
 The active session must be a local TTY session attached to `seat0` with an `XDG_RUNTIME_DIR` such as `/run/user/<uid>`.
 
+## Installed kiosk acceptance
+
+After `task install`, reboot and confirm that tty1 launches the dashboard directly. The installer
+enables the unit but intentionally does not start it in the current session. Verify the runtime
+identity, seat, and per-user runtime directory with:
+
+```sh
+systemctl status holonight-dashboard.service
+journalctl -u holonight-dashboard.service -b
+loginctl session-status
+loginctl seat-status seat0
+sudo -u dashboard test -d /run/user/$(id -u dashboard)
+```
+
+The service process must run as `dashboard`, the local session must own tty1 on `seat0`, and the
+runtime-directory check must succeed. When the encrypted `github-token` credential is installed,
+confirm that private GitHub data loads without credential text appearing in the journal. Press
+Ctrl+Q and confirm that the clean exit starts `getty@tty1.service` and returns to a login prompt;
+restart the kiosk with `sudo systemctl start holonight-dashboard.service` if desired.
+Finally repeat the display transform, five-point touch, keyboard navigation, VT switching, and SSH
+recovery checks recorded above.
+
 ## Touchscreen configuration
 
 Raw five-point testing showed that the controller reports portrait-native coordinates while the panel is physically used in landscape. The observed mapping was:

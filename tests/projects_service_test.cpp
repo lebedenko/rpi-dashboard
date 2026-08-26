@@ -1,11 +1,15 @@
 #include "projects/projects_service.h"
 
+#include "projects/github_credentials.h"
 #include "projects/project_health.h"
 
+#include <QFile>
+#include <QTemporaryDir>
 #include <QtTest>
 
 using dashboard::projects::Health;
 using dashboard::projects::healthForRun;
+using dashboard::projects::loadGitHubCredential;
 using dashboard::projects::ProjectsListModel;
 using dashboard::projects::shouldReadReplyBody;
 
@@ -18,6 +22,10 @@ class ProjectsServiceTest : public QObject {
   void marksOldSuccessStale();
   void listModelPublishesProviderNeutralRoles();
   void failedNetworkReplyIsNotRead();
+  void loadsEnvironmentCredentialWhenFileIsNotConfigured();
+  void fileCredentialTakesPrecedenceAndRemovesNewlines();
+  void invalidFileCredentialFallsBackAnonymously_data();  // NOLINT(readability-identifier-naming)
+  void invalidFileCredentialFallsBackAnonymously();
 };
 
 void ProjectsServiceTest::
@@ -69,6 +77,53 @@ void ProjectsServiceTest::failedNetworkReplyIsNotRead() {  // NOLINT(readability
   QVERIFY(!shouldReadReplyBody(QNetworkReply::ConnectionRefusedError, 0, false));
   QVERIFY(!shouldReadReplyBody(QNetworkReply::NoError, 304, true));
   QVERIFY(shouldReadReplyBody(QNetworkReply::NoError, 200, false));
+}
+
+void ProjectsServiceTest::
+    loadsEnvironmentCredentialWhenFileIsNotConfigured() {  // NOLINT(readability-convert-member-functions-to-static)
+  const auto credential = loadGitHubCredential({}, QByteArrayLiteral("development-token"));
+  QCOMPARE(credential.token, QByteArrayLiteral("development-token"));
+  QVERIFY(credential.diagnostic.isEmpty());
+}
+
+void ProjectsServiceTest::
+    fileCredentialTakesPrecedenceAndRemovesNewlines() {  // NOLINT(readability-convert-member-functions-to-static)
+  QTemporaryDir directory;
+  QVERIFY(directory.isValid());
+  const auto path = directory.filePath(QStringLiteral("github-token"));
+  QFile file(path);
+  QVERIFY(file.open(QIODevice::WriteOnly));
+  QCOMPARE(file.write("file-token\r\n"), 12);
+  file.close();
+
+  const auto credential = loadGitHubCredential(QFile::encodeName(path), QByteArrayLiteral("environment-token"));
+  QCOMPARE(credential.token, QByteArrayLiteral("file-token"));
+  QVERIFY(credential.diagnostic.isEmpty());
+}
+
+void ProjectsServiceTest::
+    invalidFileCredentialFallsBackAnonymously_data() {  // NOLINT(readability-identifier-naming,readability-convert-member-functions-to-static)
+  QTest::addColumn<bool>("createEmptyFile");
+  QTest::newRow("missing") << false;
+  QTest::newRow("empty") << true;
+}
+
+void ProjectsServiceTest::
+    invalidFileCredentialFallsBackAnonymously() {  // NOLINT(readability-convert-member-functions-to-static)
+  QFETCH(bool, createEmptyFile);
+  QTemporaryDir directory;
+  QVERIFY(directory.isValid());
+  const auto path = directory.filePath(QStringLiteral("github-token"));
+  if (createEmptyFile) {
+    QFile file(path);
+    QVERIFY(file.open(QIODevice::WriteOnly));
+  }
+
+  const auto secret = QByteArrayLiteral("must-not-appear");
+  const auto credential = loadGitHubCredential(QFile::encodeName(path), secret);
+  QVERIFY(credential.token.isEmpty());
+  QVERIFY(!credential.diagnostic.isEmpty());
+  QVERIFY(!credential.diagnostic.contains(QString::fromUtf8(secret)));
 }
 
 QTEST_GUILESS_MAIN(ProjectsServiceTest)

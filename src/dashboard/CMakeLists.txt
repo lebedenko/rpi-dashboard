@@ -69,3 +69,7 @@ set_target_properties(holonight-dashboard PROPERTIES
     WIN32_EXECUTABLE TRUE
     MACOSX_BUNDLE TRUE
 )
+
+install(TARGETS holonight-dashboard
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)

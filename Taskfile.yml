@@ -37,6 +37,14 @@ tasks:
     cmds:
       - ./build/dev/src/dashboard/holonight-dashboard --windowed --width 1480 --height 320
 
+  install:
+    desc: Build and install the Raspberry Pi kiosk
+    cmds:
+      - cmake --preset release
+      - cmake --build --preset release
+      - sudo cmake --install build/release
+      - sudo /usr/local/libexec/holonight-dashboard/provision.sh
+
   test-asan:
     desc: Build and run tests with AddressSanitizer
     cmds:

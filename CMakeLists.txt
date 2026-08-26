@@ -49,3 +49,14 @@ add_subdirectory(src/agent)
 if(BUILD_TESTING)
     add_subdirectory(tests)
 endif()
+
+install(PROGRAMS
+    scripts/run-dashboard-session.sh
+    scripts/run-kiosk.sh
+    install/provision.sh
+    DESTINATION ${CMAKE_INSTALL_LIBEXECDIR}/holonight-dashboard
+)
+
+install(FILES install/holonight-dashboard.service
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/systemd/system
+)
