@@ -12,12 +12,14 @@ ApplicationWindow {
     property int windowHeight: 320
     property var sysInfoService: null
     property var sysMetricsService: null
+    property var projectsService: null
     readonly property alias currentPageIndex: pageStack.currentIndex
-    readonly property bool currentPageHasFocus: root.currentFocusTarget ? root.currentFocusTarget.activeFocus : false
+    readonly property bool currentPageHasFocus: pageStack.currentIndex === 2 ? projectsPage.selectedRowHasFocus
+                                                                            : root.currentFocusTarget ? root.currentFocusTarget.activeFocus : false
 
     readonly property var currentFocusTarget: pageStack.currentIndex === 0 ? overviewPage.focusTarget
                                                : pageStack.currentIndex === 1 ? systemsPage.placeholder
-                                               : pageStack.currentIndex === 2 ? projectsPage.placeholder
+                                               : pageStack.currentIndex === 2 ? projectsPage.focusTarget
                                                : weatherPage.placeholder
     readonly property alias localDeviceModel: localDevices
 
@@ -174,7 +176,15 @@ ApplicationWindow {
     Shortcut { sequence: "Home"; onActivated: pageStack.currentIndex = 0 }
     Shortcut { sequence: "Left"; onActivated: root.selectPreviousPage() }
     Shortcut { sequence: "Right"; onActivated: root.selectNextPage() }
-    Shortcut { sequence: "F5"; onActivated: { if (root.currentFocusTarget) root.currentFocusTarget.forceActiveFocus() } }
+    Shortcut {
+        sequence: "F5"
+        onActivated: {
+            if (pageStack.currentIndex === 2)
+                projectsPage.focusSelected()
+            else if (root.currentFocusTarget)
+                root.currentFocusTarget.forceActiveFocus()
+        }
+    }
     Shortcut { sequence: "Ctrl+Q"; onActivated: root.close() }
 
     RowLayout {
@@ -283,11 +293,16 @@ ApplicationWindow {
                 usageHistoryModel: root.sysMetricsService ? root.sysMetricsService.usageHistoryModel : null
             }
             DashboardPage { id: systemsPage; objectName: "systemsPage"; heading: qsTr("Systems") }
-            DashboardPage { id: projectsPage; objectName: "projectsPage"; heading: qsTr("Projects") }
+            ProjectsPage {
+                id: projectsPage
+                objectName: "projectsPage"
+                service: root.projectsService
+            }
             DashboardPage { id: weatherPage; objectName: "weatherPage"; heading: qsTr("Weather") }
         }
 
         ClockSidebar {
+            projectsService: root.projectsService
             Layout.preferredWidth: Theme.statusSidebarWidth
             Layout.fillHeight: true
             Layout.topMargin: Theme.displaySafeInset

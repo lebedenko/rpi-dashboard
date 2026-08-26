@@ -27,11 +27,11 @@ void DashboardStartupTest::
   QVERIFY(source.contains(QStringLiteral("Qt.formatDate(root.currentTimestamp, \"ddd dd MMM\")")));
   QVERIFY(source.contains(QStringLiteral("interval: 1000")));
   QVERIFY(source.contains(QStringLiteral("Accessible.role: Accessible.StaticText")));
-  QVERIFY(source.contains(QStringLiteral("color: Theme.textPrimary")));
-  QVERIFY(source.contains(QStringLiteral("color: Theme.textSecondary")));
+  QVERIFY(source.contains(QStringLiteral("color: Theme.primaryAccent")));
+  QVERIFY(source.contains(QStringLiteral("color: Theme.violetAccent")));
   QVERIFY(source.contains(QStringLiteral("font.pixelSize: Theme.clockTimeTextSize")));
   QVERIFY(source.contains(QStringLiteral("font.pixelSize: Theme.clockDateTextSize")));
-  QCOMPARE(source.count(QStringLiteral("font.family: Theme.sansFontFamily")), 2);
+  QCOMPARE(source.count(QStringLiteral("font.family: Theme.sansFontFamily")), 3);
   QVERIFY(source.contains(QStringLiteral("startX: Theme.sidebarCornerRadius")));
   QVERIFY(source.contains(QStringLiteral("startY: 0")));
   QVERIFY(source.contains(QStringLiteral("x: sidebarBackground.width - Theme.sidebarChamfer; y: 0")));
@@ -41,7 +41,7 @@ void DashboardStartupTest::
   QVERIFY2(themeQml.open(QIODevice::ReadOnly | QIODevice::Text), qPrintable(themeQml.errorString()));
   const auto themeSource = QString::fromUtf8(themeQml.readAll());
   QVERIFY(themeSource.contains(QStringLiteral("statusSidebarWidth: 144")));
-  QVERIFY(themeSource.contains(QStringLiteral("clockTimeTextSize: 28")));
+  QVERIFY(themeSource.contains(QStringLiteral("clockTimeTextSize: 48")));
   QVERIFY(themeSource.contains(QStringLiteral("clockDateTextSize: 14")));
 }
 
@@ -75,8 +75,7 @@ void DashboardStartupTest::sidebarUsesIconOnlySafeLayout() {  // NOLINT(readabil
   QVERIFY(source.contains(QStringLiteral("onClicked: pageStack.currentIndex = 0")));
 }
 
-void DashboardStartupTest::
-    sidebarDrawsInsetClosedBorder() {  // NOLINT(readability-convert-member-functions-to-static)
+void DashboardStartupTest::sidebarDrawsInsetClosedBorder() {  // NOLINT(readability-convert-member-functions-to-static)
   QFile mainQml(QStringLiteral(DASHBOARD_MAIN_QML));
   QVERIFY2(mainQml.open(QIODevice::ReadOnly | QIODevice::Text), qPrintable(mainQml.errorString()));
   const auto source = QString::fromUtf8(mainQml.readAll());
@@ -95,8 +94,10 @@ void DashboardStartupTest::
   QVERIFY(sidebarSurface.contains(QStringLiteral("PathArc {")));
   QVERIFY(sidebarSurface.contains(QStringLiteral("radiusX: Theme.sidebarCornerRadius")));
   QVERIFY(sidebarSurface.contains(QStringLiteral("radiusY: Theme.sidebarCornerRadius")));
-  QVERIFY(sidebarSurface.contains(QStringLiteral("PathLine { x: sidebarBackground.width - Theme.sidebarChamfer; y: sidebarBackground.height }")));
-  QVERIFY(sidebarSurface.contains(QStringLiteral("PathLine { x: 0; y: sidebarBackground.height - Theme.sidebarChamfer }")));
+  QVERIFY(sidebarSurface.contains(
+      QStringLiteral("PathLine { x: sidebarBackground.width - Theme.sidebarChamfer; y: sidebarBackground.height }")));
+  QVERIFY(
+      sidebarSurface.contains(QStringLiteral("PathLine { x: 0; y: sidebarBackground.height - Theme.sidebarChamfer }")));
   QVERIFY(sidebarSurface.contains(QStringLiteral("PathLine { x: Theme.sidebarChamfer; y: 0 }")));
   QVERIFY(!source.contains(QStringLiteral("id: sidebarSeparator")));
   QCOMPARE(sidebarSurface.count(QStringLiteral("ShapePath {")), 1);

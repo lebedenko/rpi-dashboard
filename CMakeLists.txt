@@ -42,6 +42,7 @@ include(CTest)
 add_subdirectory(src/protocol)
 add_subdirectory(src/sysinfo)
 add_subdirectory(src/sysmetrics)
+add_subdirectory(src/projects)
 add_subdirectory(src/dashboard)
 add_subdirectory(src/agent)
 

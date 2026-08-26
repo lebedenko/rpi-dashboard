@@ -34,10 +34,12 @@ Item {
         property var dashboardComponent: null
         property var fakeService: null
         property var fakeMetricsService: null
+        property var fakeProjectsService: null
 
         function init() {
             fakeService = fakeServiceComponent.createObject(root);
             fakeMetricsService = fakeMetricsServiceComponent.createObject(root);
+            fakeProjectsService = fakeProjectsServiceComponent.createObject(root);
             dashboardComponent = Qt.createComponent("qrc:/qt/qml/HoloNight/Dashboard/qml/Main.qml");
             verify(dashboardComponent.status === Component.Ready, dashboardComponent.errorString());
             dashboardWindow = dashboardComponent.createObject(null, {
@@ -45,7 +47,8 @@ Item {
                 "windowWidth": 1480,
                 "windowHeight": 320,
                 "sysInfoService": fakeService,
-                "sysMetricsService": fakeMetricsService
+                "sysMetricsService": fakeMetricsService,
+                "projectsService": fakeProjectsService
             });
             verify(dashboardWindow !== null);
             dashboardWindow.show();
@@ -64,6 +67,8 @@ Item {
             fakeService = null;
             fakeMetricsService.destroy();
             fakeMetricsService = null;
+            fakeProjectsService.destroy();
+            fakeProjectsService = null;
         }
 
         function test_exactDevelopmentGeometry() {
@@ -179,8 +184,8 @@ Item {
             compare(sidebar.dateText, Qt.formatDate(sidebar.currentTimestamp, "ddd dd MMM"));
             compare(timeLabel.text, sidebar.timeText);
             compare(dateLabel.text, sidebar.dateText);
-            compare(timeLabel.color, Theme.textPrimary);
-            compare(dateLabel.color, Theme.textSecondary);
+            compare(timeLabel.color, Theme.primaryAccent);
+            compare(dateLabel.color, Theme.violetAccent);
             compare(timeLabel.font.pixelSize, Theme.clockTimeTextSize);
             compare(dateLabel.font.pixelSize, Theme.clockDateTextSize);
             compare(timeLabel.font.family, Theme.sansFontFamily);
@@ -190,6 +195,32 @@ Item {
             verify(sidebar.Accessible.name.includes(sidebar.timeText));
             verify(sidebar.Accessible.name.includes(sidebar.dateText));
             compare(sidebar.activeFocus, false);
+        }
+
+        function test_projectsPageGeometrySelectionAndStatusRail() {
+            const projectsButton = findChild(dashboardWindow.contentItem, "projectsButton");
+            mouseClick(projectsButton);
+            tryCompare(dashboardWindow, "currentPageIndex", 2);
+            const list = findChild(dashboardWindow.contentItem, "projectList");
+            const first = findChild(dashboardWindow.contentItem, "projectRow0");
+            verify(!!list);
+            verify(!!first);
+            tryVerify(() => !!findChild(dashboardWindow.contentItem, "projectRow1"));
+            const second = findChild(dashboardWindow.contentItem, "projectRow1");
+            compare(list.width, 330);
+            compare(first.height, 56);
+            compare(second.y - first.y - first.height, 6);
+            compare(first.Accessible.role, Accessible.ListItem);
+            verify(first.Accessible.name.includes("FAILED"));
+            mouseClick(second);
+            tryCompare(fakeProjectsService, "selectedProjectIndex", 1);
+            keyClick(Qt.Key_F5);
+            tryCompare(second, "activeFocus", true);
+            const ci = findChild(dashboardWindow.contentItem, "globalCiHealth");
+            const runners = findChild(dashboardWindow.contentItem, "globalRunnerHealth");
+            compare(ci.text, "FAILED CI");
+            compare(runners.text, "— RUNNERS");
+            compare(ci.activeFocus, false);
         }
 
         function test_f5FocusesCurrentPage() {
@@ -568,6 +599,43 @@ Item {
             property double totalMemoryBytes: 8.58993e+09
         }
 
+    }
+
+    Component {
+        id: fakeProjectsServiceComponent
+
+        QtObject {
+            property ListModel projectModel: ListModel {
+                ListElement { key: "owner/failed"; name: "failed"; branch: "main"; health: "failed"; status: "completed" }
+                ListElement { key: "owner/healthy"; name: "healthy"; branch: "main"; health: "healthy"; status: "completed" }
+            }
+            property ListModel stageModel: ListModel {
+                ListElement { key: "0"; name: "build"; branch: ""; health: "healthy"; status: "completed" }
+            }
+            property ListModel runHistoryModel: ListModel {
+                ListElement { key: "42"; name: ""; branch: ""; health: "failed"; status: "" }
+            }
+            property int selectedProjectIndex: 0
+            property string selectedRepository: selectedProjectIndex === 0 ? "failed" : "healthy"
+            property string selectedBranch: "main"
+            property string selectedRevision: "abc1234"
+            property string selectedRun: "#42"
+            property string selectedRunAge: "2m ago"
+            property string duration: "3m"
+            property string jobsSummary: "3/4"
+            property string artifactSize: "2.0 MiB"
+            property string deployStatus: "healthy"
+            property int trackedCount: 2
+            property int runningCount: 0
+            property int failedCount: 1
+            property string aggregateHealth: "failed"
+            property int onlineRunnerCount: -1
+            property int totalRunnerCount: -1
+            property string state: "ready"
+            property bool stale: false
+            property string diagnostics: ""
+            function selectProject(index) { selectedProjectIndex = index }
+        }
     }
 
     Component {

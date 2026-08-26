@@ -18,6 +18,7 @@ qt_add_qml_module(holonight-dashboard-qml
         qml/DeviceCard.qml
         qml/Main.qml
         qml/OverviewPage.qml
+        qml/ProjectsPage.qml
         qml/Theme.qml
         qml/SidebarButton.qml
     RESOURCES
@@ -49,6 +50,7 @@ qt_add_executable(holonight-dashboard
 target_link_libraries(holonight-dashboard
     PRIVATE
         HoloNightDashboard::protocol
+        HoloNightDashboard::projects
         HoloNightDashboard::sysinfo
         HoloNightDashboard::sysmetrics
         holonight-dashboard-qml

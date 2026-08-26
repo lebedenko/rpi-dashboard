@@ -1,3 +1,4 @@
+#include "projects/projects_service.h"
 #include "sysinfo/linux_sys_info_collector.h"
 #include "sysinfo/sys_info_service.h"
 #include "sysmetrics/linux_sys_metrics_collector.h"
@@ -26,7 +27,9 @@ int main(int argc, char* argv[]) {
                                        QStringLiteral("pixels"), QStringLiteral("1480"));
   const QCommandLineOption heightOption(QStringLiteral("height"), QStringLiteral("Set the windowed height."),
                                         QStringLiteral("pixels"), QStringLiteral("320"));
-  parser.addOptions({windowedOption, widthOption, heightOption});
+  const QCommandLineOption githubOwnerOption(QStringLiteral("github-owner"), QStringLiteral("GitHub account owner."),
+                                             QStringLiteral("login"), QStringLiteral("lebedenko"));
+  parser.addOptions({windowedOption, widthOption, heightOption, githubOwnerOption});
   parser.process(application);
 
   bool widthIsValid = false;
@@ -43,12 +46,15 @@ int main(int argc, char* argv[]) {
   dashboard::sysinfo::SysInfoService sys_info_service(std::make_shared<dashboard::sysinfo::LinuxSysInfoCollector>());
   dashboard::sysmetrics::SysMetricsService sys_metrics_service(
       std::make_shared<dashboard::sysmetrics::LinuxSysMetricsCollector>());
+  const auto token = qEnvironmentVariable("GITHUB_TOKEN").toUtf8();
+  dashboard::projects::ProjectsService projects_service(parser.value(githubOwnerOption), token);
   QQmlApplicationEngine engine;
   engine.setInitialProperties({{QStringLiteral("windowed"), parser.isSet(windowedOption)},
                                {QStringLiteral("windowWidth"), windowWidth},
                                {QStringLiteral("windowHeight"), windowHeight},
                                {QStringLiteral("sysInfoService"), QVariant::fromValue(&sys_info_service)},
-                               {QStringLiteral("sysMetricsService"), QVariant::fromValue(&sys_metrics_service)}});
+                               {QStringLiteral("sysMetricsService"), QVariant::fromValue(&sys_metrics_service)},
+                               {QStringLiteral("projectsService"), QVariant::fromValue(&projects_service)}});
   QObject::connect(
       &engine, &QQmlApplicationEngine::objectCreationFailed, &application, [] { QCoreApplication::exit(EXIT_FAILURE); },
       Qt::QueuedConnection);

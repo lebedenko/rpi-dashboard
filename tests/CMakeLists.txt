@@ -36,6 +36,18 @@ target_link_libraries(system_metrics_test
 
 add_test(NAME system_metrics_test COMMAND system_metrics_test)
 
+qt_add_executable(projects_service_test
+    projects_service_test.cpp
+)
+
+target_link_libraries(projects_service_test
+    PRIVATE
+        HoloNightDashboard::projects
+        Qt6::Test
+)
+
+add_test(NAME projects_service_test COMMAND projects_service_test)
+
 qt_add_executable(resource_history_geometry_test
     resource_history_geometry_test.cpp
     ${CMAKE_SOURCE_DIR}/src/dashboard/resource_history_geometry.cpp
@@ -87,6 +99,7 @@ target_compile_definitions(dashboard_startup_test
         DASHBOARD_MAIN_QML="${CMAKE_SOURCE_DIR}/src/dashboard/qml/Main.qml"
         DASHBOARD_DEVICE_CARD_QML="${CMAKE_SOURCE_DIR}/src/dashboard/qml/DeviceCard.qml"
         DASHBOARD_OVERVIEW_PAGE_QML="${CMAKE_SOURCE_DIR}/src/dashboard/qml/OverviewPage.qml"
+        DASHBOARD_PROJECTS_PAGE_QML="${CMAKE_SOURCE_DIR}/src/dashboard/qml/ProjectsPage.qml"
         DASHBOARD_PAGE_QML="${CMAKE_SOURCE_DIR}/src/dashboard/qml/DashboardPage.qml"
         DASHBOARD_SIDEBAR_BUTTON_QML="${CMAKE_SOURCE_DIR}/src/dashboard/qml/SidebarButton.qml"
         DASHBOARD_THEME_QML="${CMAKE_SOURCE_DIR}/src/dashboard/qml/Theme.qml"
