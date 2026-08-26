@@ -1,5 +1,7 @@
 # HoloNight Dashboard
 
+[![CI](https://github.com/lebedenko/rpi-dashboard/actions/workflows/ci.yml/badge.svg)](https://github.com/lebedenko/rpi-dashboard/actions/workflows/ci.yml)
+
 A standalone Qt/QML instrument-panel dashboard for Raspberry Pi 5. The first target is a 1480×320 landscape touchscreen running as a Wayland kiosk. It will display local metrics and complete telemetry snapshots sent by remote devices over UDP.
 
 The repository currently provides the project foundation: a landscape dashboard shell based on the supplied mockups, a versioned telemetry domain type, a headless agent target, and protocol unit tests. Live metrics collection and UDP transport are intentionally not implemented yet.
