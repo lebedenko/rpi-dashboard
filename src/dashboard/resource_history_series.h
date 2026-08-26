@@ -4,7 +4,6 @@
 
 #include <QAbstractItemModel>
 #include <QColor>
-#include <QPointer>
 #include <QQuickItem>
 #include <QVariantAnimation>
 #include <QtQmlIntegration/qqmlintegration.h>
@@ -61,7 +60,7 @@ class ResourceHistorySeries : public QQuickItem {
   void reconnectModel();
   void captureRemovedPrefix(const QModelIndex& parent, int first, int last);
   void cacheModel(bool animate);
-  QPointer<QAbstractItemModel> model_;
+  QAbstractItemModel* model_{nullptr};
   Snapshot snapshot_;
   QColor cpu_color_{QStringLiteral("#36B9FF")};
   QColor memory_color_{QStringLiteral("#A66CFF")};

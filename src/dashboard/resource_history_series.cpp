@@ -348,6 +348,7 @@ void ResourceHistorySeries::reconnectModel() {
   connect(model_, &QAbstractItemModel::dataChanged, this, refresh);
   connect(model_, &QAbstractItemModel::modelReset, this, refresh);
   connect(model_, &QObject::destroyed, this, [this] {
+    model_ = nullptr;
     cacheModel(false);
     emit modelChanged();
   });
