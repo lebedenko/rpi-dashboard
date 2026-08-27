@@ -1,0 +1,26 @@
+[Unit]
+Description=Dashboard telemetry daemon
+After=network-online.target
+Wants=network-online.target
+[Service]
+Type=simple
+DynamicUser=yes
+StateDirectory=dashboard-daemon
+ExecStart=/usr/local/bin/dashboard-daemon --config /etc/xdg/dashboard-daemon/config.toml
+Restart=on-failure
+RestartSec=10s
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+RestrictAddressFamilies=AF_INET AF_INET6
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+StandardOutput=journal
+StandardError=journal
+[Install]
+WantedBy=multi-user.target

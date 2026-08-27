@@ -1,0 +1,7 @@
+[dashboard]
+host = ""
+port = 51337
+
+[telemetry]
+interval_seconds = 1
+display_name = ""

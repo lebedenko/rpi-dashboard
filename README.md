@@ -26,24 +26,25 @@ task run
 task run-windowed
 ```
 
-Start a remote sender with `./build/dev/src/agent/rpi-dashboard-agent --dashboard-host <dashboard-address>`.
-The dashboard listens on IPv4 UDP port 51337 by default; use `--telemetry-bind-address` and
-`--telemetry-port` to change the listener. Agent cadence is one second by default and may be set to
-1–5 seconds with `--interval`.
-
-For a copy-and-run sender on any Linux x86_64 host with Python 3.8 or newer, copy the single
-dependency-free script and run:
+Build the standalone remote telemetry service without Qt:
 
 ```sh
-python3 rpi-dashboard-telemetry.py --dashboard-host <dashboard-address>
+task daemon-test
+```
+The dashboard listens on IPv4 UDP port 51337 by default; use `--telemetry-bind-address` and
+`--telemetry-port` to change the listener. Configure the daemon destination and its one-to-five
+second cadence in `/etc/xdg/dashboard-daemon/config.toml`, then validate it:
+
+```sh
+dashboard-daemon --config /etc/xdg/dashboard-daemon/config.toml --check-config
 ```
 
-The script stores a stable device UUID below `$XDG_DATA_HOME/rpi-dashboard/rpi-dashboard-agent`
-(or `~/.local/share/...`) and accepts `--dashboard-port`, `--interval 1..5`, `--display-name`,
-`--device-id`, and `--once`. From this checkout the equivalent Task command is:
+The service stores a stable device UUID at `/var/lib/dashboard-daemon/device-id`. Install the
+release archive as root with its POSIX `install.sh`; the installer leaves the unit disabled and
+stopped. After configuration and validation, start it explicitly:
 
 ```sh
-task run-python-agent DASHBOARD_HOST=<dashboard-address> DISPLAY_NAME=my-server
+sudo systemctl enable --now dashboard-daemon
 ```
 
 Without Task:
@@ -91,7 +92,7 @@ For first-device validation, launch with `QSG_INFO=1 ./scripts/run-kiosk.sh`. Co
 ```text
 src/protocol/   GUI-free telemetry contract and serialization
 src/telemetry/  UDP receiver and persistent remote-device registry
-src/agent/      Headless remote telemetry sender executable
+daemon/         Standalone dependency-free telemetry service and package
 src/dashboard/  Qt Quick dashboard executable and QML module
 tests/          Protocol unit tests and dashboard startup integration test
 docs/mockups/   Visual direction

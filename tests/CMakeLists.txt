@@ -1,7 +1,4 @@
 find_package(Qt6 6.8 REQUIRED COMPONENTS QuickTest Test)
-find_package(Python3 3.8 REQUIRED COMPONENTS Interpreter)
-
-add_test(NAME python_telemetry_test COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/python_telemetry_test.py)
 
 qt_add_executable(device_model_test device_model_test.cpp)
 target_include_directories(device_model_test PRIVATE ${CMAKE_SOURCE_DIR}/src)
@@ -31,9 +28,9 @@ qt_add_executable(udp_telemetry_receiver_test
 )
 target_link_libraries(udp_telemetry_receiver_test PRIVATE RpiDashboard::telemetry Qt6::Test)
 target_compile_definitions(udp_telemetry_receiver_test PRIVATE
-    PYTHON_EXECUTABLE="${Python3_EXECUTABLE}"
-    PYTHON_TELEMETRY_SCRIPT="${CMAKE_SOURCE_DIR}/scripts/rpi-dashboard-telemetry.py"
+    DASHBOARD_DAEMON_EXECUTABLE="$<TARGET_FILE:dashboard-daemon>"
 )
+add_dependencies(udp_telemetry_receiver_test dashboard-daemon)
 add_test(NAME udp_telemetry_receiver_test COMMAND udp_telemetry_receiver_test)
 
 qt_add_executable(system_info_test

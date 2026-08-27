@@ -47,7 +47,7 @@ add_subdirectory(src/sysinfo)
 add_subdirectory(src/sysmetrics)
 add_subdirectory(src/projects)
 add_subdirectory(src/dashboard)
-add_subdirectory(src/agent)
+add_subdirectory(daemon)
 
 if(BUILD_TESTING)
     add_subdirectory(tests)

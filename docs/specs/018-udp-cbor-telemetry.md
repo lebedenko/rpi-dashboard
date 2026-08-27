@@ -26,7 +26,7 @@ The dashboard listens non-blockingly in bounded event-loop batches on IPv4 `0.0.
 
 ## Agent behavior
 
-`rpi-dashboard-agent` requires `--dashboard-host`; port defaults to 51337 and interval to one whole second (valid 1–5). Its UUID is atomically persisted in its application-data directory unless overridden by `--device-id`; failure to establish persistent identity is fatal. Each process creates a new instance UUID. Display name defaults to the collected hostname. DNS and collection remain asynchronous. The agent waits for usable system information and accepted registration before snapshots. A failed metrics attempt produces a snapshot without metrics, never stale values.
+`dashboard-daemon` reads its destination and one-to-five-second interval from strict TOML configuration. Its UUID is atomically persisted in its systemd state directory; failure to establish persistent identity is fatal. Each process creates a new instance UUID. Display name defaults to the collected hostname. DNS and transient network failures are retried. The daemon waits for accepted registration before snapshots. A failed metrics attempt produces a snapshot without metrics, never stale values. See specification 020 for service and packaging details.
 
 ## Acceptance criteria
 
@@ -34,7 +34,7 @@ The dashboard listens non-blockingly in bounded event-loop batches on IPv4 `0.0.
 - Registration identity, source endpoint, cadence, sequence ordering, collision, replacement, capacity, and exact freshness boundaries behave as specified.
 - Registry persistence reloads devices offline and excludes session/live fields; corrupt or unwritable storage is nonfatal and diagnostic.
 - Loopback UDP registration returns acceptance/rejection and only valid registered snapshots update the registry; bind failure does not terminate the dashboard.
-- The agent validates CLI configuration, persists identity, retries registration, and sends complete replacement snapshots at the configured cadence.
+- The daemon validates configuration, persists identity, retries registration, and sends complete replacement snapshots at the configured cadence.
 
 ## Security boundary and non-goals
 

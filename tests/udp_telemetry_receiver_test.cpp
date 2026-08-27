@@ -13,7 +13,7 @@ class UdpTelemetryReceiverTest : public QObject {
   Q_OBJECT
  private slots:
   void registrationAndSnapshotOverLoopback();
-  void pythonSenderOverLoopback();
+  void daemonSenderOverLoopback();
   void bindFailureIsNonfatal();
 };
 
@@ -41,26 +41,36 @@ void UdpTelemetryReceiverTest::registrationAndSnapshotOverLoopback() {
   QTRY_COMPARE_WITH_TIMEOUT(registry.device(device)->state, telemetry::RemoteDeviceRegistry::State::Online, 1000);
 }
 
-void UdpTelemetryReceiverTest::pythonSenderOverLoopback() {
+void UdpTelemetryReceiverTest::daemonSenderOverLoopback() {
   QTemporaryDir directory;
   telemetry::RemoteDeviceRegistry registry(directory.filePath(QStringLiteral("registry.cbor")));
   telemetry::UdpTelemetryReceiver receiver(&registry);
   QVERIFY(receiver.bind(QHostAddress::LocalHost, 0));
   const QUuid device = QUuid::createUuid();
+  QFile identity(directory.filePath(QStringLiteral("device-id")));
+  QVERIFY(identity.open(QIODevice::WriteOnly));
+  identity.write(device.toString(QUuid::WithoutBraces).toUtf8());
+  identity.close();
+  const QString config = directory.filePath(QStringLiteral("config.toml"));
+  QFile file(config);
+  QVERIFY(file.open(QIODevice::WriteOnly));
+  file.write(
+      QStringLiteral(
+          "[dashboard]\nhost=\"127.0.0.1\"\nport=%1\n[telemetry]\ninterval_seconds=1\ndisplay_name=\"Daemon test\"\n")
+          .arg(receiver.localPort())
+          .toUtf8());
+  file.close();
   QProcess sender;
-  sender.start(QStringLiteral(PYTHON_EXECUTABLE),
-               {QStringLiteral(PYTHON_TELEMETRY_SCRIPT), QStringLiteral("--dashboard-host"),
-                QStringLiteral("127.0.0.1"), QStringLiteral("--dashboard-port"), QString::number(receiver.localPort()),
-                QStringLiteral("--device-id"), device.toString(QUuid::WithoutBraces), QStringLiteral("--display-name"),
-                QStringLiteral("Python test"), QStringLiteral("--once")});
+  auto environment = QProcessEnvironment::systemEnvironment();
+  environment.insert(QStringLiteral("STATE_DIRECTORY"), directory.path());
+  sender.setProcessEnvironment(environment);
+  sender.start(QStringLiteral(DASHBOARD_DAEMON_EXECUTABLE), {QStringLiteral("--config"), config});
   QVERIFY(sender.waitForStarted());
   QTRY_VERIFY_WITH_TIMEOUT(registry.device(device).has_value(), 3000);
   QTRY_COMPARE_WITH_TIMEOUT(registry.device(device)->state, telemetry::RemoteDeviceRegistry::State::Online, 3000);
-  if (sender.state() != QProcess::NotRunning) {
-    QVERIFY(sender.waitForFinished(3000));
-  }
-  QCOMPARE(sender.exitCode(), 0);
   QVERIFY(registry.device(device)->metrics.has_value());
+  sender.terminate();
+  QVERIFY(sender.waitForFinished(3000));
 }
 
 void UdpTelemetryReceiverTest::bindFailureIsNonfatal() {

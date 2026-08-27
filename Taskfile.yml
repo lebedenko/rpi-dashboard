@@ -56,37 +56,17 @@ tasks:
         --telemetry-bind-address {{.TELEMETRY_BIND_ADDRESS}}
         --telemetry-port {{.TELEMETRY_PORT}}
 
-  run-agent:
-    desc: Run the remote telemetry agent against a dashboard
-    deps: [build]
-    requires:
-      vars: [DASHBOARD_HOST]
-    vars:
-      DASHBOARD_PORT: '{{default "51337" .DASHBOARD_PORT}}'
-      INTERVAL: '{{default "1" .INTERVAL}}'
+  daemon-build:
+    desc: Build the standalone telemetry daemon without Qt
     cmds:
-      - >-
-        ./build/dev/src/agent/rpi-dashboard-agent
-        --dashboard-host {{.DASHBOARD_HOST}}
-        --dashboard-port {{.DASHBOARD_PORT}}
-        --interval {{.INTERVAL}}
+      - cmake -S daemon -B build/daemon -G Ninja -DCMAKE_BUILD_TYPE=Debug
+      - cmake --build build/daemon
 
-  run-python-agent:
-    desc: Run the portable Python telemetry sender
-    requires:
-      vars: [DASHBOARD_HOST]
-    vars:
-      DASHBOARD_PORT: '{{default "51337" .DASHBOARD_PORT}}'
-      INTERVAL: '{{default "1" .INTERVAL}}'
-      DISPLAY_NAME: '{{default "" .DISPLAY_NAME}}'
-      SENDER_SCRIPT: '{{default "scripts/rpi-dashboard-telemetry.py" .SENDER_SCRIPT}}'
+  daemon-test:
+    desc: Build and test the standalone telemetry daemon
+    deps: [daemon-build]
     cmds:
-      - >-
-        python3 {{.SENDER_SCRIPT}}
-        --dashboard-host {{.DASHBOARD_HOST}}
-        --dashboard-port {{.DASHBOARD_PORT}}
-        --interval {{.INTERVAL}}
-        {{if .DISPLAY_NAME}}--display-name '{{.DISPLAY_NAME}}'{{end}}
+      - ctest --test-dir build/daemon --output-on-failure
 
   install:
     desc: Build and install the Raspberry Pi kiosk

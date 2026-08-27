@@ -1,4 +1,4 @@
-# Remote telemetry UI and portable Python sender
+# Remote telemetry UI and retired Python sender
 
 ## Behavior
 
@@ -12,19 +12,16 @@ Remote cards use the registered display name, falling back to hostname, and disp
 The latest complete remote snapshot populates system panels. Remote history is not retained and an
 expanded remote card states “Remote history unavailable”; local history remains available.
 
-The Python 3.8+ sender has no third-party dependencies. It persists a device UUID in the XDG data
-directory, creates an instance UUID per run, registers before sending complete version-1 CBOR
-snapshots, repeats registration every ten seconds, and samples every one to five seconds. Missing
-or failed metric collections are omitted rather than invented. Temporary network failures are
-retried; invalid configuration, rejected registration, and unsupported protocol responses fail.
+The former Python sender has been superseded by the static C++ `dashboard-daemon` described in
+specification 020.
 
 ## Acceptance criteria
 
 - Model membership, roles, and updates follow the ordering and freshness behavior above.
 - New remote telemetry does not reset card selection, expansion, or focus.
 - Both device pages display the selected remote snapshot at 1480×320 without overflow.
-- `scripts/rpi-dashboard-telemetry.py --once` interoperates with the C++ UDP receiver.
-- Sender fixtures cover deterministic CBOR, identity persistence, Linux collection, rates, and CLI validation.
+- `dashboard-daemon` interoperates with the C++ UDP receiver.
+- Daemon fixtures cover deterministic CBOR, identity persistence, Linux collection, and configuration validation.
 
 ## Non-goals
 
