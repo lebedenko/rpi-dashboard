@@ -286,8 +286,12 @@ Item {
             compare(findChild(dashboardWindow.contentItem, "failedLabel").color, Theme.textSecondary);
             mouseClick(second);
             tryCompare(fakeProjectsService, "selectedProjectIndex", 1);
+            fakeProjectsService.selectedProjectIndex = 0;
+            tryCompare(list, "currentIndex", 0);
+            compare(first.highlighted, true);
+            compare(second.highlighted, false);
             keyClick(Qt.Key_F5);
-            tryCompare(second, "activeFocus", true);
+            tryCompare(first, "activeFocus", true);
             const ci = findChild(dashboardWindow.contentItem, "globalCiHealth");
             const runners = findChild(dashboardWindow.contentItem, "globalRunnerHealth");
             compare(ci.text, "FAILED CI");

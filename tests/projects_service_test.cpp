@@ -14,7 +14,9 @@ using dashboard::projects::loadGitHubCredential;
 using dashboard::projects::pollIntervalMs;
 using dashboard::projects::ProjectsListModel;
 using dashboard::projects::rateLimitBackoffMs;
+using dashboard::projects::retainLoadedProjectDetails;
 using dashboard::projects::shouldReadReplyBody;
+using dashboard::projects::sortProjectsByLatestExecution;
 
 class ProjectsServiceTest : public QObject {
   Q_OBJECT
@@ -25,6 +27,8 @@ class ProjectsServiceTest : public QObject {
   void marksOldSuccessStale();
   void listModelPublishesProviderNeutralRoles();
   void historySuccessCountUsesConclusionInsteadOfDisplayHealth();
+  void projectsSortByLatestExecutionDescending();
+  void refreshedRowsRetainLoadedDetails();
   void failedNetworkReplyIsNotRead();
   void authenticatedPollingUsesOneMinuteBaseline();
   void anonymousPollingUsesMeasuredRequestCount_data();  // NOLINT(readability-identifier-naming)
@@ -93,6 +97,52 @@ void ProjectsServiceTest::
       QVariantMap{{QStringLiteral("health"), QStringLiteral("stale")}, {QStringLiteral("successful"), true}},
       QVariantMap{{QStringLiteral("health"), QStringLiteral("failed")}, {QStringLiteral("successful"), false}}};
   QCOMPARE(countSuccessfulHistory(history), 2);
+}
+
+void ProjectsServiceTest::
+    projectsSortByLatestExecutionDescending() {  // NOLINT(readability-convert-member-functions-to-static)
+  QList<ProjectsListModel::Row> rows{
+      {.key = QStringLiteral("owner/failed"),
+       .health = QStringLiteral("failed"),
+       .detail = {{QStringLiteral("updatedAt"),
+                   QDateTime::fromString(QStringLiteral("2026-08-26T10:00:00Z"), Qt::ISODate)}}},
+      {.key = QStringLiteral("owner/running"),
+       .health = QStringLiteral("running"),
+       .detail = {{QStringLiteral("updatedAt"),
+                   QDateTime::fromString(QStringLiteral("2026-08-26T12:00:00Z"), Qt::ISODate)}}},
+      {.key = QStringLiteral("owner/healthy"),
+       .health = QStringLiteral("healthy"),
+       .detail = {
+           {QStringLiteral("updatedAt"), QDateTime::fromString(QStringLiteral("2026-08-26T11:00:00Z"), Qt::ISODate)}}}};
+
+  sortProjectsByLatestExecution(rows);
+
+  QCOMPARE(rows.at(0).key, QStringLiteral("owner/running"));
+  QCOMPARE(rows.at(1).key, QStringLiteral("owner/healthy"));
+  QCOMPARE(rows.at(2).key, QStringLiteral("owner/failed"));
+}
+
+void ProjectsServiceTest::
+    refreshedRowsRetainLoadedDetails() {  // NOLINT(readability-convert-member-functions-to-static)
+  QList<ProjectsListModel::Row> refreshed{
+      {.key = QStringLiteral("owner/selected"),
+       .detail = {{QStringLiteral("runId"), 200LL}, {QStringLiteral("revision"), QStringLiteral("new")}}}};
+  const QList<ProjectsListModel::Row> previous{
+      {.key = QStringLiteral("owner/selected"),
+       .detail = {{QStringLiteral("runId"), 100LL},
+                  {QStringLiteral("duration"), QStringLiteral("3m")},
+                  {QStringLiteral("jobsSummary"), QStringLiteral("3/4")},
+                  {QStringLiteral("artifactSize"), QStringLiteral("2.0 MiB")},
+                  {QStringLiteral("deployStatus"), QStringLiteral("healthy")}}}};
+
+  retainLoadedProjectDetails(refreshed, previous);
+
+  QCOMPARE(refreshed.first().detail.value(QStringLiteral("runId")).toLongLong(), 200LL);
+  QCOMPARE(refreshed.first().detail.value(QStringLiteral("revision")).toString(), QStringLiteral("new"));
+  QCOMPARE(refreshed.first().detail.value(QStringLiteral("duration")).toString(), QStringLiteral("3m"));
+  QCOMPARE(refreshed.first().detail.value(QStringLiteral("jobsSummary")).toString(), QStringLiteral("3/4"));
+  QCOMPARE(refreshed.first().detail.value(QStringLiteral("artifactSize")).toString(), QStringLiteral("2.0 MiB"));
+  QCOMPARE(refreshed.first().detail.value(QStringLiteral("deployStatus")).toString(), QStringLiteral("healthy"));
 }
 
 void ProjectsServiceTest::failedNetworkReplyIsNotRead() {  // NOLINT(readability-convert-member-functions-to-static)

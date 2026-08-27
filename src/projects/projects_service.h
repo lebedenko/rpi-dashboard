@@ -55,12 +55,16 @@ class ProjectsListModel final : public QAbstractListModel {
   QList<Row> rows_;
 };
 
+void sortProjectsByLatestExecution(QList<ProjectsListModel::Row>& rows);
+void retainLoadedProjectDetails(QList<ProjectsListModel::Row>& refreshed,
+                                const QList<ProjectsListModel::Row>& previous);
+
 class ProjectsService final : public QObject {
   Q_OBJECT
   Q_PROPERTY(QAbstractItemModel* projectModel READ projectModel CONSTANT)
   Q_PROPERTY(QAbstractItemModel* stageModel READ stageModel CONSTANT)
   Q_PROPERTY(QAbstractItemModel* runHistoryModel READ runHistoryModel CONSTANT)
-  Q_PROPERTY(int selectedProjectIndex READ selectedProjectIndex NOTIFY selectedProjectChanged)
+  Q_PROPERTY(int selectedProjectIndex READ selectedProjectIndex NOTIFY selectedProjectIndexChanged)
   Q_PROPERTY(QString selectedRepository READ selectedRepository NOTIFY selectedProjectChanged)
   Q_PROPERTY(QString selectedBranch READ selectedBranch NOTIFY selectedProjectChanged)
   Q_PROPERTY(QString selectedRevision READ selectedRevision NOTIFY selectedProjectChanged)
@@ -117,6 +121,7 @@ class ProjectsService final : public QObject {
   Q_INVOKABLE void selectProject(int index);
 
  signals:
+  void selectedProjectIndexChanged();
   void selectedProjectChanged();
   void snapshotChanged();
   void stateChanged();

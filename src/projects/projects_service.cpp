@@ -7,6 +7,7 @@
 #include <QUrlQuery>
 
 #include <algorithm>
+#include <array>
 #include <limits>
 
 namespace dashboard::projects {
@@ -121,6 +122,34 @@ void ProjectsListModel::replace(QList<Row> rows) {
 }
 
 const QList<ProjectsListModel::Row>& ProjectsListModel::rows() const { return rows_; }
+
+void sortProjectsByLatestExecution(QList<ProjectsListModel::Row>& rows) {
+  std::ranges::sort(rows, [](const auto& left, const auto& right) {
+    const auto left_updated = left.detail.value(QStringLiteral("updatedAt")).toDateTime();
+    const auto right_updated = right.detail.value(QStringLiteral("updatedAt")).toDateTime();
+    if (left_updated == right_updated) {
+      return left.key < right.key;
+    }
+    return left_updated > right_updated;
+  });
+}
+
+void retainLoadedProjectDetails(QList<ProjectsListModel::Row>& refreshed,
+                                const QList<ProjectsListModel::Row>& previous) {
+  constexpr std::array<const char*, 4> loaded_fields{"duration", "jobsSummary", "artifactSize", "deployStatus"};
+  for (auto& row : refreshed) {
+    const auto previous_row = std::ranges::find(previous, row.key, &ProjectsListModel::Row::key);
+    if (previous_row == previous.end()) {
+      continue;
+    }
+    for (const auto* field : loaded_fields) {
+      const auto key = QString::fromLatin1(field);
+      if (previous_row->detail.contains(key)) {
+        row.detail.insert(key, previous_row->detail.value(key));
+      }
+    }
+  }
+}
 
 ProjectsService::ProjectsService(QString owner, QByteArray token, QObject* parent)
     : QObject(parent),
@@ -340,12 +369,8 @@ void ProjectsService::loadRuns(QList<Repository> repositories) {
                                    {QStringLiteral("history"), history}}});
                }
                if (--pending_run_requests_ == 0) {
-                 const auto ranks =
-                     QStringList{QStringLiteral("failed"), QStringLiteral("attention"), QStringLiteral("running"),
-                                 QStringLiteral("stale"),  QStringLiteral("unknown"),   QStringLiteral("healthy")};
-                 std::ranges::stable_sort(*rows, [&](const auto& left, const auto& right) {
-                   return ranks.indexOf(left.health) < ranks.indexOf(right.health);
-                 });
+                 sortProjectsByLatestExecution(*rows);
+                 retainLoadedProjectDetails(*rows, projects_.rows());
                  projects_.replace(std::move(*rows));
                  selected_index_ = 0;
                  for (int index = 0; index < projects_.rows().size(); ++index) {
@@ -354,6 +379,7 @@ void ProjectsService::loadRuns(QList<Repository> repositories) {
                    }
                  }
                  selected_key_ = selectedRow() ? selectedRow()->key : QString{};
+                 emit selectedProjectIndexChanged();
                  finishRefresh();
                  loadSelectedDetails();
                }
@@ -408,6 +434,7 @@ void ProjectsService::selectProject(int index) {
   }
   selected_index_ = index;
   selected_key_ = selectedRow()->key;
+  emit selectedProjectIndexChanged();
   emit selectedProjectChanged();
   loadSelectedDetails();
 }
@@ -439,7 +466,7 @@ void ProjectsService::loadSelectedDetails() {
       {QUrl(QStringLiteral("https://api.github.com/repos/%1/actions/runs/%2/jobs?per_page=100")
                 .arg(repository)
                 .arg(run_id)),
-       [this](const QJsonDocument& document, const QNetworkReply*) {
+       [this, repository, run_id](const QJsonDocument& document, const QNetworkReply*) {
          const auto jobs = document.object().value(QStringLiteral("jobs")).toArray();
          QList<ProjectsListModel::Row> cards;
          int successful = 0;
@@ -477,27 +504,34 @@ void ProjectsService::loadSelectedDetails() {
            cards.push_back(
                {QStringLiteral("more"), QStringLiteral("+%1 jobs").arg(job_count - 3), {}, {}, hidden_health, {}, {}});
          }
-         stages_.replace(std::move(cards));
          auto rows = projects_.rows();
-         if (selected_index_ >= 0 && selected_index_ < rows.size()) {
-           rows[selected_index_].detail.insert(QStringLiteral("jobsSummary"),
-                                               QStringLiteral("%1/%2").arg(successful).arg(job_count));
-           rows[selected_index_].detail.insert(QStringLiteral("deployStatus"), deploy);
-           const auto created = rows[selected_index_].detail.value(QStringLiteral("createdAt")).toDateTime();
-           const auto updated = rows[selected_index_].detail.value(QStringLiteral("updatedAt")).toDateTime();
-           rows[selected_index_].detail.insert(QStringLiteral("duration"),
-                                               created.isValid() && updated.isValid()
-                                                   ? QStringLiteral("%1m").arg(created.secsTo(updated) / 60)
-                                                   : QString{});
+         const auto row = std::ranges::find(rows, repository, &ProjectsListModel::Row::key);
+         if (row != rows.end() && row->detail.value(QStringLiteral("runId")).toLongLong() == run_id) {
+           row->detail.insert(QStringLiteral("jobsSummary"), QStringLiteral("%1/%2").arg(successful).arg(job_count));
+           row->detail.insert(QStringLiteral("deployStatus"), deploy);
+           const auto created = row->detail.value(QStringLiteral("createdAt")).toDateTime();
+           const auto updated = row->detail.value(QStringLiteral("updatedAt")).toDateTime();
+           row->detail.insert(QStringLiteral("duration"), created.isValid() && updated.isValid()
+                                                              ? QStringLiteral("%1m").arg(created.secsTo(updated) / 60)
+                                                              : QString{});
            projects_.replace(std::move(rows));
          }
-         emit selectedProjectChanged();
+         if (selected_key_ == repository && selectedRow() &&
+             selectedRow()->detail.value(QStringLiteral("runId")).toLongLong() == run_id) {
+           stages_.replace(std::move(cards));
+           emit selectedProjectChanged();
+         }
        },
-       [this](QString) { stages_.replace({}); }});
+       [this, repository, run_id](QString) {
+         if (selected_key_ == repository && selectedRow() &&
+             selectedRow()->detail.value(QStringLiteral("runId")).toLongLong() == run_id) {
+           stages_.replace({});
+         }
+       }});
   request({QUrl(QStringLiteral("https://api.github.com/repos/%1/actions/runs/%2/artifacts?per_page=100")
                     .arg(repository)
                     .arg(run_id)),
-           [this](const QJsonDocument& document, const QNetworkReply*) {
+           [this, repository, run_id](const QJsonDocument& document, const QNetworkReply*) {
              qint64 bytes = 0;
              for (const auto& value : document.object().value(QStringLiteral("artifacts")).toArray()) {
                const auto artifact = value.toObject();
@@ -505,13 +539,17 @@ void ProjectsService::loadSelectedDetails() {
                  bytes += artifact.value(QStringLiteral("size_in_bytes")).toInteger();
              }
              auto rows = projects_.rows();
-             if (selected_index_ >= 0 && selected_index_ < rows.size()) {
-               rows[selected_index_].detail.insert(QStringLiteral("artifactSize"), bytesText(bytes));
+             const auto row = std::ranges::find(rows, repository, &ProjectsListModel::Row::key);
+             if (row != rows.end() && row->detail.value(QStringLiteral("runId")).toLongLong() == run_id) {
+               row->detail.insert(QStringLiteral("artifactSize"), bytesText(bytes));
                projects_.replace(std::move(rows));
              }
-             emit selectedProjectChanged();
+             if (selected_key_ == repository && selectedRow() &&
+                 selectedRow()->detail.value(QStringLiteral("runId")).toLongLong() == run_id) {
+               emit selectedProjectChanged();
+             }
            },
-           [this](QString) { emit selectedProjectChanged(); }});
+           [](QString) {}});
 }
 
 void ProjectsService::request(Request request_value) {

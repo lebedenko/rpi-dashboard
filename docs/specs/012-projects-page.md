@@ -55,8 +55,9 @@ configured GitHub user or organization.
 - Health mapping is: incomplete → Running; success → Healthy (Stale after seven days); failure,
   timed-out, startup-failure, or action-required → Failed; neutral, cancelled, or skipped →
   Attention; GitHub stale → Stale; missing or invalid data → Unknown.
-- Projects sort Failed, Attention, Running, Stale, Unknown, then Healthy. Reordering preserves the
-  selected repository key.
+- Projects sort by latest CI execution time in descending order, regardless of outcome. Reordering
+  preserves the selected repository key, keeps the list highlight synchronized with the detail
+  pane, and retains the selected project's loaded metrics while refreshed details are in flight.
 - Loading, empty, first-load error, retained-stale-data, and unavailable-field states are explicit.
 - The global status rail appears on every page, remains outside the focus chain, reports worst
   tracked-project CI health, and reports unique online/total self-hosted runners only when every

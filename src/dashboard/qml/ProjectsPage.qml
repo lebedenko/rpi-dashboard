@@ -31,6 +31,13 @@ FocusScope {
     Keys.onReturnPressed: event => { root.selectCurrent(); event.accepted = true }
     Keys.onEnterPressed: event => { root.selectCurrent(); event.accepted = true }
 
+    Connections {
+        target: root.service
+        function onSelectedProjectIndexChanged(): void {
+            projectList.currentIndex = root.service ? root.service.selectedProjectIndex : -1
+        }
+    }
+
     component ChamferFrame: Shape {
         id: frameRoot
         required property color fill
@@ -106,7 +113,7 @@ FocusScope {
             width: ListView.view.width; height: 56; padding: 0; highlighted: ListView.isCurrentItem
             Accessible.name: qsTr("%1, %2, %3").arg(name).arg(branch).arg(root.statusLabel(health))
             Accessible.role: Accessible.ListItem
-            onClicked: { ListView.view.currentIndex = index; root.selectCurrent(); ListView.view.forceActiveFocus() }
+            onClicked: { ListView.view.currentIndex = index; root.service.selectProject(index); ListView.view.forceActiveFocus() }
             background: ChamferFrame {
                 objectName: "projectCardFrame" + projectRow.index
                 fill: projectRow.highlighted ? Theme.selectedSurface : Theme.cardSurface
