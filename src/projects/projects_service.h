@@ -24,6 +24,7 @@ namespace dashboard::projects {
 [[nodiscard]] int rateLimitBackoffMs(int http_status, const QByteArray& retry_after,
                                      const QByteArray& rate_limit_remaining, const QByteArray& rate_limit_reset,
                                      qint64 current_epoch_seconds);
+[[nodiscard]] int countSuccessfulHistory(const QVariantList& history);
 
 class ProjectsListModel final : public QAbstractListModel {
   Q_OBJECT
@@ -31,12 +32,13 @@ class ProjectsListModel final : public QAbstractListModel {
  public:
   // QAbstractItemModel roles are unscoped integers by Qt API convention.
   // NOLINTNEXTLINE(cppcoreguidelines-use-enum-class,performance-enum-size)
-  enum Role { KeyRole = Qt::UserRole + 1, NameRole, BranchRole, HealthRole, StatusRole, DetailRole };
+  enum Role { KeyRole = Qt::UserRole + 1, NameRole, BranchRole, AgeRole, HealthRole, StatusRole, DetailRole };
 
   struct Row {
     QString key;
     QString name;
     QString branch;
+    QString age;
     QString health;
     QString status;
     QVariantMap detail;
@@ -64,6 +66,9 @@ class ProjectsService final : public QObject {
   Q_PROPERTY(QString selectedRevision READ selectedRevision NOTIFY selectedProjectChanged)
   Q_PROPERTY(QString selectedRun READ selectedRun NOTIFY selectedProjectChanged)
   Q_PROPERTY(QString selectedRunAge READ selectedRunAge NOTIFY selectedProjectChanged)
+  Q_PROPERTY(QString selectedHealth READ selectedHealth NOTIFY selectedProjectChanged)
+  Q_PROPERTY(int historySuccessfulCount READ historySuccessfulCount NOTIFY selectedProjectChanged)
+  Q_PROPERTY(int historyCount READ historyCount NOTIFY selectedProjectChanged)
   Q_PROPERTY(QString duration READ duration NOTIFY selectedProjectChanged)
   Q_PROPERTY(QString jobsSummary READ jobsSummary NOTIFY selectedProjectChanged)
   Q_PROPERTY(QString artifactSize READ artifactSize NOTIFY selectedProjectChanged)
@@ -90,6 +95,9 @@ class ProjectsService final : public QObject {
   [[nodiscard]] QString selectedRevision() const;
   [[nodiscard]] QString selectedRun() const;
   [[nodiscard]] QString selectedRunAge() const;
+  [[nodiscard]] QString selectedHealth() const;
+  [[nodiscard]] int historySuccessfulCount() const;
+  [[nodiscard]] int historyCount() const;
   [[nodiscard]] QString duration() const;
   [[nodiscard]] QString jobsSummary() const;
   [[nodiscard]] QString artifactSize() const;

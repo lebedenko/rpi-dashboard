@@ -13,6 +13,7 @@ class DashboardStartupTest : public QObject {
   void clockSidebarIsPackagedAndUsesThemeRoles();
   void iconFallbackColorsMatchThemeRoles();
   void declaresAndUsesTypographyRoles();
+  void bundledFontsArePackaged();
   void deviceCardSourcesAndChevronArePackaged();
   void initializesQmlAndKeepsRunning();
 };
@@ -186,6 +187,10 @@ void DashboardStartupTest::declaresAndUsesTypographyRoles() {  // NOLINT(readabi
   QVERIFY2(themeQml.open(QIODevice::ReadOnly | QIODevice::Text), qPrintable(themeQml.errorString()));
   const auto themeSource = QString::fromUtf8(themeQml.readAll());
 
+  QVERIFY(themeSource.contains(QStringLiteral("bundledFontsReady")));
+  QCOMPARE(themeSource.count(QStringLiteral("property FontLoader")), 7);
+  QVERIFY(themeSource.contains(QStringLiteral("bundledSansFontFamily")));
+  QVERIFY(themeSource.contains(QStringLiteral("bundledFixedFontFamily")));
   QVERIFY(themeSource.contains(QStringLiteral("installedFontFamilies.includes(\"Rajdhani\")")));
   QVERIFY(themeSource.contains(QStringLiteral("installedFontFamilies.includes(\"JetBrains Mono\")")));
   QVERIFY(themeSource.contains(QStringLiteral("installedFontFamilies.includes(\"IBM Plex Mono\")")));
@@ -206,6 +211,18 @@ void DashboardStartupTest::declaresAndUsesTypographyRoles() {  // NOLINT(readabi
   QCOMPARE(pageSource.count(QStringLiteral("font.family: Theme.sansFontFamily")), 2);
   QVERIFY(pageSource.contains(QStringLiteral("font.weight: Theme.headingFontWeight")));
   QVERIFY(pageSource.contains(QStringLiteral("font.weight: Theme.informationFontWeight")));
+}
+
+void DashboardStartupTest::bundledFontsArePackaged() {  // NOLINT(readability-convert-member-functions-to-static)
+  const QStringList fonts{QStringLiteral("Rajdhani-Light.ttf"),      QStringLiteral("Rajdhani-Regular.ttf"),
+                          QStringLiteral("Rajdhani-Medium.ttf"),     QStringLiteral("Rajdhani-SemiBold.ttf"),
+                          QStringLiteral("JetBrainsMono-Light.ttf"), QStringLiteral("JetBrainsMono-Regular.ttf"),
+                          QStringLiteral("JetBrainsMono-Medium.ttf")};
+  for (const auto& name : fonts) {
+    QFile font(QStringLiteral(DASHBOARD_FONT_DIRECTORY) + QLatin1Char('/') + name);
+    QVERIFY2(font.open(QIODevice::ReadOnly), qPrintable(name));
+    QVERIFY2(font.size() > 100'000, qPrintable(name));
+  }
 }
 
 void DashboardStartupTest::

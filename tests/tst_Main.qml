@@ -219,11 +219,71 @@ Item {
             verify(!!first);
             tryVerify(() => !!findChild(dashboardWindow.contentItem, "projectRow1"));
             const second = findChild(dashboardWindow.contentItem, "projectRow1");
+            const frame = findChild(dashboardWindow.contentItem, "projectsPageFrame");
+            const header = findChild(dashboardWindow.contentItem, "projectsHeader");
+            const listFrame = findChild(dashboardWindow.contentItem, "projectsListFrame");
+            const detail = findChild(dashboardWindow.contentItem, "projectDetail");
+            const heading = findChild(dashboardWindow.contentItem, "projectsHeading");
+            verify(!!frame);
+            verify(!!header);
+            verify(!!listFrame);
+            verify(!!detail);
+            compare(header.height, 48);
+            verify(Math.abs(heading.y + heading.height / 2 - header.y - header.height / 2) <= 0.5);
+            compare(heading.text, "PROJECTS");
+            compare(heading.color, Theme.primaryAccent);
+            compare(heading.font.family, Theme.sansFontFamily);
+            compare(heading.font.weight, Theme.headingFontWeight);
             compare(list.width, 330);
+            compare(list.x - listFrame.x, 8);
+            compare(list.y - listFrame.y, 8);
+            compare(listFrame.x + listFrame.width - list.x - list.width, 8);
+            compare(listFrame.y + listFrame.height - list.y - list.height, 8);
             compare(first.height, 56);
             compare(second.y - first.y - first.height, 6);
+            verify(list.x >= frame.x && list.y >= frame.y);
+            verify(detail.x >= frame.x && detail.x + detail.width <= frame.x + frame.width);
+            verify(detail.y >= frame.y && detail.y + detail.height <= frame.y + frame.height);
             compare(first.Accessible.role, Accessible.ListItem);
             verify(first.Accessible.name.includes("FAILED"));
+            const firstName = findChild(first, "projectName0");
+            compare(firstName.text, "FAILED");
+            compare(firstName.renderType, Text.NativeRendering);
+            compare(firstName.font.hintingPreference, Font.PreferFullHinting);
+            const firstFrame = findChild(first, "projectCardFrame0");
+            const secondFrame = findChild(second, "projectCardFrame1");
+            const statusGroup = findChild(first, "projectStatusGroup0");
+            const statusDisc = findChild(first, "projectStatusDisc0");
+            const statusText = findChild(first, "projectHealth0");
+            const branch = findChild(first, "projectBranch0");
+            const age = findChild(first, "projectAge0");
+            compare(firstFrame.stroke, Theme.primaryAccent);
+            compare(secondFrame.stroke, Theme.sectionDivider);
+            compare(findChild(first, "projectHealthRail0").color, Theme.failureStatus);
+            compare(statusDisc.color, Theme.failureStatus);
+            compare(statusText.color, Theme.failureStatus);
+            verify(statusDisc.mapToItem(statusGroup, 0, 0).x < statusText.mapToItem(statusGroup, 0, 0).x);
+            compare(branch.text, "main");
+            compare(age.text, "2m ago");
+            verify(branch.x < age.x);
+            verify(statusGroup.x > firstName.x);
+            compare(findChild(dashboardWindow.contentItem, "selectedRepository").text, "FAILED");
+            compare(findChild(dashboardWindow.contentItem, "selectedIdentity").text, "MAIN · ABC1234");
+            compare(findChild(dashboardWindow.contentItem, "selectedHealth").text, "FAILED");
+            compare(findChild(dashboardWindow.contentItem, "selectedRun").text, "#42");
+            compare(findChild(dashboardWindow.contentItem, "selectedRunAge").text, "2m ago");
+            compare(findChild(dashboardWindow.contentItem, "stageName0").text, "BUILD");
+            compare(findChild(dashboardWindow.contentItem, "stageOutcome0").text, "✓ HEALTHY");
+            compare(findChild(dashboardWindow.contentItem, "historyHeading").text, "RUN HISTORY (1)");
+            compare(findChild(dashboardWindow.contentItem, "historySummary").text, "0 / 1 SUCCESS");
+            compare(findChild(dashboardWindow.contentItem, "failedNumber").color, Theme.failureStatus);
+            compare(findChild(dashboardWindow.contentItem, "failedLabel").color, Theme.failureStatus);
+            compare(findChild(dashboardWindow.contentItem, "runningNumber").color, Theme.textSecondary);
+            fakeProjectsService.runningCount = 1;
+            fakeProjectsService.failedCount = 0;
+            tryCompare(findChild(dashboardWindow.contentItem, "runningNumber"), "color", Theme.primaryAccent);
+            compare(findChild(dashboardWindow.contentItem, "failedNumber").color, Theme.textSecondary);
+            compare(findChild(dashboardWindow.contentItem, "failedLabel").color, Theme.textSecondary);
             mouseClick(second);
             tryCompare(fakeProjectsService, "selectedProjectIndex", 1);
             keyClick(Qt.Key_F5);
@@ -233,6 +293,12 @@ Item {
             compare(ci.text, "FAILED CI");
             compare(runners.text, "— RUNNERS");
             compare(ci.activeFocus, false);
+        }
+
+        function test_bundledFontsAreReady() {
+            tryCompare(Theme, "bundledFontsReady", true);
+            compare(Theme.sansFontFamily, "Rajdhani");
+            compare(Theme.fixedFontFamily, "JetBrains Mono");
         }
 
         function test_f5FocusesCurrentPage() {
@@ -685,8 +751,8 @@ Item {
 
         QtObject {
             property ListModel projectModel: ListModel {
-                ListElement { key: "owner/failed"; name: "failed"; branch: "main"; health: "failed"; status: "completed" }
-                ListElement { key: "owner/healthy"; name: "healthy"; branch: "main"; health: "healthy"; status: "completed" }
+                ListElement { key: "owner/failed"; name: "failed"; branch: "main"; age: "2m ago"; health: "failed"; status: "completed" }
+                ListElement { key: "owner/healthy"; name: "healthy"; branch: "main"; age: "4m ago"; health: "healthy"; status: "completed" }
             }
             property ListModel stageModel: ListModel {
                 ListElement { key: "0"; name: "build"; branch: ""; health: "healthy"; status: "completed" }
@@ -700,6 +766,9 @@ Item {
             property string selectedRevision: "abc1234"
             property string selectedRun: "#42"
             property string selectedRunAge: "2m ago"
+            property string selectedHealth: selectedProjectIndex === 0 ? "failed" : "healthy"
+            property int historySuccessfulCount: 0
+            property int historyCount: 1
             property string duration: "3m"
             property string jobsSummary: "3/4"
             property string artifactSize: "2.0 MiB"

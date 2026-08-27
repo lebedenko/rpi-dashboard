@@ -7,6 +7,7 @@
 #include <QTemporaryDir>
 #include <QtTest>
 
+using dashboard::projects::countSuccessfulHistory;
 using dashboard::projects::Health;
 using dashboard::projects::healthForRun;
 using dashboard::projects::loadGitHubCredential;
@@ -23,6 +24,7 @@ class ProjectsServiceTest : public QObject {
   void mapsWorkflowHealth();
   void marksOldSuccessStale();
   void listModelPublishesProviderNeutralRoles();
+  void historySuccessCountUsesConclusionInsteadOfDisplayHealth();
   void failedNetworkReplyIsNotRead();
   void authenticatedPollingUsesOneMinuteBaseline();
   void anonymousPollingUsesMeasuredRequestCount_data();  // NOLINT(readability-identifier-naming)
@@ -72,6 +74,7 @@ void ProjectsServiceTest::
   model.replace({{.key = QStringLiteral("owner/repo"),
                   .name = QStringLiteral("repo"),
                   .branch = QStringLiteral("main"),
+                  .age = QStringLiteral("2m ago"),
                   .health = QStringLiteral("failed"),
                   .status = QStringLiteral("completed"),
                   .detail = {}}});
@@ -79,6 +82,17 @@ void ProjectsServiceTest::
   QCOMPARE(model.data(model.index(0), ProjectsListModel::KeyRole).toString(), QStringLiteral("owner/repo"));
   QCOMPARE(model.data(model.index(0), ProjectsListModel::HealthRole).toString(), QStringLiteral("failed"));
   QCOMPARE(model.roleNames().value(ProjectsListModel::BranchRole), QByteArrayLiteral("branch"));
+  QCOMPARE(model.data(model.index(0), ProjectsListModel::AgeRole).toString(), QStringLiteral("2m ago"));
+  QCOMPARE(model.roleNames().value(ProjectsListModel::AgeRole), QByteArrayLiteral("age"));
+}
+
+void ProjectsServiceTest::
+    historySuccessCountUsesConclusionInsteadOfDisplayHealth() {  // NOLINT(readability-convert-member-functions-to-static)
+  const QVariantList history{
+      QVariantMap{{QStringLiteral("health"), QStringLiteral("healthy")}, {QStringLiteral("successful"), true}},
+      QVariantMap{{QStringLiteral("health"), QStringLiteral("stale")}, {QStringLiteral("successful"), true}},
+      QVariantMap{{QStringLiteral("health"), QStringLiteral("failed")}, {QStringLiteral("successful"), false}}};
+  QCOMPARE(countSuccessfulHistory(history), 2);
 }
 
 void ProjectsServiceTest::failedNetworkReplyIsNotRead() {  // NOLINT(readability-convert-member-functions-to-static)

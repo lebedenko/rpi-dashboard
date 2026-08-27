@@ -2,13 +2,29 @@ import QtQuick
 pragma Singleton
 
 QtObject {
+    id: root
+
     readonly property var installedFontFamilies: Qt.fontFamilies()
-    readonly property string sansFontFamily: installedFontFamilies.includes("Rajdhani") ? "Rajdhani" : "sans-serif"
-    readonly property string fixedFontFamily: preferredFixedFontFamily()
+    readonly property bool bundledFontsReady: rajdhaniLight.status === FontLoader.Ready
+                                               && rajdhaniRegular.status === FontLoader.Ready
+                                               && rajdhaniMedium.status === FontLoader.Ready
+                                               && rajdhaniSemiBold.status === FontLoader.Ready
+                                               && jetBrainsLight.status === FontLoader.Ready
+                                               && jetBrainsRegular.status === FontLoader.Ready
+                                               && jetBrainsMedium.status === FontLoader.Ready
+    readonly property string bundledSansFontFamily: rajdhaniRegular.status === FontLoader.Ready ? rajdhaniRegular.name : ""
+    readonly property string bundledFixedFontFamily: jetBrainsRegular.status === FontLoader.Ready ? jetBrainsRegular.name : ""
+    readonly property string sansFontFamily: bundledSansFontFamily.length > 0 ? bundledSansFontFamily
+                                                                              : installedFontFamilies.includes("Rajdhani") ? "Rajdhani" : "sans-serif"
+    readonly property string fixedFontFamily: bundledFixedFontFamily.length > 0 ? bundledFixedFontFamily
+                                                                                 : preferredFixedFontFamily()
     readonly property int headingFontWeight: Font.DemiBold
+    readonly property int labelFontWeight: Font.Normal
     readonly property int informationFontWeight: Font.Medium
     readonly property int metricFontWeight: Font.Light
     readonly property int technicalFontWeight: Font.Medium
+    readonly property int technicalRegularFontWeight: Font.Normal
+    readonly property int technicalLightFontWeight: Font.Light
     readonly property color background: "#020A13"
     readonly property color surface: "#061321"
     readonly property color surfaceElevated: "#0A1A2B"
@@ -44,6 +60,9 @@ QtObject {
     readonly property color onlineFrame: "#258667"
     readonly property color detailRailSurface: "#08283A"
     readonly property color detailRailFrame: "#21789B"
+    readonly property int projectsFrameChamfer: 8
+    readonly property int projectsPanelChamfer: 6
+    readonly property int projectsRowChamfer: 5
     readonly property int spacingSmall: 8
     readonly property int spacingMedium: 16
     readonly property int spacingLarge: 24
@@ -91,5 +110,13 @@ QtObject {
 
         return "monospace";
     }
+
+    property FontLoader rajdhaniLight: FontLoader { source: "fonts/Rajdhani-Light.ttf" }
+    property FontLoader rajdhaniRegular: FontLoader { source: "fonts/Rajdhani-Regular.ttf" }
+    property FontLoader rajdhaniMedium: FontLoader { source: "fonts/Rajdhani-Medium.ttf" }
+    property FontLoader rajdhaniSemiBold: FontLoader { source: "fonts/Rajdhani-SemiBold.ttf" }
+    property FontLoader jetBrainsLight: FontLoader { source: "fonts/JetBrainsMono-Light.ttf" }
+    property FontLoader jetBrainsRegular: FontLoader { source: "fonts/JetBrainsMono-Regular.ttf" }
+    property FontLoader jetBrainsMedium: FontLoader { source: "fonts/JetBrainsMono-Medium.ttf" }
 
 }

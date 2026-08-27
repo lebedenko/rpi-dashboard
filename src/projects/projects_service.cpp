@@ -75,6 +75,11 @@ int rateLimitBackoffMs(int http_status, const QByteArray& retry_after, const QBy
   return static_cast<int>(std::min<qint64>(delay_ms, std::numeric_limits<int>::max()));
 }
 
+int countSuccessfulHistory(const QVariantList& history) {
+  return std::ranges::count_if(
+      history, [](const auto& item) { return item.toMap().value(QStringLiteral("successful")).toBool(); });
+}
+
 ProjectsListModel::ProjectsListModel(QObject* parent) : QAbstractListModel(parent) {}
 
 int ProjectsListModel::rowCount(const QModelIndex& parent) const { return parent.isValid() ? 0 : rows_.size(); }
@@ -91,6 +96,8 @@ QVariant ProjectsListModel::data(const QModelIndex& index, int role) const {
       return row.name;
     case BranchRole:
       return row.branch;
+    case AgeRole:
+      return row.age;
     case HealthRole:
       return row.health;
     case StatusRole:
@@ -103,7 +110,7 @@ QVariant ProjectsListModel::data(const QModelIndex& index, int role) const {
 }
 
 QHash<int, QByteArray> ProjectsListModel::roleNames() const {
-  return {{KeyRole, "key"},       {NameRole, "name"},     {BranchRole, "branch"},
+  return {{KeyRole, "key"},       {NameRole, "name"},     {BranchRole, "branch"}, {AgeRole, "age"},
           {HealthRole, "health"}, {StatusRole, "status"}, {DetailRole, "detail"}};
 }
 
@@ -156,6 +163,15 @@ QString ProjectsService::selectedRun() const {
 }
 QString ProjectsService::selectedRunAge() const {
   return selectedRow() ? ageText(selectedRow()->detail.value(QStringLiteral("updatedAt")).toDateTime()) : QString{};
+}
+QString ProjectsService::selectedHealth() const {
+  return selectedRow() ? selectedRow()->health : QStringLiteral("unknown");
+}
+int ProjectsService::historySuccessfulCount() const {
+  return selectedRow() ? countSuccessfulHistory(selectedRow()->detail.value(QStringLiteral("history")).toList()) : 0;
+}
+int ProjectsService::historyCount() const {
+  return selectedRow() ? selectedRow()->detail.value(QStringLiteral("history")).toList().size() : 0;
 }
 QString ProjectsService::duration() const {
   return selectedRow() ? selectedRow()->detail.value(QStringLiteral("duration")).toString() : QString{};
@@ -301,6 +317,8 @@ void ProjectsService::loadRuns(QList<Repository> repositories) {
                    const auto run = value.toObject();
                    history.push_back(
                        QVariantMap{{QStringLiteral("health"), conclusionHealth(run)},
+                                   {QStringLiteral("successful"),
+                                    run.value(QStringLiteral("conclusion")).toString() == QStringLiteral("success")},
                                    {QStringLiteral("number"), run.value(QStringLiteral("run_number")).toInt()}});
                  }
                  auto sha = latest.value(QStringLiteral("head_sha")).toString();
@@ -310,6 +328,7 @@ void ProjectsService::loadRuns(QList<Repository> repositories) {
                  rows->push_back({repository.key,
                                   repository.name,
                                   repository.branch,
+                                  ageText(updated),
                                   conclusionHealth(latest),
                                   latest.value(QStringLiteral("status")).toString(),
                                   {{QStringLiteral("runId"), latest.value(QStringLiteral("id")).toVariant()},
@@ -410,69 +429,71 @@ void ProjectsService::loadSelectedDetails() {
     history_rows.push_back({QString::number(entry.value(QStringLiteral("number")).toInt()),
                             {},
                             {},
+                            {},
                             entry.value(QStringLiteral("health")).toString(),
                             {},
                             {}});
   }
   history_.replace(std::move(history_rows));
-  request({QUrl(QStringLiteral("https://api.github.com/repos/%1/actions/runs/%2/jobs?per_page=100")
-                    .arg(repository)
-                    .arg(run_id)),
-           [this](const QJsonDocument& document, const QNetworkReply*) {
-             const auto jobs = document.object().value(QStringLiteral("jobs")).toArray();
-             QList<ProjectsListModel::Row> cards;
-             int successful = 0;
-             QString deploy = QStringLiteral("—");
-             const int job_count = static_cast<int>(jobs.size());
-             const int direct_count = std::min(3, job_count);
-             const int shown_count = job_count <= 4 ? job_count : direct_count;
-             for (int index = 0; index < shown_count; ++index) {
-               const auto job = jobs.at(index).toObject();
-               const auto health = conclusionHealth(job);
-               successful += job.value(QStringLiteral("conclusion")).toString() == QStringLiteral("success");
-               if (isDeployName(job.value(QStringLiteral("name")).toString())) {
-                 deploy = health;
-               }
-               cards.push_back({QString::number(index),
-                                job.value(QStringLiteral("name")).toString(),
-                                {},
-                                health,
-                                job.value(QStringLiteral("status")).toString(),
-                                {}});
-             }
-             for (int index = shown_count; index < job_count; ++index) {
-               successful += jobs.at(index).toObject().value(QStringLiteral("conclusion")).toString() ==
-                             QStringLiteral("success");
-             }
-             if (job_count > 4) {
-               QString hidden_health = QStringLiteral("healthy");
-               const QStringList ranks{QStringLiteral("failed"),  QStringLiteral("attention"),
-                                       QStringLiteral("running"), QStringLiteral("stale"),
-                                       QStringLiteral("unknown"), QStringLiteral("healthy")};
-               for (int index = 3; index < job_count; ++index) {
-                 const auto candidate = conclusionHealth(jobs.at(index).toObject());
-                 if (ranks.indexOf(candidate) < ranks.indexOf(hidden_health)) hidden_health = candidate;
-               }
-               cards.push_back(
-                   {QStringLiteral("more"), QStringLiteral("+%1 jobs").arg(job_count - 3), {}, hidden_health, {}, {}});
-             }
-             stages_.replace(std::move(cards));
-             auto rows = projects_.rows();
-             if (selected_index_ >= 0 && selected_index_ < rows.size()) {
-               rows[selected_index_].detail.insert(QStringLiteral("jobsSummary"),
-                                                   QStringLiteral("%1/%2").arg(successful).arg(job_count));
-               rows[selected_index_].detail.insert(QStringLiteral("deployStatus"), deploy);
-               const auto created = rows[selected_index_].detail.value(QStringLiteral("createdAt")).toDateTime();
-               const auto updated = rows[selected_index_].detail.value(QStringLiteral("updatedAt")).toDateTime();
-               rows[selected_index_].detail.insert(QStringLiteral("duration"),
-                                                   created.isValid() && updated.isValid()
-                                                       ? QStringLiteral("%1m").arg(created.secsTo(updated) / 60)
-                                                       : QString{});
-               projects_.replace(std::move(rows));
-             }
-             emit selectedProjectChanged();
-           },
-           [this](QString) { stages_.replace({}); }});
+  request(
+      {QUrl(QStringLiteral("https://api.github.com/repos/%1/actions/runs/%2/jobs?per_page=100")
+                .arg(repository)
+                .arg(run_id)),
+       [this](const QJsonDocument& document, const QNetworkReply*) {
+         const auto jobs = document.object().value(QStringLiteral("jobs")).toArray();
+         QList<ProjectsListModel::Row> cards;
+         int successful = 0;
+         QString deploy = QStringLiteral("—");
+         const int job_count = static_cast<int>(jobs.size());
+         const int direct_count = std::min(3, job_count);
+         const int shown_count = job_count <= 4 ? job_count : direct_count;
+         for (int index = 0; index < shown_count; ++index) {
+           const auto job = jobs.at(index).toObject();
+           const auto health = conclusionHealth(job);
+           successful += job.value(QStringLiteral("conclusion")).toString() == QStringLiteral("success");
+           if (isDeployName(job.value(QStringLiteral("name")).toString())) {
+             deploy = health;
+           }
+           cards.push_back({QString::number(index),
+                            job.value(QStringLiteral("name")).toString(),
+                            {},
+                            {},
+                            health,
+                            job.value(QStringLiteral("status")).toString(),
+                            {}});
+         }
+         for (int index = shown_count; index < job_count; ++index) {
+           successful +=
+               jobs.at(index).toObject().value(QStringLiteral("conclusion")).toString() == QStringLiteral("success");
+         }
+         if (job_count > 4) {
+           QString hidden_health = QStringLiteral("healthy");
+           const QStringList ranks{QStringLiteral("failed"), QStringLiteral("attention"), QStringLiteral("running"),
+                                   QStringLiteral("stale"),  QStringLiteral("unknown"),   QStringLiteral("healthy")};
+           for (int index = 3; index < job_count; ++index) {
+             const auto candidate = conclusionHealth(jobs.at(index).toObject());
+             if (ranks.indexOf(candidate) < ranks.indexOf(hidden_health)) hidden_health = candidate;
+           }
+           cards.push_back(
+               {QStringLiteral("more"), QStringLiteral("+%1 jobs").arg(job_count - 3), {}, {}, hidden_health, {}, {}});
+         }
+         stages_.replace(std::move(cards));
+         auto rows = projects_.rows();
+         if (selected_index_ >= 0 && selected_index_ < rows.size()) {
+           rows[selected_index_].detail.insert(QStringLiteral("jobsSummary"),
+                                               QStringLiteral("%1/%2").arg(successful).arg(job_count));
+           rows[selected_index_].detail.insert(QStringLiteral("deployStatus"), deploy);
+           const auto created = rows[selected_index_].detail.value(QStringLiteral("createdAt")).toDateTime();
+           const auto updated = rows[selected_index_].detail.value(QStringLiteral("updatedAt")).toDateTime();
+           rows[selected_index_].detail.insert(QStringLiteral("duration"),
+                                               created.isValid() && updated.isValid()
+                                                   ? QStringLiteral("%1m").arg(created.secsTo(updated) / 60)
+                                                   : QString{});
+           projects_.replace(std::move(rows));
+         }
+         emit selectedProjectChanged();
+       },
+       [this](QString) { stages_.replace({}); }});
   request({QUrl(QStringLiteral("https://api.github.com/repos/%1/actions/runs/%2/artifacts?per_page=100")
                     .arg(repository)
                     .arg(run_id)),

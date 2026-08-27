@@ -24,6 +24,15 @@ qt_add_qml_module(rpi-dashboard-qml
         qml/Theme.qml
         qml/SidebarButton.qml
     RESOURCES
+        qml/fonts/JetBrainsMono-Light.ttf
+        qml/fonts/JetBrainsMono-Medium.ttf
+        qml/fonts/JetBrainsMono-Regular.ttf
+        qml/fonts/OFL-JetBrainsMono.txt
+        qml/fonts/OFL-Rajdhani.txt
+        qml/fonts/Rajdhani-Light.ttf
+        qml/fonts/Rajdhani-Medium.ttf
+        qml/fonts/Rajdhani-Regular.ttf
+        qml/fonts/Rajdhani-SemiBold.ttf
         qml/icons/chevron.svg
         qml/icons/detail-arch.svg
         qml/icons/detail-cores.svg

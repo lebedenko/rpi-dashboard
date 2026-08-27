@@ -21,15 +21,34 @@ configured GitHub user or organization.
 
 ## Observable acceptance criteria
 
-- The content uses an 8 px inset, a 30 px header, a 330 px scrollable project list, 56 px rows with
-  6 px gaps, and a detail pane that consumes the remaining width.
-- Project rows expose a semantic edge, dot, and translated status label. Color is never the only
-  status indication.
+- The entire page, including its header and master/detail content, is enclosed by one flat frame
+  with four equal chamfered corners. The list, detail, selected row, and stage cards reuse the same
+  page-local chamfer geometry. The page uses no gradient, shadow, blur, or `Canvas` effects.
+- The translated source title is `Projects`, is visually rendered as `PROJECTS`, uses the primary
+  accent, and uses the Rajdhani heading role. Project, health, stage, and outcome labels render
+  uppercase; list branches and relative ages render lowercase.
+- The summary styles `TRACKED`, `RUNNING`, and `FAILED` independently. Tracked content is secondary;
+  a non-zero running number is cyan; and a non-zero failed number and label use the failure color.
+  Zero running and failed values use the regular information color.
+- The content uses an 8 px inset, a 48 px header with vertically centered content, a 330 px
+  scrollable project list, 56 px rows with 6 px gaps, and a detail pane that consumes the remaining
+  width. The list viewport is inset 8 px from its frame so the complete chamfered border remains
+  visible.
+- Project row frames have only passive and selected visual states and never encode CI health. Each
+  row uses two aligned text lines: repository opposite a disc-prefixed health label, then branch
+  opposite relative age. A thick left rail, the status disc, and the translated status label are
+  the only row elements colored by CI health, so color is never the only status indication. Project
+  names use native, fully hinted text rendering so thin uppercase strokes remain intact at the
+  target pixel size.
 - Rows are selectable by pointer and by Up/Down followed by Space or Enter. F5 focuses the selected
   project row. Global Left, Right, and Home page navigation remains available.
 - Detail shows repository, default branch, short revision, run number and age, at most four pipeline
   cards, duration, successful/total jobs, non-expired artifact bytes, inferred deploy state, and the
   latest 20 outcomes. Missing values render as unavailable rather than fabricated metrics.
+- Detail separates uppercase repository/branch/revision/health from right-aligned run number/age.
+  Stage cards show uppercase names and outcomes with semantic color and lightweight connector/check
+  cues. Metrics are labelled `DURATION`, `JOBS`, `ARTIFACTS`, and `DEPLOY`, while values preserve
+  natural technical casing. History is introduced by `RUN HISTORY (%1)` and `%1 / %2 SUCCESS`.
 - Four or fewer jobs map directly to cards. More jobs show the first three plus a `+N jobs` card
   whose status is the worst hidden job status. Deploy jobs contain `deploy`, `release`, or `publish`
   case-insensitively.
@@ -61,4 +80,6 @@ configured GitHub user or organization.
 - No additional CI provider.
 - No settings UI or configurable polling interval.
 - No inferred external-service uptime, generic coverage, or compiler-warning totals.
+- No fabricated coverage, warning, Raspberry Pi 5, or other mockup-only values.
+- No gradients, shadows, blur, or canvas-based decoration.
 - Runner availability is best-effort and never affects repository health.

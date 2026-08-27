@@ -106,6 +106,7 @@ target_compile_definitions(dashboard_startup_test
         DASHBOARD_SIDEBAR_BUTTON_QML="${CMAKE_SOURCE_DIR}/src/dashboard/qml/SidebarButton.qml"
         DASHBOARD_THEME_QML="${CMAKE_SOURCE_DIR}/src/dashboard/qml/Theme.qml"
         DASHBOARD_ICON_DIRECTORY="${CMAKE_SOURCE_DIR}/src/dashboard/qml/icons"
+        DASHBOARD_FONT_DIRECTORY="${CMAKE_SOURCE_DIR}/src/dashboard/qml/fonts"
 )
 
 target_link_libraries(dashboard_startup_test

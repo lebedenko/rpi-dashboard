@@ -2,33 +2,34 @@
 
 ## Context
 
-The dashboard mockups use a condensed, technical visual style, but their AI-generated lettering does not identify a dependable real font. The dashboard needs a consistent typography contract that preserves that character when the preferred fonts are installed and remains usable with system fonts when they are not.
+The dashboard uses a condensed, technical visual style. Its canonical Rajdhani and JetBrains Mono faces are application resources so rendering does not depend on the fonts installed on the host.
 
 ## Functional requirements
 
-- UI headings and labels prefer Rajdhani at weight 600.
-- Regular information prefers Rajdhani at weight 500.
-- Large metric values prefer Rajdhani at weight 300.
-- Technical values, including addresses and identifiers, prefer JetBrains Mono, then IBM Plex Mono.
+- Bundle the OFL-licensed Rajdhani 300, 400, 500, and 600 faces and JetBrains Mono 300, 400, and 500 faces with the dashboard QML module.
+- Load every bundled face through `FontLoader` in the theme and expose whether all faces are ready.
+- UI headings and labels use Rajdhani at weight 600.
+- Regular labels use Rajdhani at weight 400 and ordinary information uses Rajdhani at weight 500.
+- Large metric values use Rajdhani at weight 300.
+- Technical values, including branches, revisions, identifiers, ages, durations, counts, and sizes, use JetBrains Mono at the matching semantic weight.
 - UI typography falls back to the platform sans-serif font family.
 - Technical typography falls back to the platform fixed-width font family.
 - Typography families and weights are centralized in the dashboard theme.
 
 ## Acceptance criteria
 
-- Existing dashboard headings and navigation labels use the heading typography tokens.
-- Existing placeholder information uses the regular-information typography tokens.
-- Theme tokens are available for future large metrics and technical values.
+- All seven bundled faces report `FontLoader.Ready` during normal startup.
+- Theme family tokens resolve to the bundled families when ready and retain platform sans-serif and fixed-width fallbacks if a resource fails.
+- Existing dashboard headings, labels, information, metrics, and technical values use their semantic family and weight tokens.
 - The dashboard initializes when none of the preferred font families are installed.
 
 ## Non-goals
 
-- Bundling or downloading font files.
 - Adding telemetry or other content solely to demonstrate typography.
 - Using IBM Plex Sans Condensed as a second visual theme.
 
 ## Verification
 
-- Verify the QML source uses the semantic theme tokens for every existing text role.
+- Verify every font resource is packaged and loads, and QML source uses semantic theme tokens.
 - Launch the dashboard with the offscreen Qt platform and verify QML initialization succeeds.
 - Run the project test and static-analysis tasks.
