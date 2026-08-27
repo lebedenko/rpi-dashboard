@@ -1,3 +1,4 @@
+#include "device_model.h"
 #include "projects/github_credentials.h"
 #include "projects/projects_service.h"
 #include "sysinfo/linux_sys_info_collector.h"
@@ -71,6 +72,7 @@ int main(int argc, char* argv[]) {
   }
   dashboard::projects::ProjectsService projects_service(parser.value(githubOwnerOption), credential.token);
   dashboard::telemetry::RemoteDeviceRegistry remote_devices;
+  dashboard::DeviceModel device_model(&sys_info_service, &sys_metrics_service, &remote_devices);
   dashboard::telemetry::UdpTelemetryReceiver telemetry_receiver(&remote_devices);
   if (!telemetry_receiver.bind(telemetryAddress, static_cast<quint16>(telemetryPort))) {
     qWarning().noquote() << telemetry_receiver.diagnostic();
@@ -81,7 +83,8 @@ int main(int argc, char* argv[]) {
                                {QStringLiteral("windowHeight"), windowHeight},
                                {QStringLiteral("sysInfoService"), QVariant::fromValue(&sys_info_service)},
                                {QStringLiteral("sysMetricsService"), QVariant::fromValue(&sys_metrics_service)},
-                               {QStringLiteral("projectsService"), QVariant::fromValue(&projects_service)}});
+                               {QStringLiteral("projectsService"), QVariant::fromValue(&projects_service)},
+                               {QStringLiteral("deviceModel"), QVariant::fromValue(&device_model)}});
   QObject::connect(
       &engine, &QQmlApplicationEngine::objectCreationFailed, &application, [] { QCoreApplication::exit(EXIT_FAILURE); },
       Qt::QueuedConnection);

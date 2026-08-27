@@ -8,6 +8,8 @@ qt_add_qml_module(rpi-dashboard-qml
     URI Rpi.Dashboard
     OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/Rpi/Dashboard
     SOURCES
+        device_model.cpp
+        device_model.h
         resource_history_geometry.cpp
         resource_history_geometry.h
         resource_history_series.cpp
@@ -49,6 +51,10 @@ qt_add_qml_module(rpi-dashboard-qml
 
 target_link_libraries(rpi-dashboard-qml
     PRIVATE
+        RpiDashboard::protocol
+        RpiDashboard::sysinfo
+        RpiDashboard::sysmetrics
+        RpiDashboard::telemetry
         Qt6::Qml
         Qt6::Quick
 )

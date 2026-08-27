@@ -13,6 +13,7 @@ ApplicationWindow {
     property var sysInfoService: null
     property var sysMetricsService: null
     property var projectsService: null
+    property var deviceModel: localDevices
     property int selectedDeviceIndex: 0
     readonly property alias currentPageIndex: pageStack.currentIndex
     readonly property bool currentPageHasFocus: pageStack.currentIndex === 2 ? projectsPage.selectedRowHasFocus
@@ -22,7 +23,7 @@ ApplicationWindow {
                                                : pageStack.currentIndex === 1 ? systemsPage.focusTarget
                                                : pageStack.currentIndex === 2 ? projectsPage.focusTarget
                                                : weatherPage.placeholder
-    readonly property alias localDeviceModel: localDevices
+    readonly property var localDeviceModel: root.deviceModel
 
     width: root.windowWidth
     height: root.windowHeight
@@ -145,6 +146,8 @@ ApplicationWindow {
             deviceNumber: "01"
             hostname: "—"
             online: true
+            statusKey: "online"
+            historyAvailable: true
             cpuMetric: "—"
             memoryMetric: "—"
             cpuUsageRatio: -1

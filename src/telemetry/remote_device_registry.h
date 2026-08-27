@@ -2,6 +2,7 @@
 
 #include "protocol/device_snapshot.h"
 
+#include <QDateTime>
 #include <QElapsedTimer>
 #include <QHostAddress>
 #include <QObject>
@@ -29,6 +30,7 @@ class RemoteDeviceRegistry final : public QObject {
     quint16 port{0};
     std::optional<quint64> last_sequence;
     qint64 last_snapshot_ms{-1};
+    QDateTime last_snapshot_utc;
   };
 
   explicit RemoteDeviceRegistry(QString storage_path = {}, QObject* parent = nullptr);
@@ -44,6 +46,10 @@ class RemoteDeviceRegistry final : public QObject {
 
  signals:
   void deviceChanged(const QUuid& device_id);
+  void deviceAboutToBeAdded(int index);
+  void deviceAdded();
+  void deviceAboutToBeRemoved(int index);
+  void deviceRemoved();
   void devicesChanged();
   void diagnosticChanged();
 

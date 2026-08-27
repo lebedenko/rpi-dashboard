@@ -242,7 +242,9 @@ void DashboardStartupTest::
   QVERIFY(!cardSource.contains(QStringLiteral("FooterButton")));
   QVERIFY(!cardSource.contains(QStringLiteral("deviceFooter")));
   QVERIFY(!cardSource.contains(QStringLiteral("selectionRequested")));
-  QVERIFY(cardSource.contains(QStringLiteral("root.online ? Theme.onlineFrame : Theme.passiveBorder")));
+  QVERIFY(cardSource.contains(QStringLiteral("root.statusColor")));
+  QVERIFY(cardSource.contains(QStringLiteral("qsTr(\"REGISTERED\")")));
+  QVERIFY(cardSource.contains(QStringLiteral("qsTr(\"STALE\")")));
   QVERIFY(!cardSource.contains(QStringLiteral("Timer {")));
   QVERIFY(!cardSource.contains(QStringLiteral("Behavior on height")));
 

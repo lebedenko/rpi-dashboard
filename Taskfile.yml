@@ -71,6 +71,23 @@ tasks:
         --dashboard-port {{.DASHBOARD_PORT}}
         --interval {{.INTERVAL}}
 
+  run-python-agent:
+    desc: Run the portable Python telemetry sender
+    requires:
+      vars: [DASHBOARD_HOST]
+    vars:
+      DASHBOARD_PORT: '{{default "51337" .DASHBOARD_PORT}}'
+      INTERVAL: '{{default "1" .INTERVAL}}'
+      DISPLAY_NAME: '{{default "" .DISPLAY_NAME}}'
+      SENDER_SCRIPT: '{{default "scripts/rpi-dashboard-telemetry.py" .SENDER_SCRIPT}}'
+    cmds:
+      - >-
+        python3 {{.SENDER_SCRIPT}}
+        --dashboard-host {{.DASHBOARD_HOST}}
+        --dashboard-port {{.DASHBOARD_PORT}}
+        --interval {{.INTERVAL}}
+        {{if .DISPLAY_NAME}}--display-name '{{.DISPLAY_NAME}}'{{end}}
+
   install:
     desc: Build and install the Raspberry Pi kiosk
     cmds:

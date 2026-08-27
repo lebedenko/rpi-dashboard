@@ -8,7 +8,9 @@ Control {
 
     required property string deviceNumber
     required property string hostname
-    required property bool online
+    required property string statusKey
+    required property bool historyAvailable
+    readonly property bool online: root.statusKey === "online"
     required property bool expanded
     required property real expandedHeight
     property string cpuMetric: "—"
@@ -32,6 +34,13 @@ Control {
     readonly property string chevronAccessibleName: root.expanded ? qsTr("Collapse %1").arg(root.hostname) : qsTr("Expand %1").arg(root.hostname)
     readonly property bool expandedContentLoaded: detailsLoader.status === Loader.Ready
     signal expansionRequested()
+
+    readonly property string statusText: root.statusKey === "online" ? qsTr("ONLINE")
+                                                : root.statusKey === "registered" ? qsTr("REGISTERED")
+                                                : root.statusKey === "stale" ? qsTr("STALE") : qsTr("OFFLINE")
+    readonly property color statusColor: root.statusKey === "online" ? Theme.onlineStatus
+                                              : root.statusKey === "registered" ? Theme.primaryAccent
+                                              : root.statusKey === "stale" ? Theme.staleStatus : Theme.textMuted
 
     height: root.expanded ? root.expandedHeight : Theme.deviceHeaderHeight
     padding: Theme.cardFrameInset
@@ -156,7 +165,7 @@ Control {
                 id: statusBadge
                 x: 314; anchors.verticalCenter: parent.verticalCenter; width: Theme.statusBadgeWidth; height: Theme.statusBadgeHeight; Accessible.ignored: true
                 ShapePath {
-                    fillColor: Theme.badgeSurface; strokeColor: root.online ? Theme.onlineFrame : Theme.passiveBorder; strokeWidth: 1
+                    fillColor: Theme.badgeSurface; strokeColor: root.statusColor; strokeWidth: 1
                     startX: 0; startY: 0
                     PathLine { x: statusBadge.width - Theme.badgeChamfer; y: 0 }
                     PathLine { x: statusBadge.width; y: statusBadge.height / 2 }
@@ -164,11 +173,11 @@ Control {
                     PathLine { x: 0; y: statusBadge.height }
                     PathLine { x: 0; y: 0 }
                 }
-                Rectangle { x: 15; anchors.verticalCenter: parent.verticalCenter; width: 10; height: 10; radius: 5; color: root.online ? Theme.onlineStatus : Theme.textMuted }
+                Rectangle { x: 15; anchors.verticalCenter: parent.verticalCenter; width: 10; height: 10; radius: 5; color: root.statusColor }
                 Text {
                     objectName: "deviceStatus"; x: 34; anchors.verticalCenter: parent.verticalCenter
-                    text: root.online ? qsTr("ONLINE") : qsTr("OFFLINE"); textFormat: Text.PlainText
-                    color: root.online ? Theme.onlineStatus : Theme.textMuted
+                    text: root.statusText; textFormat: Text.PlainText
+                    color: root.statusColor
                     font.family: Theme.fixedFontFamily; font.pixelSize: Theme.bodyTextSize; font.weight: Theme.technicalFontWeight
                 }
             }
@@ -323,6 +332,19 @@ Control {
                                : Theme.plotLeftPadding + timeLabel.index * plot.width / 4 - width / 2
                             y: history.height - height; text: timeLabel.modelData; textFormat: Text.PlainText
                             color: Theme.chartText; font.family: Theme.fixedFontFamily; font.pixelSize: Theme.axisTextSize
+                        }
+                    }
+                    Rectangle {
+                        objectName: "remoteHistoryUnavailable"
+                        anchors.fill: parent
+                        color: Theme.cardSurface
+                        visible: !root.historyAvailable
+                        Text {
+                            anchors.centerIn: parent
+                            text: qsTr("Remote history unavailable")
+                            color: Theme.textMuted
+                            font.family: Theme.sansFontFamily
+                            font.pixelSize: Theme.bodyTextSize
                         }
                     }
                 }

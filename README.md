@@ -31,6 +31,21 @@ The dashboard listens on IPv4 UDP port 51337 by default; use `--telemetry-bind-a
 `--telemetry-port` to change the listener. Agent cadence is one second by default and may be set to
 1–5 seconds with `--interval`.
 
+For a copy-and-run sender on any Linux x86_64 host with Python 3.8 or newer, copy the single
+dependency-free script and run:
+
+```sh
+python3 rpi-dashboard-telemetry.py --dashboard-host <dashboard-address>
+```
+
+The script stores a stable device UUID below `$XDG_DATA_HOME/rpi-dashboard/rpi-dashboard-agent`
+(or `~/.local/share/...`) and accepts `--dashboard-port`, `--interval 1..5`, `--display-name`,
+`--device-id`, and `--once`. From this checkout the equivalent Task command is:
+
+```sh
+task run-python-agent DASHBOARD_HOST=<dashboard-address> DISPLAY_NAME=my-server
+```
+
 Without Task:
 
 ```sh
@@ -92,6 +107,5 @@ The codebase uses only public Qt APIs and has no HoloNight runtime or build depe
 
 ## Near-term roadmap
 
-1. Expose the remote-device registry as a QML model and add management UI.
-2. Add explicit remote systems detail views.
-3. Add optional authenticated transport without weakening the local-only default.
+1. Add remote-device management UI.
+2. Add optional authenticated transport without weakening the local-only default.

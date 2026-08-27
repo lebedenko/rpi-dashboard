@@ -10,6 +10,8 @@ Item {
             "deviceNumber": number,
             "hostname": name,
             "online": true,
+            "statusKey": "online",
+            "historyAvailable": true,
             "cpuMetric": cpuMetric,
             "memoryMetric": memoryMetric,
             "cpuUsageRatio": cpuUsageRatio,

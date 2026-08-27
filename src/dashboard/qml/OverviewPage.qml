@@ -79,7 +79,8 @@ Item {
             required property int index
             required property string deviceNumber
             required property string hostname
-            required property bool online
+            required property string statusKey
+            required property bool historyAvailable
             required property string cpuMetric
             required property string memoryMetric
             required property real cpuUsageRatio
@@ -98,6 +99,7 @@ Item {
             readonly property alias chevronAccessibleName: card.chevronAccessibleName
             readonly property alias expanded: card.expanded
             readonly property alias selected: card.selected
+            readonly property alias online: card.online
             readonly property alias availableWidth: card.availableWidth
             readonly property alias cpuProgressFill: card.cpuProgressFill
             readonly property alias memoryProgressFill: card.memoryProgressFill
@@ -111,7 +113,8 @@ Item {
                 width: parent.width
                 deviceNumber: cardDelegate.deviceNumber
                 hostname: cardDelegate.hostname
-                online: cardDelegate.online
+                statusKey: cardDelegate.statusKey
+                historyAvailable: cardDelegate.historyAvailable
                 selected: root.selectedIndex === cardDelegate.index
                 cpuMetric: cardDelegate.cpuMetric
                 memoryMetric: cardDelegate.memoryMetric

@@ -74,8 +74,10 @@ QString RemoteDeviceRegistry::registerHello(const protocol::Hello& hello, const 
   item.state = State::Registered;
   item.address = address;
   item.port = port;
+  emit deviceAboutToBeAdded(static_cast<int>(devices_.size()));
   devices_.append(item);
   persist();
+  emit deviceAdded();
   emit devicesChanged();
   return {};
 }
@@ -92,6 +94,7 @@ bool RemoteDeviceRegistry::acceptSnapshot(const protocol::DeviceSnapshot& snapsh
     item.system_info = snapshot.system_info;
     item.metrics = snapshot.metrics;
     item.last_snapshot_ms = now(now_ms);
+    item.last_snapshot_utc = QDateTime::currentDateTimeUtc();
     item.state = State::Online;
     persist();
     emit deviceChanged(item.device_id);
@@ -120,8 +123,10 @@ void RemoteDeviceRegistry::updateFreshness(qint64 now_ms) {
 bool RemoteDeviceRegistry::forgetDevice(const QUuid& device_id) {
   for (qsizetype index = 0; index < devices_.size(); ++index)
     if (devices_[index].device_id == device_id) {
+      emit deviceAboutToBeRemoved(static_cast<int>(index));
       devices_.removeAt(index);
       persist();
+      emit deviceRemoved();
       emit devicesChanged();
       return true;
     }
