@@ -4,7 +4,7 @@
 
 A standalone Qt/QML instrument-panel dashboard for Raspberry Pi 5. The first target is a 1480×320 landscape touchscreen running as a Wayland kiosk. It will display local metrics and complete telemetry snapshots sent by remote devices over UDP.
 
-The repository currently provides the project foundation: a landscape dashboard shell based on the supplied mockups, a versioned telemetry domain type, a headless agent target, and protocol unit tests. Live metrics collection and UDP transport are intentionally not implemented yet.
+The dashboard collects local Linux system information and metrics and accepts complete versioned CBOR telemetry snapshots from remote agents over UDP. Known remote devices survive dashboard restarts and are tracked through registered, online, stale, and offline states.
 
 ## Requirements
 
@@ -25,6 +25,11 @@ task test
 task run
 task run-windowed
 ```
+
+Start a remote sender with `./build/dev/src/agent/rpi-dashboard-agent --dashboard-host <dashboard-address>`.
+The dashboard listens on IPv4 UDP port 51337 by default; use `--telemetry-bind-address` and
+`--telemetry-port` to change the listener. Agent cadence is one second by default and may be set to
+1–5 seconds with `--interval`.
 
 Without Task:
 
@@ -70,6 +75,7 @@ For first-device validation, launch with `QSG_INFO=1 ./scripts/run-kiosk.sh`. Co
 
 ```text
 src/protocol/   GUI-free telemetry contract and serialization
+src/telemetry/  UDP receiver and persistent remote-device registry
 src/agent/      Headless remote telemetry sender executable
 src/dashboard/  Qt Quick dashboard executable and QML module
 tests/          Protocol unit tests and dashboard startup integration test
@@ -86,8 +92,6 @@ The codebase uses only public Qt APIs and has no HoloNight runtime or build depe
 
 ## Near-term roadmap
 
-1. Specify and implement local Linux metrics collection.
-2. Specify the versioned UDP JSON envelope and receiver behavior.
-3. Add device freshness/order handling and expose a registry model to QML.
-4. Replace scaffold values with live models and add explicit systems detail views.
-5. Add the Raspberry Pi kiosk service and deployment packaging.
+1. Expose the remote-device registry as a QML model and add management UI.
+2. Add explicit remote systems detail views.
+3. Add optional authenticated transport without weakening the local-only default.

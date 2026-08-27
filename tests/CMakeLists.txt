@@ -12,6 +12,18 @@ target_link_libraries(device_snapshot_test
 
 add_test(NAME device_snapshot_test COMMAND device_snapshot_test)
 
+qt_add_executable(remote_device_registry_test
+    remote_device_registry_test.cpp
+)
+target_link_libraries(remote_device_registry_test PRIVATE RpiDashboard::telemetry Qt6::Test)
+add_test(NAME remote_device_registry_test COMMAND remote_device_registry_test)
+
+qt_add_executable(udp_telemetry_receiver_test
+    udp_telemetry_receiver_test.cpp
+)
+target_link_libraries(udp_telemetry_receiver_test PRIVATE RpiDashboard::telemetry Qt6::Test)
+add_test(NAME udp_telemetry_receiver_test COMMAND udp_telemetry_receiver_test)
+
 qt_add_executable(system_info_test
     system_info_test.cpp
 )

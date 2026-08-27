@@ -4,6 +4,8 @@
 #include "sysinfo/sys_info_service.h"
 #include "sysmetrics/linux_sys_metrics_collector.h"
 #include "sysmetrics/sys_metrics_service.h"
+#include "telemetry/remote_device_registry.h"
+#include "telemetry/udp_telemetry_receiver.h"
 
 #include <QCommandLineOption>
 #include <QCommandLineParser>
@@ -31,7 +33,14 @@ int main(int argc, char* argv[]) {
                                         QStringLiteral("pixels"), QStringLiteral("320"));
   const QCommandLineOption githubOwnerOption(QStringLiteral("github-owner"), QStringLiteral("GitHub account owner."),
                                              QStringLiteral("login"), QStringLiteral("lebedenko"));
-  parser.addOptions({windowedOption, widthOption, heightOption, githubOwnerOption});
+  const QCommandLineOption telemetryAddressOption(QStringLiteral("telemetry-bind-address"),
+                                                  QStringLiteral("IPv4 address for remote telemetry."),
+                                                  QStringLiteral("address"), QStringLiteral("0.0.0.0"));
+  const QCommandLineOption telemetryPortOption(QStringLiteral("telemetry-port"),
+                                               QStringLiteral("UDP port for remote telemetry."), QStringLiteral("port"),
+                                               QStringLiteral("51337"));
+  parser.addOptions(
+      {windowedOption, widthOption, heightOption, githubOwnerOption, telemetryAddressOption, telemetryPortOption});
   parser.process(application);
 
   bool widthIsValid = false;
@@ -44,6 +53,13 @@ int main(int argc, char* argv[]) {
   if (!heightIsValid || windowHeight <= 0) {
     parser.showHelp(EXIT_FAILURE);
   }
+  bool portIsValid = false;
+  const int telemetryPort = parser.value(telemetryPortOption).toInt(&portIsValid);
+  const QHostAddress telemetryAddress(parser.value(telemetryAddressOption));
+  if (!portIsValid || telemetryPort < 1 || telemetryPort > 65535 ||
+      telemetryAddress.protocol() != QAbstractSocket::IPv4Protocol) {
+    parser.showHelp(EXIT_FAILURE);
+  }
 
   dashboard::sysinfo::SysInfoService sys_info_service(std::make_shared<dashboard::sysinfo::LinuxSysInfoCollector>());
   dashboard::sysmetrics::SysMetricsService sys_metrics_service(
@@ -54,6 +70,11 @@ int main(int argc, char* argv[]) {
     qWarning().noquote() << credential.diagnostic;
   }
   dashboard::projects::ProjectsService projects_service(parser.value(githubOwnerOption), credential.token);
+  dashboard::telemetry::RemoteDeviceRegistry remote_devices;
+  dashboard::telemetry::UdpTelemetryReceiver telemetry_receiver(&remote_devices);
+  if (!telemetry_receiver.bind(telemetryAddress, static_cast<quint16>(telemetryPort))) {
+    qWarning().noquote() << telemetry_receiver.diagnostic();
+  }
   QQmlApplicationEngine engine;
   engine.setInitialProperties({{QStringLiteral("windowed"), parser.isSet(windowedOption)},
                                {QStringLiteral("windowWidth"), windowWidth},

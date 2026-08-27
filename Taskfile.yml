@@ -42,8 +42,34 @@ tasks:
   run-windowed:
     desc: Run at the target logical geometry in a development window
     deps: [build]
+    vars:
+      WIDTH: '{{default "1480" .WIDTH}}'
+      HEIGHT: '{{default "320" .HEIGHT}}'
+      TELEMETRY_BIND_ADDRESS: '{{default "127.0.0.1" .TELEMETRY_BIND_ADDRESS}}'
+      TELEMETRY_PORT: '{{default "51337" .TELEMETRY_PORT}}'
     cmds:
-      - ./build/dev/src/dashboard/rpi-dashboard --windowed --width 1480 --height 320
+      - >-
+        ./build/dev/src/dashboard/rpi-dashboard
+        --windowed
+        --width {{.WIDTH}}
+        --height {{.HEIGHT}}
+        --telemetry-bind-address {{.TELEMETRY_BIND_ADDRESS}}
+        --telemetry-port {{.TELEMETRY_PORT}}
+
+  run-agent:
+    desc: Run the remote telemetry agent against a dashboard
+    deps: [build]
+    requires:
+      vars: [DASHBOARD_HOST]
+    vars:
+      DASHBOARD_PORT: '{{default "51337" .DASHBOARD_PORT}}'
+      INTERVAL: '{{default "1" .INTERVAL}}'
+    cmds:
+      - >-
+        ./build/dev/src/agent/rpi-dashboard-agent
+        --dashboard-host {{.DASHBOARD_HOST}}
+        --dashboard-port {{.DASHBOARD_PORT}}
+        --interval {{.INTERVAL}}
 
   install:
     desc: Build and install the Raspberry Pi kiosk

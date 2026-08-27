@@ -42,6 +42,7 @@ endif()
 include(CTest)
 
 add_subdirectory(src/protocol)
+add_subdirectory(src/telemetry)
 add_subdirectory(src/sysinfo)
 add_subdirectory(src/sysmetrics)
 add_subdirectory(src/projects)

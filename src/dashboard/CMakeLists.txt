@@ -64,6 +64,7 @@ target_link_libraries(rpi-dashboard
         RpiDashboard::projects
         RpiDashboard::sysinfo
         RpiDashboard::sysmetrics
+        RpiDashboard::telemetry
         rpi-dashboard-qml
         rpi-dashboard-qmlplugin
         rpi-dashboard-qmlplugin_init

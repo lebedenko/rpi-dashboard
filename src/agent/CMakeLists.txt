@@ -5,6 +5,8 @@ qt_add_executable(rpi-dashboard-agent
 target_link_libraries(rpi-dashboard-agent
     PRIVATE
         RpiDashboard::protocol
+        RpiDashboard::sysinfo
+        RpiDashboard::sysmetrics
         Qt6::Core
         Qt6::Network
 )
