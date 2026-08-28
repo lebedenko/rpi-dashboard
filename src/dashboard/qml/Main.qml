@@ -13,6 +13,7 @@ ApplicationWindow {
     property var sysInfoService: null
     property var sysMetricsService: null
     property var projectsService: null
+    property var weatherService: null
     property var deviceModel: localDevices
     property int selectedDeviceIndex: 0
     readonly property alias currentPageIndex: pageStack.currentIndex
@@ -22,7 +23,7 @@ ApplicationWindow {
     readonly property var currentFocusTarget: pageStack.currentIndex === 0 ? overviewPage.focusTarget
                                                : pageStack.currentIndex === 1 ? systemsPage.focusTarget
                                                : pageStack.currentIndex === 2 ? projectsPage.focusTarget
-                                               : weatherPage.placeholder
+                                               : weatherPage.focusTarget
     readonly property var localDeviceModel: root.deviceModel
 
     width: root.windowWidth
@@ -217,6 +218,8 @@ ApplicationWindow {
                 projectsPage.focusSelected()
             else if (pageStack.currentIndex === 1)
                 systemsPage.focusSelected()
+            else if (pageStack.currentIndex === 3 && root.weatherService)
+                root.weatherService.refresh()
             else if (root.currentFocusTarget)
                 root.currentFocusTarget.forceActiveFocus()
         }
@@ -342,11 +345,13 @@ ApplicationWindow {
                 objectName: "projectsPage"
                 service: root.projectsService
             }
-            DashboardPage { id: weatherPage; objectName: "weatherPage"; heading: qsTr("Weather") }
+            WeatherPage { id: weatherPage; service: root.weatherService }
         }
 
         ClockSidebar {
             projectsService: root.projectsService
+            weatherService: root.weatherService
+            weatherMode: pageStack.currentIndex === 3
             Layout.preferredWidth: Theme.statusSidebarWidth
             Layout.fillHeight: true
             Layout.topMargin: Theme.displaySafeInset

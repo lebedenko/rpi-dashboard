@@ -1,0 +1,6 @@
+[weather]
+provider = "openweather"
+refresh_interval_seconds = 600
+
+[weather.location]
+automatic_provider = "ipgeolocation"

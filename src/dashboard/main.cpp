@@ -7,6 +7,9 @@
 #include "sysmetrics/sys_metrics_service.h"
 #include "telemetry/remote_device_registry.h"
 #include "telemetry/udp_telemetry_receiver.h"
+#include "weather/weather_config.h"
+#include "weather/weather_service.h"
+#include "weather_icon_provider.h"
 
 #include <QCommandLineOption>
 #include <QCommandLineParser>
@@ -40,8 +43,11 @@ int main(int argc, char* argv[]) {
   const QCommandLineOption telemetryPortOption(QStringLiteral("telemetry-port"),
                                                QStringLiteral("UDP port for remote telemetry."), QStringLiteral("port"),
                                                QStringLiteral("51337"));
+  const QCommandLineOption configOption(QStringLiteral("config"), QStringLiteral("Use dashboard configuration file."),
+                                        QStringLiteral("path"));
   parser.addOptions(
-      {windowedOption, widthOption, heightOption, githubOwnerOption, telemetryAddressOption, telemetryPortOption});
+      {windowedOption, widthOption, heightOption, githubOwnerOption, telemetryAddressOption, telemetryPortOption,
+       configOption});
   parser.process(application);
 
   bool widthIsValid = false;
@@ -71,6 +77,17 @@ int main(int argc, char* argv[]) {
     qWarning().noquote() << credential.diagnostic;
   }
   dashboard::projects::ProjectsService projects_service(parser.value(githubOwnerOption), credential.token);
+  const auto weather_config = dashboard::weather::loadWeatherConfig(parser.value(configOption));
+  if (weather_config.fatal) {
+    qCritical().noquote() << weather_config.diagnostic;
+    return EXIT_FAILURE;
+  }
+  const auto openweather_credential = dashboard::weather::loadCredential(
+      qgetenv("OPENWEATHER_API_KEY_FILE"), qgetenv("OPENWEATHER_API_KEY"), QStringLiteral("OpenWeather"));
+  const auto ipgeolocation_credential = dashboard::weather::loadCredential(
+      qgetenv("IPGEOLOCATION_API_KEY_FILE"), qgetenv("IPGEOLOCATION_API_KEY"), QStringLiteral("IP geolocation"));
+  dashboard::weather::WeatherService weather_service(weather_config.config, openweather_credential.value,
+                                                      ipgeolocation_credential.value);
   dashboard::telemetry::RemoteDeviceRegistry remote_devices;
   dashboard::DeviceModel device_model(&sys_info_service, &sys_metrics_service, &remote_devices);
   dashboard::telemetry::UdpTelemetryReceiver telemetry_receiver(&remote_devices);
@@ -78,12 +95,14 @@ int main(int argc, char* argv[]) {
     qWarning().noquote() << telemetry_receiver.diagnostic();
   }
   QQmlApplicationEngine engine;
+  engine.addImageProvider(QStringLiteral("weather"), new dashboard::WeatherIconProvider());
   engine.setInitialProperties({{QStringLiteral("windowed"), parser.isSet(windowedOption)},
                                {QStringLiteral("windowWidth"), windowWidth},
                                {QStringLiteral("windowHeight"), windowHeight},
                                {QStringLiteral("sysInfoService"), QVariant::fromValue(&sys_info_service)},
                                {QStringLiteral("sysMetricsService"), QVariant::fromValue(&sys_metrics_service)},
                                {QStringLiteral("projectsService"), QVariant::fromValue(&projects_service)},
+                               {QStringLiteral("weatherService"), QVariant::fromValue(&weather_service)},
                                {QStringLiteral("deviceModel"), QVariant::fromValue(&device_model)}});
   QObject::connect(
       &engine, &QQmlApplicationEngine::objectCreationFailed, &application, [] { QCoreApplication::exit(EXIT_FAILURE); },

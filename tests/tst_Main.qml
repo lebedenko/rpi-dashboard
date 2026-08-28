@@ -49,11 +49,13 @@ Item {
         property var fakeService: null
         property var fakeMetricsService: null
         property var fakeProjectsService: null
+        property var fakeWeatherService: null
 
         function init() {
             fakeService = fakeServiceComponent.createObject(root);
             fakeMetricsService = fakeMetricsServiceComponent.createObject(root);
             fakeProjectsService = fakeProjectsServiceComponent.createObject(root);
+            fakeWeatherService = fakeWeatherServiceComponent.createObject(root);
             dashboardComponent = Qt.createComponent("qrc:/qt/qml/Rpi/Dashboard/qml/Main.qml");
             verify(dashboardComponent.status === Component.Ready, dashboardComponent.errorString());
             dashboardWindow = dashboardComponent.createObject(null, {
@@ -62,7 +64,8 @@ Item {
                 "windowHeight": 320,
                 "sysInfoService": fakeService,
                 "sysMetricsService": fakeMetricsService,
-                "projectsService": fakeProjectsService
+                "projectsService": fakeProjectsService,
+                "weatherService": fakeWeatherService
             });
             verify(dashboardWindow !== null);
             dashboardWindow.show();
@@ -83,6 +86,8 @@ Item {
             fakeMetricsService = null;
             fakeProjectsService.destroy();
             fakeProjectsService = null;
+            fakeWeatherService.destroy();
+            fakeWeatherService = null;
         }
 
         function test_exactDevelopmentGeometry() {
@@ -717,6 +722,18 @@ Item {
             }
         }
 
+        function test_weatherPageRegionsRailAndRefresh() {
+            mouseClick(findChild(dashboardWindow.contentItem, "weatherButton"));
+            tryCompare(dashboardWindow, "currentPageIndex", 3);
+            for (const objectName of ["currentConditionsPanel", "hourlyForecastPanel", "dailyForecastPanel", "weatherRail", "weatherAqi", "weatherSunset", "weatherRain"])
+                verify(!!findChild(dashboardWindow.contentItem, objectName), objectName);
+            const page = findChild(dashboardWindow.contentItem, "weatherPage");
+            verify(page.Accessible.name.includes("Lviv"));
+            const refreshCount = fakeWeatherService.refreshCount;
+            keyClick(Qt.Key_F5);
+            tryCompare(fakeWeatherService, "refreshCount", refreshCount + 1);
+        }
+
         name: "DashboardWindow"
         when: windowShown
     }
@@ -789,6 +806,40 @@ Item {
             property bool stale: false
             property string diagnostics: ""
             function selectProject(index) { selectedProjectIndex = index }
+        }
+    }
+
+    Component {
+        id: fakeWeatherServiceComponent
+
+        QtObject {
+            property string state: "ready"
+            property bool stale: false
+            property date lastSuccessUtc: new Date()
+            property string diagnostics: ""
+            property string city: "Lviv"
+            property string country: "UA"
+            property string condition: "clear sky"
+            property string iconCode: "01d"
+            property real temperatureCelsius: 23
+            property real feelsLikeCelsius: 22
+            property real highCelsius: 25
+            property real lowCelsius: 15
+            property real humidityPercent: 55
+            property real windSpeedKmh: 12
+            property string windDirection: "W"
+            property int airQualityIndex: 2
+            property string airQualityCategory: "Fair"
+            property string localSunset: "20:12"
+            property real todayRainProbabilityPercent: 20
+            property int refreshCount: 0
+            property ListModel hourlyModel: ListModel {
+                ListElement { localTime: "12:00"; iconCode: "01d"; temperatureCelsius: 23; precipitationProbabilityPercent: 10 }
+            }
+            property ListModel dailyModel: ListModel {
+                ListElement { weekday: "Fri"; iconCode: "01d"; minimumCelsius: 15; maximumCelsius: 25; precipitationProbabilityPercent: 20 }
+            }
+            function refresh() { ++refreshCount }
         }
     }
 

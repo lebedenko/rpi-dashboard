@@ -30,6 +30,7 @@ if(ENABLE_UNDEFINED_SANITIZER)
 endif()
 
 find_package(Qt6 6.8 REQUIRED COMPONENTS Concurrent Core Gui Network Qml Quick)
+find_package(tomlplusplus 3.3 REQUIRED CONFIG)
 qt_standard_project_setup(REQUIRES 6.8)
 
 if(ENABLE_CLANG_TIDY)
@@ -46,6 +47,7 @@ add_subdirectory(src/telemetry)
 add_subdirectory(src/sysinfo)
 add_subdirectory(src/sysmetrics)
 add_subdirectory(src/projects)
+add_subdirectory(src/weather)
 add_subdirectory(src/dashboard)
 add_subdirectory(daemon)
 
@@ -62,4 +64,8 @@ install(PROGRAMS
 
 install(FILES install/rpi-dashboard.service
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/systemd/system
+)
+
+install(FILES install/config.toml
+    DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/xdg/rpi-dashboard
 )

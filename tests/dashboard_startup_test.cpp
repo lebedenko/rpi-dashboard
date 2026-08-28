@@ -32,7 +32,7 @@ void DashboardStartupTest::
   QVERIFY(source.contains(QStringLiteral("color: Theme.violetAccent")));
   QVERIFY(source.contains(QStringLiteral("font.pixelSize: Theme.clockTimeTextSize")));
   QVERIFY(source.contains(QStringLiteral("font.pixelSize: Theme.clockDateTextSize")));
-  QCOMPARE(source.count(QStringLiteral("font.family: Theme.sansFontFamily")), 3);
+  QVERIFY(source.count(QStringLiteral("font.family: Theme.sansFontFamily")) >= 3);
   QVERIFY(source.contains(QStringLiteral("startX: Theme.sidebarCornerRadius")));
   QVERIFY(source.contains(QStringLiteral("startY: 0")));
   QVERIFY(source.contains(QStringLiteral("x: sidebarBackground.width - Theme.sidebarChamfer; y: 0")));

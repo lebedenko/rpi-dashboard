@@ -14,6 +14,8 @@ qt_add_qml_module(rpi-dashboard-qml
         resource_history_geometry.h
         resource_history_series.cpp
         resource_history_series.h
+        weather_icon_provider.cpp
+        weather_icon_provider.h
     QML_FILES
         qml/ClockSidebar.qml
         qml/DashboardPage.qml
@@ -23,6 +25,7 @@ qt_add_qml_module(rpi-dashboard-qml
         qml/ProjectsPage.qml
         qml/SystemMetricPanel.qml
         qml/SystemPage.qml
+        qml/WeatherPage.qml
         qml/Theme.qml
         qml/SidebarButton.qml
     RESOURCES
@@ -49,12 +52,39 @@ qt_add_qml_module(rpi-dashboard-qml
         qml/icons/weather.svg
 )
 
+set(weather_icon_files
+    ${CMAKE_SOURCE_DIR}/assets/weather-icons/01d.svg
+    ${CMAKE_SOURCE_DIR}/assets/weather-icons/01n.svg
+    ${CMAKE_SOURCE_DIR}/assets/weather-icons/02d.svg
+    ${CMAKE_SOURCE_DIR}/assets/weather-icons/02n.svg
+    ${CMAKE_SOURCE_DIR}/assets/weather-icons/03d.svg
+    ${CMAKE_SOURCE_DIR}/assets/weather-icons/03n.svg
+    ${CMAKE_SOURCE_DIR}/assets/weather-icons/04d.svg
+    ${CMAKE_SOURCE_DIR}/assets/weather-icons/04n.svg
+    ${CMAKE_SOURCE_DIR}/assets/weather-icons/09d.svg
+    ${CMAKE_SOURCE_DIR}/assets/weather-icons/09n.svg
+    ${CMAKE_SOURCE_DIR}/assets/weather-icons/10d.svg
+    ${CMAKE_SOURCE_DIR}/assets/weather-icons/10n.svg
+    ${CMAKE_SOURCE_DIR}/assets/weather-icons/11d.svg
+    ${CMAKE_SOURCE_DIR}/assets/weather-icons/11n.svg
+    ${CMAKE_SOURCE_DIR}/assets/weather-icons/13d.svg
+    ${CMAKE_SOURCE_DIR}/assets/weather-icons/13n.svg
+    ${CMAKE_SOURCE_DIR}/assets/weather-icons/50d.svg
+    ${CMAKE_SOURCE_DIR}/assets/weather-icons/50n.svg
+)
+qt_add_resources(rpi-dashboard-qml "rpi_dashboard_weather_icons"
+    PREFIX "/rpi-dashboard"
+    BASE ${CMAKE_SOURCE_DIR}/assets
+    FILES ${weather_icon_files}
+)
+
 target_link_libraries(rpi-dashboard-qml
     PRIVATE
         RpiDashboard::protocol
         RpiDashboard::sysinfo
         RpiDashboard::sysmetrics
         RpiDashboard::telemetry
+        RpiDashboard::weather
         Qt6::Qml
         Qt6::Quick
 )
@@ -71,6 +101,7 @@ target_link_libraries(rpi-dashboard
         RpiDashboard::sysinfo
         RpiDashboard::sysmetrics
         RpiDashboard::telemetry
+        RpiDashboard::weather
         rpi-dashboard-qml
         rpi-dashboard-qmlplugin
         rpi-dashboard-qmlplugin_init

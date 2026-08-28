@@ -6,13 +6,20 @@ Item {
 
     property date currentTimestamp: new Date()
     property var projectsService: null
+    property var weatherService: null
+    property bool weatherMode: false
     readonly property string timeText: Qt.formatTime(root.currentTimestamp, "hh:mm")
     readonly property string dateText: Qt.formatDate(root.currentTimestamp, "ddd dd MMM")
     readonly property string ciText: qsTr("%1 CI").arg(root.statusLabel(root.projectsService ? root.projectsService.aggregateHealth : "unknown"))
     readonly property string runnerText: root.projectsService && root.projectsService.totalRunnerCount >= 0
                                          ? qsTr("%1/%2 RUNNERS").arg(root.projectsService.onlineRunnerCount).arg(root.projectsService.totalRunnerCount)
                                          : qsTr("— RUNNERS")
-    readonly property string accessibleText: qsTr("%1, %2, %3, %4").arg(root.timeText).arg(root.dateText).arg(root.ciText).arg(root.runnerText)
+    readonly property string accessibleText: root.weatherMode
+        ? qsTr("%1, %2, air quality %3, sunset %4, rain probability %5 percent")
+            .arg(root.timeText).arg(root.dateText).arg(root.weatherService ? root.weatherService.airQualityCategory : qsTr("unavailable"))
+            .arg(root.weatherService ? root.weatherService.localSunset : "—")
+            .arg(root.weatherService ? Math.round(root.weatherService.todayRainProbabilityPercent) : 0)
+        : qsTr("%1, %2, %3, %4").arg(root.timeText).arg(root.dateText).arg(root.ciText).arg(root.runnerText)
 
     objectName: "clockSidebar"
     Accessible.role: Accessible.StaticText
@@ -111,7 +118,32 @@ Item {
             font.pixelSize: Theme.captionTextSize
             horizontalAlignment: Text.AlignHCenter
             text: root.runnerText
+            visible: !root.weatherMode
             Accessible.ignored: true
+        }
+
+        Column {
+            objectName: "weatherRail"
+            width: parent.width
+            spacing: Theme.spacingSmall
+            visible: root.weatherMode
+            Text { width: parent.width; color: Theme.textMuted; horizontalAlignment: Text.AlignHCenter; font.family: Theme.sansFontFamily; font.pixelSize: Theme.captionTextSize; text: qsTr("AIR QUALITY") }
+            Text { objectName: "weatherAqi"; width: parent.width; color: Theme.primaryAccent; horizontalAlignment: Text.AlignHCenter; font.family: Theme.fixedFontFamily; font.pixelSize: Theme.metricTextSize; text: root.weatherService && root.weatherService.airQualityIndex ? qsTr("%1 · %2").arg(root.weatherService.airQualityIndex).arg(root.weatherService.airQualityCategory) : "—" }
+            Text { width: parent.width; color: Theme.textMuted; horizontalAlignment: Text.AlignHCenter; font.family: Theme.sansFontFamily; font.pixelSize: Theme.captionTextSize; text: qsTr("SUNSET") }
+            Text { objectName: "weatherSunset"; width: parent.width; color: Theme.attentionStatus; horizontalAlignment: Text.AlignHCenter; font.family: Theme.fixedFontFamily; font.pixelSize: Theme.bodyTextSize; text: root.weatherService && root.weatherService.localSunset ? root.weatherService.localSunset : "—" }
+            Text { width: parent.width; color: Theme.textMuted; horizontalAlignment: Text.AlignHCenter; font.family: Theme.sansFontFamily; font.pixelSize: Theme.captionTextSize; text: qsTr("RAIN TODAY") }
+            Text { objectName: "weatherRain"; width: parent.width; color: Theme.violetAccent; horizontalAlignment: Text.AlignHCenter; font.family: Theme.fixedFontFamily; font.pixelSize: Theme.bodyTextSize; text: root.weatherService ? qsTr("%1%").arg(Math.round(root.weatherService.todayRainProbabilityPercent)) : "—" }
+            Item {
+                width: parent.width
+                height: Theme.touchTarget
+                activeFocusOnTab: true
+                Accessible.role: Accessible.Link
+                Accessible.name: qsTr("OpenWeather weather data")
+                Text { anchors.centerIn: parent; color: Theme.textMuted; font.family: Theme.sansFontFamily; font.pixelSize: Theme.axisTextSize; text: qsTr("OpenWeather") }
+                TapHandler { onTapped: Qt.openUrlExternally("https://openweathermap.org/") }
+                Keys.onReturnPressed: Qt.openUrlExternally("https://openweathermap.org/")
+                Keys.onSpacePressed: Qt.openUrlExternally("https://openweathermap.org/")
+            }
         }
     }
 

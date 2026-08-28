@@ -1,5 +1,12 @@
 find_package(Qt6 6.8 REQUIRED COMPONENTS QuickTest Test)
 
+qt_add_executable(weather_test weather_test.cpp)
+target_include_directories(weather_test PRIVATE ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/src/dashboard)
+target_compile_definitions(weather_test PRIVATE WEATHER_ICON_SOURCE_DIR="${CMAKE_SOURCE_DIR}/assets/weather-icons")
+target_link_libraries(weather_test PRIVATE RpiDashboard::weather rpi-dashboard-qml Qt6::Quick Qt6::Test)
+add_test(NAME weather_test COMMAND weather_test)
+set_tests_properties(weather_test PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
 qt_add_executable(device_model_test device_model_test.cpp)
 target_include_directories(device_model_test PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(device_model_test PRIVATE rpi-dashboard-qml RpiDashboard::sysinfo RpiDashboard::sysmetrics RpiDashboard::telemetry Qt6::Test)
