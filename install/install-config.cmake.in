@@ -1,0 +1,26 @@
+set(config_directory
+    "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/@CMAKE_INSTALL_SYSCONFDIR@/xdg/rpi-dashboard"
+)
+set(config_path "${config_directory}/config.toml")
+set(default_config_path "@CMAKE_CURRENT_SOURCE_DIR@/install/config.toml")
+
+file(MAKE_DIRECTORY "${config_directory}")
+
+if(NOT EXISTS "${config_path}")
+    file(COPY_FILE "${default_config_path}" "${config_path}")
+    return()
+endif()
+
+file(READ "${config_path}" existing_config)
+if(existing_config MATCHES "(^|\n)[ \t]*\\[weather\\][ \t]*(\r?\n|$)")
+    return()
+endif()
+
+file(READ "${default_config_path}" default_config)
+if(existing_config AND NOT existing_config MATCHES "\n$")
+    file(APPEND "${config_path}" "\n")
+endif()
+if(existing_config)
+    file(APPEND "${config_path}" "\n")
+endif()
+file(APPEND "${config_path}" "${default_config}")

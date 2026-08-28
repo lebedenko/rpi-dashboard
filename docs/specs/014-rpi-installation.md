@@ -14,6 +14,9 @@ service without disrupting the current console session.
 - The installed runtime consists of `/usr/local/bin/rpi-dashboard`, launcher and provisioning
   helpers in `/usr/local/libexec/rpi-dashboard/`, and
   `/usr/local/lib/systemd/system/rpi-dashboard.service`.
+- Installation creates the dashboard configuration from the shipped defaults when it is absent.
+  When it already exists, installation preserves its contents and appends newly shipped default
+  sections exactly once instead of replacing the file.
 - Provisioning fails unless the host is an aarch64 Raspberry Pi 5 running systemd with `cage` and
   `wlr-randr` available. It does not install packages.
 - Provisioning creates `dashboard` when absent, with `/home/dashboard`, its own primary group,
@@ -65,6 +68,8 @@ Systemd recommends credentials rather than environment variables for secrets; se
 
 - A temporary `DESTDIR` installation contains every documented path with executable helpers and
   service contents intact.
+- A repeated temporary `DESTDIR` installation preserves existing dashboard configuration, adds the
+  shipped weather defaults once, and does not duplicate them.
 - A deterministic fake-host test covers initial account creation, an idempotent valid-account run,
   systemd daemon reload, enablement, and the absence of any start/restart action.
 - Credential tests cover environment fallback, file precedence, CR/LF removal, missing and empty
@@ -85,4 +90,5 @@ Framebuffer-console rotation and touchscreen calibration remain manual, device-s
 - Supporting non-aarch64 systems, Raspberry Pi models other than Pi 5, configurable install
   prefixes, or account names other than `dashboard` for production.
 - Installing the remote telemetry agent.
+- Semantically merging individual keys into an existing configuration section.
 - Starting the kiosk during installation or configuring display/touch hardware automatically.

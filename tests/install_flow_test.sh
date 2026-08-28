@@ -9,6 +9,14 @@ test_dir=$(mktemp -d "${TMPDIR:-/tmp}/rpi-dashboard-install-test-XXXXXX")
 trap 'rm -rf -- "$test_dir"' EXIT HUP INT TERM
 
 install_root="$test_dir/root"
+installed_config="$install_root/usr/local/etc/xdg/rpi-dashboard/config.toml"
+mkdir -p "$(dirname "$installed_config")"
+cat >"$installed_config" <<'EOF'
+[existing]
+value = "preserve me"
+EOF
+
+DESTDIR="$install_root" "$cmake_command" --install "$build_directory" --prefix /usr/local
 DESTDIR="$install_root" "$cmake_command" --install "$build_directory" --prefix /usr/local
 
 installed_bin="$install_root/usr/local/bin/rpi-dashboard"
@@ -20,6 +28,10 @@ installed_service="$install_root/usr/local/lib/systemd/system/rpi-dashboard.serv
 [ -x "$installed_libexec/run-dashboard-session.sh" ]
 [ -x "$installed_libexec/provision.sh" ]
 [ -f "$installed_service" ]
+grep -Fqx '[existing]' "$installed_config"
+grep -Fqx 'value = "preserve me"' "$installed_config"
+[ "$(grep -Fxc '[weather]' "$installed_config")" -eq 1 ]
+[ "$(grep -Fxc '[weather.location]' "$installed_config")" -eq 1 ]
 cmp "$source_directory/install/rpi-dashboard.service" "$installed_service"
 grep -Fqx 'OnSuccess=getty@tty1.service' "$installed_service"
 sh -n "$installed_libexec/run-kiosk.sh"

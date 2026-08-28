@@ -66,6 +66,10 @@ install(FILES install/rpi-dashboard.service
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/systemd/system
 )
 
-install(FILES install/config.toml
-    DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/xdg/rpi-dashboard
+configure_file(
+    install/install-config.cmake.in
+    install-config.cmake
+    @ONLY
 )
+
+install(SCRIPT ${CMAKE_CURRENT_BINARY_DIR}/install-config.cmake)
