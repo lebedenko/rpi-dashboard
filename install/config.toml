@@ -5,6 +5,8 @@
 windowed = false
 width = 1480
 height = 320
+# Inactivity before the weather screensaver appears; 0 disables it.
+screensaver_timeout_seconds = 600
 
 [projects]
 github_owner = "lebedenko"

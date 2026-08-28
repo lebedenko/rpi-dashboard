@@ -50,12 +50,14 @@ Item {
         property var fakeMetricsService: null
         property var fakeProjectsService: null
         property var fakeWeatherService: null
+        property var fakeScreensaverController: null
 
         function init() {
             fakeService = fakeServiceComponent.createObject(root);
             fakeMetricsService = fakeMetricsServiceComponent.createObject(root);
             fakeProjectsService = fakeProjectsServiceComponent.createObject(root);
             fakeWeatherService = fakeWeatherServiceComponent.createObject(root);
+            fakeScreensaverController = fakeScreensaverControllerComponent.createObject(root);
             dashboardComponent = Qt.createComponent("qrc:/qt/qml/Rpi/Dashboard/qml/Main.qml");
             verify(dashboardComponent.status === Component.Ready, dashboardComponent.errorString());
             dashboardWindow = dashboardComponent.createObject(null, {
@@ -65,7 +67,8 @@ Item {
                 "sysInfoService": fakeService,
                 "sysMetricsService": fakeMetricsService,
                 "projectsService": fakeProjectsService,
-                "weatherService": fakeWeatherService
+                "weatherService": fakeWeatherService,
+                "screensaverController": fakeScreensaverController
             });
             verify(dashboardWindow !== null);
             dashboardWindow.show();
@@ -88,6 +91,8 @@ Item {
             fakeProjectsService = null;
             fakeWeatherService.destroy();
             fakeWeatherService = null;
+            fakeScreensaverController.destroy();
+            fakeScreensaverController = null;
         }
 
         function test_exactDevelopmentGeometry() {
@@ -734,8 +739,52 @@ Item {
             tryCompare(fakeWeatherService, "refreshCount", refreshCount + 1);
         }
 
+        function test_screensaverWeatherMappingAndPagePreservation() {
+            keyClick(Qt.Key_Right);
+            tryCompare(dashboardWindow, "currentPageIndex", 1);
+            fakeScreensaverController.active = true;
+            const loader = findChild(dashboardWindow.contentItem, "screensaverLoader");
+            tryCompare(loader, "status", Loader.Ready, 2000);
+            const view = findChild(dashboardWindow.contentItem, "screensaverView");
+            verify(!!view);
+            compare(view.width, 1480);
+            compare(view.height, 320);
+            compare(findChild(view, "screensaverTemperature").text, "23°");
+            compare(findChild(view, "screensaverCondition").text, "CLEAR SKY");
+            compare(findChild(view, "screensaverLocation").text, "LVIV, UA");
+            compare(findChild(view, "screensaverFeelsLike").text, "FEELS 22°");
+            compare(findChild(view, "screensaverRange").text, "H 25°  ·  L 15°");
+            compare(findChild(view, "screensaverSunset").text, "SUNSET 20:12");
+
+            const codes = ["01d", "01n", "02d", "02n", "03d", "03n", "04d", "04n", "09d",
+                           "09n", "10d", "10n", "11d", "11n", "13d", "13n", "50d", "50n"];
+            for (const code of codes) {
+                fakeWeatherService.iconCode = code;
+                compare(view.iconCode, code);
+                verify(String(view.wallpaperSource).endsWith("/" + code + ".png"));
+            }
+            fakeWeatherService.iconCode = "invalid";
+            compare(view.iconCode, "03d");
+            fakeWeatherService.stale = true;
+            compare(findChild(view, "screensaverStatus").visible, true);
+            fakeWeatherService.state = "error";
+            compare(findChild(view, "screensaverTemperature").text, "—");
+            compare(findChild(view, "screensaverCondition").text, "WEATHER UNAVAILABLE");
+
+            fakeScreensaverController.active = false;
+            wait(350);
+            compare(loader.active, false);
+            compare(dashboardWindow.currentPageIndex, 1);
+        }
+
         name: "DashboardWindow"
         when: windowShown
+    }
+
+    Component {
+        id: fakeScreensaverControllerComponent
+
+        QtObject { property bool active: false }
     }
 
     Component {

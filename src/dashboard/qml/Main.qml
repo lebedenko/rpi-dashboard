@@ -14,6 +14,7 @@ ApplicationWindow {
     property var sysMetricsService: null
     property var projectsService: null
     property var weatherService: null
+    property var screensaverController: null
     property var deviceModel: localDevices
     property int selectedDeviceIndex: 0
     readonly property alias currentPageIndex: pageStack.currentIndex
@@ -358,5 +359,49 @@ ApplicationWindow {
             Layout.rightMargin: Theme.displaySafeInset
             Layout.bottomMargin: Theme.displaySafeInset
         }
+    }
+
+    Loader {
+        id: screensaverLoader
+        objectName: "screensaverLoader"
+        anchors.fill: parent
+        active: false
+        sourceComponent: ScreensaverView { service: root.weatherService }
+    }
+
+    Rectangle {
+        id: transitionCurtain
+        anchors.fill: parent
+        color: "black"
+        opacity: 0
+        visible: opacity > 0
+        Accessible.ignored: true
+    }
+
+    Connections {
+        target: root.screensaverController
+        function onActiveChanged(): void {
+            if (root.screensaverController.active) {
+                leaveScreensaver.stop()
+                enterScreensaver.start()
+            } else {
+                enterScreensaver.stop()
+                leaveScreensaver.start()
+            }
+        }
+    }
+
+    SequentialAnimation {
+        id: enterScreensaver
+        OpacityAnimator { target: transitionCurtain; from: 0; to: 1; duration: 150 }
+        ScriptAction { script: screensaverLoader.active = true }
+        OpacityAnimator { target: transitionCurtain; from: 1; to: 0; duration: 150 }
+    }
+
+    SequentialAnimation {
+        id: leaveScreensaver
+        OpacityAnimator { target: transitionCurtain; from: 0; to: 1; duration: 150 }
+        ScriptAction { script: screensaverLoader.active = false }
+        OpacityAnimator { target: transitionCurtain; from: 1; to: 0; duration: 150 }
     }
 }

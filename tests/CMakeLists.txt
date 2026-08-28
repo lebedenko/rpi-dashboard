@@ -9,6 +9,11 @@ target_compile_definitions(dashboard_config_test PRIVATE DASHBOARD_CONFIG_SOURCE
 target_link_libraries(dashboard_config_test PRIVATE RpiDashboard::weather Qt6::Network Qt6::Test tomlplusplus::tomlplusplus)
 add_test(NAME dashboard_config_test COMMAND dashboard_config_test)
 
+qt_add_executable(screensaver_controller_test screensaver_controller_test.cpp)
+target_include_directories(screensaver_controller_test PRIVATE ${CMAKE_SOURCE_DIR}/src/dashboard)
+target_link_libraries(screensaver_controller_test PRIVATE rpi-dashboard-qml Qt6::Gui Qt6::Test)
+add_test(NAME screensaver_controller_test COMMAND screensaver_controller_test -platform offscreen)
+
 qt_add_executable(weather_test weather_test.cpp)
 target_include_directories(weather_test PRIVATE ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/src/dashboard)
 target_compile_definitions(weather_test PRIVATE WEATHER_ICON_SOURCE_DIR="${CMAKE_SOURCE_DIR}/assets/weather-icons")

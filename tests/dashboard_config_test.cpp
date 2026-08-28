@@ -13,6 +13,8 @@ class DashboardConfigTest final : public QObject {
 
  private slots:
   void parsesCompleteConfiguration();
+  void usesDefaultScreensaverTimeout();
+  void acceptsDisabledScreensaver();
   void shippedTemplateIsCompleteAndValid();
   void rejectsInvalidRuntimeSettings_data();
   void rejectsInvalidRuntimeSettings();
@@ -24,6 +26,7 @@ void DashboardConfigTest::parsesCompleteConfiguration() {
 windowed = true
 width = 1280
 height = 300
+screensaver_timeout_seconds = 42
 [projects]
 github_owner = "octocat"
 [telemetry]
@@ -43,6 +46,7 @@ city = "Lviv,UA"
   QVERIFY(config.windowed);
   QCOMPARE(config.window_width, 1280);
   QCOMPARE(config.window_height, 300);
+  QCOMPARE(config.screensaver_timeout_seconds, 42);
   QCOMPARE(config.github_owner, QStringLiteral("octocat"));
   QCOMPARE(config.telemetry_bind_address, QStringLiteral("127.0.0.1"));
   QCOMPARE(config.telemetry_port, 50000);
@@ -51,15 +55,24 @@ city = "Lviv,UA"
   QCOMPARE(config.weather->refreshIntervalSeconds, 900);
 }
 
+void DashboardConfigTest::usesDefaultScreensaverTimeout() {
+  QCOMPARE(parseDashboardConfig({}).screensaver_timeout_seconds, 600);
+}
+
+void DashboardConfigTest::acceptsDisabledScreensaver() {
+  QCOMPARE(parseDashboardConfig("[display]\nscreensaver_timeout_seconds=0\n").screensaver_timeout_seconds, 0);
+}
+
 void DashboardConfigTest::shippedTemplateIsCompleteAndValid() {
   QFile file(QStringLiteral(DASHBOARD_CONFIG_SOURCE));
   QVERIFY(file.open(QIODevice::ReadOnly));
   const auto contents = file.readAll();
   const auto config = parseDashboardConfig(contents);
   QVERIFY(config.weather.has_value());
-  for (const auto* key : {"windowed", "width", "height", "github_owner", "bind_address", "port", "github_token_file",
-                          "openweather_api_key_file", "ipgeolocation_api_key_file", "provider",
-                          "refresh_interval_seconds", "automatic_provider", "city", "latitude", "longitude"}) {
+  for (const auto* key :
+       {"windowed", "width", "height", "screensaver_timeout_seconds", "github_owner", "bind_address", "port",
+        "github_token_file", "openweather_api_key_file", "ipgeolocation_api_key_file", "provider",
+        "refresh_interval_seconds", "automatic_provider", "city", "latitude", "longitude"}) {
     QVERIFY2(contents.contains(key), key);
   }
 }
@@ -67,6 +80,7 @@ void DashboardConfigTest::shippedTemplateIsCompleteAndValid() {
 void DashboardConfigTest::rejectsInvalidRuntimeSettings_data() {
   QTest::addColumn<QByteArray>("contents");
   QTest::newRow("width") << QByteArrayLiteral("[display]\nwidth=0\n");
+  QTest::newRow("screensaver timeout") << QByteArrayLiteral("[display]\nscreensaver_timeout_seconds=-1\n");
   QTest::newRow("port") << QByteArrayLiteral("[telemetry]\nport=70000\n");
   QTest::newRow("address") << QByteArrayLiteral("[telemetry]\nbind_address='localhost'\n");
   QTest::newRow("owner") << QByteArrayLiteral("[projects]\ngithub_owner=''\n");

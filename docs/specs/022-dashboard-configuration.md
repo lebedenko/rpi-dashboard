@@ -9,7 +9,8 @@ settings on systems where no manual page is installed.
 
 The dashboard discovers `rpi-dashboard/config.toml` through the XDG configuration directories;
 `--config PATH` overrides discovery. The schema contains display mode and geometry, the GitHub
-owner, the remote telemetry listener, credential-file paths, and weather provider/location.
+owner, the remote telemetry listener, credential-file paths, weather provider/location, and the
+non-negative display screensaver timeout. The timeout defaults to 600 seconds and zero disables it.
 Command-line options override corresponding file values. Credential-file environment variables
 override file paths, while raw token environment variables remain development-only fallbacks.
 
@@ -20,7 +21,8 @@ remain commented examples rather than simultaneously active keys.
 ## Acceptance criteria
 
 - The shipped template parses successfully and contains every supported TOML key.
-- Display, projects, telemetry, credentials, and weather settings parse deterministically.
+- Display (including the screensaver timeout), projects, telemetry, credentials, and weather settings
+  parse deterministically.
 - Invalid dimensions, ports, IPv4 addresses, types, and weather values fail an explicit config load.
 - Existing command-line and environment interfaces remain compatible and take precedence.
 - Installation creates the complete template when absent and preserves existing configuration on

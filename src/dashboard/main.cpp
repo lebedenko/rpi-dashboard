@@ -2,6 +2,7 @@
 #include "device_model.h"
 #include "projects/github_credentials.h"
 #include "projects/projects_service.h"
+#include "screensaver_controller.h"
 #include "sysinfo/linux_sys_info_collector.h"
 #include "sysinfo/sys_info_service.h"
 #include "sysmetrics/linux_sys_metrics_collector.h"
@@ -110,6 +111,7 @@ int main(int argc, char* argv[]) {
                                                      ipgeolocation_credential.value);
   dashboard::telemetry::RemoteDeviceRegistry remote_devices;
   dashboard::DeviceModel device_model(&sys_info_service, &sys_metrics_service, &remote_devices);
+  dashboard::ScreensaverController screensaver_controller(config.screensaver_timeout_seconds);
   dashboard::telemetry::UdpTelemetryReceiver telemetry_receiver(&remote_devices);
   if (!telemetry_receiver.bind(telemetryAddress, static_cast<quint16>(telemetryPort))) {
     qWarning().noquote() << telemetry_receiver.diagnostic();
@@ -123,6 +125,7 @@ int main(int argc, char* argv[]) {
                                {QStringLiteral("sysMetricsService"), QVariant::fromValue(&sys_metrics_service)},
                                {QStringLiteral("projectsService"), QVariant::fromValue(&projects_service)},
                                {QStringLiteral("weatherService"), QVariant::fromValue(&weather_service)},
+                               {QStringLiteral("screensaverController"), QVariant::fromValue(&screensaver_controller)},
                                {QStringLiteral("deviceModel"), QVariant::fromValue(&device_model)}});
   QObject::connect(
       &engine, &QQmlApplicationEngine::objectCreationFailed, &application, [] { QCoreApplication::exit(EXIT_FAILURE); },

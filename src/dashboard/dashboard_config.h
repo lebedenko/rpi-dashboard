@@ -13,6 +13,7 @@ struct DashboardConfig {
   bool windowed{};
   int window_width{1480};
   int window_height{320};
+  int screensaver_timeout_seconds{600};
   QString github_owner{QStringLiteral("lebedenko")};
   QString telemetry_bind_address{QStringLiteral("0.0.0.0")};
   int telemetry_port{51337};

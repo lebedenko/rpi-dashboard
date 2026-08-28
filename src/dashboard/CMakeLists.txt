@@ -14,6 +14,8 @@ qt_add_qml_module(rpi-dashboard-qml
         resource_history_geometry.h
         resource_history_series.cpp
         resource_history_series.h
+        screensaver_controller.cpp
+        screensaver_controller.h
         weather_icon_provider.cpp
         weather_icon_provider.h
     QML_FILES
@@ -23,6 +25,7 @@ qt_add_qml_module(rpi-dashboard-qml
         qml/Main.qml
         qml/OverviewPage.qml
         qml/ProjectsPage.qml
+        qml/ScreensaverView.qml
         qml/SystemMetricPanel.qml
         qml/SystemPage.qml
         qml/WeatherPage.qml
@@ -76,6 +79,32 @@ qt_add_resources(rpi-dashboard-qml "rpi_dashboard_weather_icons"
     PREFIX "/rpi-dashboard"
     BASE ${CMAKE_SOURCE_DIR}/assets
     FILES ${weather_icon_files}
+)
+
+set(weather_background_files
+    ${CMAKE_SOURCE_DIR}/assets/weather-bg/01d.png
+    ${CMAKE_SOURCE_DIR}/assets/weather-bg/01n.png
+    ${CMAKE_SOURCE_DIR}/assets/weather-bg/02d.png
+    ${CMAKE_SOURCE_DIR}/assets/weather-bg/02n.png
+    ${CMAKE_SOURCE_DIR}/assets/weather-bg/03d.png
+    ${CMAKE_SOURCE_DIR}/assets/weather-bg/03n.png
+    ${CMAKE_SOURCE_DIR}/assets/weather-bg/04d.png
+    ${CMAKE_SOURCE_DIR}/assets/weather-bg/04n.png
+    ${CMAKE_SOURCE_DIR}/assets/weather-bg/09d.png
+    ${CMAKE_SOURCE_DIR}/assets/weather-bg/09n.png
+    ${CMAKE_SOURCE_DIR}/assets/weather-bg/10d.png
+    ${CMAKE_SOURCE_DIR}/assets/weather-bg/10n.png
+    ${CMAKE_SOURCE_DIR}/assets/weather-bg/11d.png
+    ${CMAKE_SOURCE_DIR}/assets/weather-bg/11n.png
+    ${CMAKE_SOURCE_DIR}/assets/weather-bg/13d.png
+    ${CMAKE_SOURCE_DIR}/assets/weather-bg/13n.png
+    ${CMAKE_SOURCE_DIR}/assets/weather-bg/50d.png
+    ${CMAKE_SOURCE_DIR}/assets/weather-bg/50n.png
+)
+qt_add_resources(rpi-dashboard-qml "rpi_dashboard_weather_backgrounds"
+    PREFIX "/rpi-dashboard"
+    BASE ${CMAKE_SOURCE_DIR}/assets
+    FILES ${weather_background_files}
 )
 
 target_link_libraries(rpi-dashboard-qml

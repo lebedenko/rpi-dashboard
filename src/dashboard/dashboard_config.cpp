@@ -5,6 +5,7 @@
 #include <QHostAddress>
 #include <QStandardPaths>
 
+#include <limits>
 #include <stdexcept>
 #include <string_view>
 #include <toml++/toml.hpp>
@@ -39,9 +40,14 @@ DashboardConfig parseDashboardConfig(const QByteArray& contents) {
     result.windowed = (*display)["windowed"].value_or(false);
     result.window_width = static_cast<int>((*display)["width"].value_or<int64_t>(1480));
     result.window_height = static_cast<int>((*display)["height"].value_or<int64_t>(320));
+    const auto screensaverTimeout = (*display)["screensaver_timeout_seconds"].value_or<int64_t>(600);
     if (result.window_width <= 0 || result.window_height <= 0) {
       invalid(QStringLiteral("display dimensions must be positive"));
     }
+    if (screensaverTimeout < 0 || screensaverTimeout > std::numeric_limits<int>::max()) {
+      invalid(QStringLiteral("screensaver timeout must be non-negative"));
+    }
+    result.screensaver_timeout_seconds = static_cast<int>(screensaverTimeout);
   }
   if (auto* const projects = document["projects"].as_table()) {
     result.github_owner = textValue((*projects)["github_owner"], result.github_owner);
