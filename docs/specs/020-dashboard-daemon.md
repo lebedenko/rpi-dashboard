@@ -38,7 +38,9 @@ and explicit rejection are fatal.
 The archive contains `dashboard-daemon`, `dashboard-daemon.service`, `config.toml`, and
 `install.sh`. The root-only POSIX installer supports x86_64/aarch64 systemd hosts, installs below
 `/usr/local` and `/etc/xdg`, preserves existing configuration, reloads systemd, and leaves the
-service stopped and disabled. Supported systems have Linux 5.4+ and systemd 235+.
+service stopped and disabled. `task install:daemon` builds the native Release executable, stages
+those package files, and invokes the installer through `sudo`. Supported systems have Linux 5.4+
+and systemd 235+.
 
 ## Acceptance criteria
 
@@ -50,6 +52,7 @@ service stopped and disabled. Supported systems have Linux 5.4+ and systemd 235+
   restart-on-failure hardening.
 - Installation is atomic, preserves configuration, validates its host, and does not enable or
   start the service.
+- `task install:daemon` performs a Release build before installing the daemon and service package.
 
 ## Non-goals
 

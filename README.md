@@ -39,9 +39,10 @@ second cadence in `/etc/xdg/dashboard-daemon/config.toml`, then validate it:
 dashboard-daemon --config /etc/xdg/dashboard-daemon/config.toml --check-config
 ```
 
-The service stores a stable device UUID at `/var/lib/dashboard-daemon/device-id`. Install the
-release archive as root with its POSIX `install.sh`; the installer leaves the unit disabled and
-stopped. After configuration and validation, start it explicitly:
+The service stores a stable device UUID at `/var/lib/dashboard-daemon/device-id`. Build and install
+the native Release daemon with `task install:daemon`. The task uses `sudo` only for the packaged
+POSIX installer, which leaves the unit disabled and stopped. After configuration and validation,
+start it explicitly:
 
 ```sh
 sudo systemctl enable --now dashboard-daemon

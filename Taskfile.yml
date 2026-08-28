@@ -68,6 +68,18 @@ tasks:
     cmds:
       - ctest --test-dir build/daemon --output-on-failure
 
+  install:daemon:
+    desc: Build and install the standalone telemetry daemon
+    cmds:
+      - cmake -S daemon -B build/daemon -G Ninja -DCMAKE_BUILD_TYPE=Release
+      - cmake --build build/daemon
+      - cmake -E make_directory build/daemon/package
+      - cmake -E copy build/daemon/dashboard-daemon build/daemon/package/dashboard-daemon
+      - cmake -E copy daemon/package/dashboard-daemon.service build/daemon/package/dashboard-daemon.service
+      - cmake -E copy daemon/package/config.toml build/daemon/package/config.toml
+      - cmake -E copy daemon/package/install.sh build/daemon/package/install.sh
+      - sudo build/daemon/package/install.sh
+
   install:
     desc: Build and install the Raspberry Pi kiosk
     cmds:
