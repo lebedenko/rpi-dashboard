@@ -91,6 +91,8 @@ target_link_libraries(rpi-dashboard-qml
 
 qt_add_executable(rpi-dashboard
     MANUAL_FINALIZATION
+    dashboard_config.cpp
+    dashboard_config.h
     main.cpp
 )
 
@@ -109,6 +111,7 @@ target_link_libraries(rpi-dashboard
         Qt6::Network
         Qt6::Qml
         Qt6::Quick
+        tomlplusplus::tomlplusplus
 )
 
 qt_import_qml_plugins(rpi-dashboard)

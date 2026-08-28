@@ -1,5 +1,14 @@
 find_package(Qt6 6.8 REQUIRED COMPONENTS QuickTest Test)
 
+qt_add_executable(dashboard_config_test
+    dashboard_config_test.cpp
+    ${CMAKE_SOURCE_DIR}/src/dashboard/dashboard_config.cpp
+)
+target_include_directories(dashboard_config_test PRIVATE ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/src/dashboard)
+target_compile_definitions(dashboard_config_test PRIVATE DASHBOARD_CONFIG_SOURCE="${CMAKE_SOURCE_DIR}/install/config.toml")
+target_link_libraries(dashboard_config_test PRIVATE RpiDashboard::weather Qt6::Network Qt6::Test tomlplusplus::tomlplusplus)
+add_test(NAME dashboard_config_test COMMAND dashboard_config_test)
+
 qt_add_executable(weather_test weather_test.cpp)
 target_include_directories(weather_test PRIVATE ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/src/dashboard)
 target_compile_definitions(weather_test PRIVATE WEATHER_ICON_SOURCE_DIR="${CMAKE_SOURCE_DIR}/assets/weather-icons")

@@ -1,3 +1,4 @@
+#include "dashboard_config.h"
 #include "device_model.h"
 #include "projects/github_credentials.h"
 #include "projects/projects_service.h"
@@ -45,15 +46,27 @@ int main(int argc, char* argv[]) {
                                                QStringLiteral("51337"));
   const QCommandLineOption configOption(QStringLiteral("config"), QStringLiteral("Use dashboard configuration file."),
                                         QStringLiteral("path"));
-  parser.addOptions(
-      {windowedOption, widthOption, heightOption, githubOwnerOption, telemetryAddressOption, telemetryPortOption,
-       configOption});
+  parser.addOptions({windowedOption, widthOption, heightOption, githubOwnerOption, telemetryAddressOption,
+                     telemetryPortOption, configOption});
   parser.process(application);
+
+  const auto configResult = dashboard::loadDashboardConfig(parser.value(configOption));
+  if (!configResult.diagnostic.isEmpty()) {
+    qWarning().noquote() << configResult.diagnostic;
+  }
+  if (configResult.fatal) {
+    return EXIT_FAILURE;
+  }
+  const auto& config = configResult.config;
 
   bool widthIsValid = false;
   bool heightIsValid = false;
-  const int windowWidth = parser.value(widthOption).toInt(&widthIsValid);
-  const int windowHeight = parser.value(heightOption).toInt(&heightIsValid);
+  const int windowWidth =
+      parser.isSet(widthOption) ? parser.value(widthOption).toInt(&widthIsValid) : config.window_width;
+  const int windowHeight =
+      parser.isSet(heightOption) ? parser.value(heightOption).toInt(&heightIsValid) : config.window_height;
+  widthIsValid = widthIsValid || !parser.isSet(widthOption);
+  heightIsValid = heightIsValid || !parser.isSet(heightOption);
   if (!widthIsValid || windowWidth <= 0) {
     parser.showHelp(EXIT_FAILURE);
   }
@@ -61,8 +74,12 @@ int main(int argc, char* argv[]) {
     parser.showHelp(EXIT_FAILURE);
   }
   bool portIsValid = false;
-  const int telemetryPort = parser.value(telemetryPortOption).toInt(&portIsValid);
-  const QHostAddress telemetryAddress(parser.value(telemetryAddressOption));
+  const int telemetryPort =
+      parser.isSet(telemetryPortOption) ? parser.value(telemetryPortOption).toInt(&portIsValid) : config.telemetry_port;
+  portIsValid = portIsValid || !parser.isSet(telemetryPortOption);
+  const QString telemetryAddressText =
+      parser.isSet(telemetryAddressOption) ? parser.value(telemetryAddressOption) : config.telemetry_bind_address;
+  const QHostAddress telemetryAddress(telemetryAddressText);
   if (!portIsValid || telemetryPort < 1 || telemetryPort > 65535 ||
       telemetryAddress.protocol() != QAbstractSocket::IPv4Protocol) {
     parser.showHelp(EXIT_FAILURE);
@@ -71,23 +88,26 @@ int main(int argc, char* argv[]) {
   dashboard::sysinfo::SysInfoService sys_info_service(std::make_shared<dashboard::sysinfo::LinuxSysInfoCollector>());
   dashboard::sysmetrics::SysMetricsService sys_metrics_service(
       std::make_shared<dashboard::sysmetrics::LinuxSysMetricsCollector>());
-  const auto credential =
-      dashboard::projects::loadGitHubCredential(qgetenv("GITHUB_TOKEN_FILE"), qgetenv("GITHUB_TOKEN"));
+  const QByteArray githubTokenFile =
+      qEnvironmentVariableIsSet("GITHUB_TOKEN_FILE") ? qgetenv("GITHUB_TOKEN_FILE") : config.github_token_file;
+  const auto credential = dashboard::projects::loadGitHubCredential(githubTokenFile, qgetenv("GITHUB_TOKEN"));
   if (!credential.diagnostic.isEmpty()) {
     qWarning().noquote() << credential.diagnostic;
   }
-  dashboard::projects::ProjectsService projects_service(parser.value(githubOwnerOption), credential.token);
-  const auto weather_config = dashboard::weather::loadWeatherConfig(parser.value(configOption));
-  if (weather_config.fatal) {
-    qCritical().noquote() << weather_config.diagnostic;
-    return EXIT_FAILURE;
-  }
+  const QString githubOwner = parser.isSet(githubOwnerOption) ? parser.value(githubOwnerOption) : config.github_owner;
+  dashboard::projects::ProjectsService projects_service(githubOwner, credential.token);
+  const QByteArray openWeatherKeyFile = qEnvironmentVariableIsSet("OPENWEATHER_API_KEY_FILE")
+                                            ? qgetenv("OPENWEATHER_API_KEY_FILE")
+                                            : config.open_weather_api_key_file;
+  const QByteArray ipGeolocationKeyFile = qEnvironmentVariableIsSet("IPGEOLOCATION_API_KEY_FILE")
+                                              ? qgetenv("IPGEOLOCATION_API_KEY_FILE")
+                                              : config.ip_geolocation_api_key_file;
   const auto openweather_credential = dashboard::weather::loadCredential(
-      qgetenv("OPENWEATHER_API_KEY_FILE"), qgetenv("OPENWEATHER_API_KEY"), QStringLiteral("OpenWeather"));
+      openWeatherKeyFile, qgetenv("OPENWEATHER_API_KEY"), QStringLiteral("OpenWeather"));
   const auto ipgeolocation_credential = dashboard::weather::loadCredential(
-      qgetenv("IPGEOLOCATION_API_KEY_FILE"), qgetenv("IPGEOLOCATION_API_KEY"), QStringLiteral("IP geolocation"));
-  dashboard::weather::WeatherService weather_service(weather_config.config, openweather_credential.value,
-                                                      ipgeolocation_credential.value);
+      ipGeolocationKeyFile, qgetenv("IPGEOLOCATION_API_KEY"), QStringLiteral("IP geolocation"));
+  dashboard::weather::WeatherService weather_service(config.weather, openweather_credential.value,
+                                                     ipgeolocation_credential.value);
   dashboard::telemetry::RemoteDeviceRegistry remote_devices;
   dashboard::DeviceModel device_model(&sys_info_service, &sys_metrics_service, &remote_devices);
   dashboard::telemetry::UdpTelemetryReceiver telemetry_receiver(&remote_devices);
@@ -96,7 +116,7 @@ int main(int argc, char* argv[]) {
   }
   QQmlApplicationEngine engine;
   engine.addImageProvider(QStringLiteral("weather"), new dashboard::WeatherIconProvider());
-  engine.setInitialProperties({{QStringLiteral("windowed"), parser.isSet(windowedOption)},
+  engine.setInitialProperties({{QStringLiteral("windowed"), parser.isSet(windowedOption) || config.windowed},
                                {QStringLiteral("windowWidth"), windowWidth},
                                {QStringLiteral("windowHeight"), windowHeight},
                                {QStringLiteral("sysInfoService"), QVariant::fromValue(&sys_info_service)},

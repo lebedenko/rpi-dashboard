@@ -30,6 +30,10 @@ installed_service="$install_root/usr/local/lib/systemd/system/rpi-dashboard.serv
 [ -f "$installed_service" ]
 grep -Fqx '[existing]' "$installed_config"
 grep -Fqx 'value = "preserve me"' "$installed_config"
+[ "$(grep -Fxc '[display]' "$installed_config")" -eq 1 ]
+[ "$(grep -Fxc '[projects]' "$installed_config")" -eq 1 ]
+[ "$(grep -Fxc '[telemetry]' "$installed_config")" -eq 1 ]
+[ "$(grep -Fxc '[credentials]' "$installed_config")" -eq 1 ]
 [ "$(grep -Fxc '[weather]' "$installed_config")" -eq 1 ]
 [ "$(grep -Fxc '[weather.location]' "$installed_config")" -eq 1 ]
 cmp "$source_directory/install/rpi-dashboard.service" "$installed_service"

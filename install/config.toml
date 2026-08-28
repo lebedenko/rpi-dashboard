@@ -1,6 +1,32 @@
+# This file is the complete rpi-dashboard configuration reference.
+# Command-line options override matching values below.
+
+[display]
+windowed = false
+width = 1480
+height = 320
+
+[projects]
+github_owner = "lebedenko"
+
+[telemetry]
+bind_address = "0.0.0.0"
+port = 51337
+
+# Credential-file environment variables override these paths. Raw secrets belong in systemd
+# credentials or development environment variables, never in this file.
+[credentials]
+github_token_file = ""
+openweather_api_key_file = ""
+ipgeolocation_api_key_file = ""
+
 [weather]
 provider = "openweather"
 refresh_interval_seconds = 600
 
 [weather.location]
 automatic_provider = "ipgeolocation"
+# Choose city or coordinates by commenting automatic_provider and enabling exactly one alternative:
+# city = "Lviv,UA"
+# latitude = 49.8397
+# longitude = 24.0297
