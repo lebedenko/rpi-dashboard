@@ -58,6 +58,7 @@ endif()
 install(PROGRAMS
     scripts/run-dashboard-session.sh
     scripts/run-kiosk.sh
+    install/activate-release.sh
     install/provision.sh
     DESTINATION ${CMAKE_INSTALL_LIBEXECDIR}/rpi-dashboard
 )

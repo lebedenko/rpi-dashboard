@@ -32,7 +32,7 @@
       "binaryDir": "${sourceDir}/build/release",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "BUILD_TESTING": "OFF"
+        "BUILD_TESTING": "ON"
       }
     },
     {
@@ -62,6 +62,11 @@
     { "name": "ubsan", "configurePreset": "ubsan" }
   ],
   "testPresets": [
+    {
+      "name": "release",
+      "configurePreset": "release",
+      "output": { "outputOnFailure": true }
+    },
     {
       "name": "dev",
       "configurePreset": "dev",

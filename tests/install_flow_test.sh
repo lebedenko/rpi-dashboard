@@ -26,6 +26,7 @@ installed_service="$install_root/usr/local/lib/systemd/system/rpi-dashboard.serv
 [ -x "$installed_bin" ]
 [ -x "$installed_libexec/run-kiosk.sh" ]
 [ -x "$installed_libexec/run-dashboard-session.sh" ]
+[ -x "$installed_libexec/activate-release.sh" ]
 [ -x "$installed_libexec/provision.sh" ]
 [ -f "$installed_service" ]
 grep -Fqx '[existing]' "$installed_config"
@@ -40,6 +41,7 @@ cmp "$source_directory/install/rpi-dashboard.service" "$installed_service"
 grep -Fqx 'OnSuccess=getty@tty1.service' "$installed_service"
 sh -n "$installed_libexec/run-kiosk.sh"
 sh -n "$installed_libexec/run-dashboard-session.sh"
+sh -n "$installed_libexec/activate-release.sh"
 sh -n "$installed_libexec/provision.sh"
 
 fake_bin="$test_dir/bin"

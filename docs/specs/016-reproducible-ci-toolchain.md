@@ -14,16 +14,16 @@ The toolchain is published as a public OCI image and normal CI refers to it only
   build output.
 - `ci/image.env` is the sole normal-CI image lock and accepts only a GHCR repository reference with
   a SHA-256 digest. A publication-only `CI_IMAGE_OVERRIDE` may select a newly built local image.
-- `scripts/run-ci-container.sh PRESET` accepts only `dev`, `tidy`, `asan`, or `ubsan`; mounts the
+- `scripts/run-ci-container.sh PRESET` accepts only `dev`, `release`, `tidy`, `asan`, or `ubsan`; mounts the
   checkout read-only at `/workspace`; overlays an ephemeral writable `/workspace/build`; runs the
   matching configure, build, and test presets; and returns the first failed command's status.
 - Local runs use the caller's numeric user and group IDs and forward sanitizer configuration from
   the preset environment without depending on host compilers or Qt.
-- `task ci` runs all four presets sequentially. Native `task test`, `task check`, and sanitizer
+- `task ci` runs all five presets sequentially. Native `task test`, `task check`, and sanitizer
   tasks retain their existing behavior.
-- Hosted CI uses the same runner for four independent matrix jobs and prints the locked image and
+- Hosted CI uses the same runner for five independent matrix jobs and prints the locked image and
   contained tool versions.
-- A manual publication workflow builds and verifies an amd64 image, runs all four presets before
+- A manual publication workflow builds and verifies an amd64 image, runs all five presets before
   pushing it, and reports the pushed digest for a separately reviewed lock update.
 - Shell tests deterministically cover lock parsing, missing Docker, invalid presets, image override,
   and container command failure propagation.

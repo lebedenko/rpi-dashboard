@@ -26,11 +26,13 @@
 int main(int argc, char* argv[]) {
   QGuiApplication application(argc, argv);
   QGuiApplication::setApplicationName(QStringLiteral("rpi-dashboard"));
+  QGuiApplication::setApplicationVersion(QStringLiteral(RPI_DASHBOARD_VERSION));
   QGuiApplication::setOrganizationName(QStringLiteral("rpi-dashboard"));
 
   QCommandLineParser parser;
   parser.setApplicationDescription(QStringLiteral("Standalone Raspberry Pi dashboard"));
   parser.addHelpOption();
+  parser.addVersionOption();
   const QCommandLineOption windowedOption(QStringLiteral("windowed"),
                                           QStringLiteral("Open a development window instead of fullscreen."));
   const QCommandLineOption widthOption(QStringLiteral("width"), QStringLiteral("Set the windowed width."),

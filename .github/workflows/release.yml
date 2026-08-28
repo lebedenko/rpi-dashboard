@@ -1,0 +1,66 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@9f698171ed81b15d1823a05fc7211befd50c8ae0 # v6.0.3
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Validate tag, versions, and main ancestry
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          case "$TAG" in
+            v0|v0.*) ;;
+            v[1-9][0-9]*.*.*) ;;
+            *) echo "Not a stable vMAJOR.MINOR.PATCH tag: $TAG" >&2; exit 2 ;;
+          esac
+          version=${TAG#v}
+          printf '%s\n' "$version" | grep -Eq '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'
+          scripts/release.sh verify "$version"
+          git fetch --no-tags origin main
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main
+
+      - name: Build deterministic source assets
+        env:
+          TAG: ${{ github.ref_name }}
+        run: scripts/release.sh archive "${TAG#v}" "$RUNNER_TEMP/release"
+
+      - name: Extract changelog entry
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          version=${TAG#v}
+          awk -v heading="## [$version]" '
+            index($0, heading) == 1 { found=1; next }
+            found && /^## \[/ { exit }
+            found { print }
+          ' CHANGELOG.md >"$RUNNER_TEMP/release-notes.md"
+          test -s "$RUNNER_TEMP/release-notes.md"
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          version=${TAG#v}
+          gh release create "$TAG" \
+            "$RUNNER_TEMP/release/rpi-dashboard-$version.tar.gz" \
+            "$RUNNER_TEMP/release/rpi-dashboard-$version.tar.gz.sha256" \
+            --verify-tag --generate-notes --notes-file "$RUNNER_TEMP/release-notes.md" \
+            --title "rpi-dashboard $version"

@@ -64,6 +64,10 @@ Use `task ci` for the authoritative pre-push check in the digest-locked project 
 publication and digest-lock procedure is documented in
 [the reproducible CI toolchain specification](docs/specs/016-reproducible-ci-toolchain.md).
 
+Changes use short-lived branches, Conventional Commit subjects, pull requests, and squash merges.
+The protected-branch, signed-tag, checksummed-release, and manually approved Raspberry Pi deployment
+procedure is documented in [the release runbook](docs/release-runbook.md).
+
 For exact-geometry laptop UI work, `task run-windowed` opens a normal 1480×320 window; production launches remain fullscreen. `task test-asan` and `task test-ubsan` run separate sanitizer builds. `QT_SCALE_FACTOR` may be varied for extra DPI robustness checks, but the primary geometry is scale 1 at logical 1480×320.
 
 To run the complete suite natively on an SSH-accessible ARM64 Raspberry Pi, choose a dedicated remote source/build directory and run:

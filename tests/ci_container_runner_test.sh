@@ -63,7 +63,9 @@ expect_status 2 env TEST_DOCKER_ARGUMENTS=$arguments CI_IMAGE_LOCK_FILE=$lock_fi
     DOCKER_COMMAND=$fake_docker "$runner" dev
 
 expect_status 127 env CI_IMAGE_LOCK_FILE=$lock_file DOCKER_COMMAND=definitely-missing-docker "$runner" dev
-expect_status 2 env DOCKER_COMMAND=$fake_docker "$runner" release
+TEST_DOCKER_ARGUMENTS=$arguments CI_IMAGE_OVERRIDE=local-ci-image DOCKER_COMMAND=$fake_docker \
+    "$runner" release >/dev/null
+grep -Fx 'release' "$arguments" >/dev/null
 
 TEST_DOCKER_ARGUMENTS=$arguments CI_IMAGE_OVERRIDE=local-ci-image DOCKER_COMMAND=$fake_docker \
     "$runner" tidy >/dev/null

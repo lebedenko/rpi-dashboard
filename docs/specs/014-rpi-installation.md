@@ -12,7 +12,7 @@ service without disrupting the current console session.
 - `task install` configures and builds the Release preset without privilege escalation. It uses
   `sudo` only to install the built files and run the provisioning helper.
 - The installed runtime consists of `/usr/local/bin/rpi-dashboard`, launcher and provisioning
-  helpers in `/usr/local/libexec/rpi-dashboard/`, and
+  and fixed release-activation helpers in `/usr/local/libexec/rpi-dashboard/`, and
   `/usr/local/lib/systemd/system/rpi-dashboard.service`.
 - Installation creates the dashboard configuration from the shipped defaults when it is absent.
   When it already exists, installation preserves its contents and appends newly shipped default
@@ -92,3 +92,5 @@ Framebuffer-console rotation and touchscreen calibration remain manual, device-s
 - Installing the remote telemetry agent.
 - Semantically merging individual keys into an existing configuration section.
 - Starting the kiosk during installation or configuring display/touch hardware automatically.
+- Downloading releases or granting general passwordless sudo; production deployment is specified
+  separately and may invoke only the root-owned activation helper.

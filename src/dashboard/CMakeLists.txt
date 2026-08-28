@@ -143,6 +143,11 @@ target_link_libraries(rpi-dashboard
         tomlplusplus::tomlplusplus
 )
 
+target_compile_definitions(rpi-dashboard
+    PRIVATE
+        RPI_DASHBOARD_VERSION="${RpiDashboard_VERSION}"
+)
+
 qt_import_qml_plugins(rpi-dashboard)
 qt_finalize_executable(rpi-dashboard)
 

@@ -3,14 +3,14 @@
 set -eu
 
 usage() {
-    echo "Usage: $0 {dev|tidy|asan|ubsan}" >&2
+    echo "Usage: $0 {dev|release|tidy|asan|ubsan}" >&2
     exit 2
 }
 
 [ "$#" -eq 1 ] || usage
 preset=$1
 case "$preset" in
-    dev|tidy|asan|ubsan) ;;
+    dev|release|tidy|asan|ubsan) ;;
     *) usage ;;
 esac
 
