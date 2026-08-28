@@ -1,4 +1,4 @@
-FROM ubuntu:24.04@sha256:1e0a86e57d247923571b75e0aaf48a1449cf8c543d51fb3e07a4a7d7bfa79316
+FROM ubuntu:26.04@sha256:2260313b31c8c011cd2eebe728008efac1b3982be73eb71348ea2648d2c0e09b
 
 LABEL org.opencontainers.image.source="https://github.com/lebedenko/rpi-dashboard"
 LABEL org.opencontainers.image.description="Reproducible CI toolchain for rpi-dashboard"
