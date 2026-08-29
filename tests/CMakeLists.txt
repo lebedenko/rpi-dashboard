@@ -213,6 +213,14 @@ add_test(
 )
 
 add_test(
+    NAME ci_workflow_test
+    COMMAND
+        sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/ci_workflow_test.sh
+        ${CMAKE_SOURCE_DIR}/.github/workflows/ci.yml
+)
+
+add_test(
     NAME install_flow_test
     COMMAND
         sh

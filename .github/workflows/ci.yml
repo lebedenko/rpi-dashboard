@@ -41,7 +41,15 @@ jobs:
   daemon:
     name: daemon
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v7.0.1
-        with: {persist-credentials: false}
-      - run: task daemon-test
+      - name: Check out repository
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Build and test daemon
+        run: |
+          cmake -S daemon -B build/daemon -G Ninja -DCMAKE_BUILD_TYPE=Debug
+          cmake --build build/daemon
+          ctest --test-dir build/daemon --output-on-failure
