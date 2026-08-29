@@ -245,6 +245,14 @@ add_test(
 )
 
 add_test(
+    NAME release_workflow_test
+    COMMAND
+        sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/release_workflow_test.sh
+        ${CMAKE_SOURCE_DIR}/.github/workflows/release.yml
+)
+
+add_test(
     NAME activation_flow_test
     COMMAND sh ${CMAKE_CURRENT_SOURCE_DIR}/activation_flow_test.sh ${CMAKE_SOURCE_DIR}/install/activate-release.sh
 )
