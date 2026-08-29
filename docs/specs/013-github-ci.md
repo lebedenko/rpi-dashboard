@@ -33,6 +33,8 @@ UndefinedBehaviorSanitizer independently.
   alongside the pins.
 - Each configuration invokes `scripts/run-ci-container.sh` for its matching preset; the runner then
   invokes `cmake --preset`, `cmake --build --preset`, and `ctest --preset` inside the image.
+- The native daemon check configures, builds, and tests the standalone daemon with CMake and CTest
+  available on the Ubuntu runner; it does not depend on optional developer task-runner tooling.
 - The workflow status is visible from the repository README.
 - A failure in configure, build, tests, sanitizer diagnostics, or clang-tidy produces a failed
   matrix job and therefore a failed overall workflow.
@@ -48,7 +50,8 @@ UndefinedBehaviorSanitizer independently.
 ## Verification
 
 - Validate the workflows as YAML and check the patch with `git diff --check`.
-- Run the focused `ci_container_runner_test`, then `task test` and `task check` natively.
+- Run the focused `ci_container_runner_test` and `ci_workflow_test`, then `task test` and `task check`
+  natively.
 - After publishing and locking the first image, run `task ci` locally.
 - After the workflow is pushed to GitHub, confirm that all four matrix jobs execute and that a
   failing matrix job makes the overall workflow fail.

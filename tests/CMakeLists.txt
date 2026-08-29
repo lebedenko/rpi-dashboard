@@ -48,10 +48,6 @@ qt_add_executable(udp_telemetry_receiver_test
     udp_telemetry_receiver_test.cpp
 )
 target_link_libraries(udp_telemetry_receiver_test PRIVATE RpiDashboard::telemetry Qt6::Test)
-target_compile_definitions(udp_telemetry_receiver_test PRIVATE
-    DASHBOARD_DAEMON_EXECUTABLE="$<TARGET_FILE:dashboard-daemon>"
-)
-add_dependencies(udp_telemetry_receiver_test dashboard-daemon)
 add_test(NAME udp_telemetry_receiver_test COMMAND udp_telemetry_receiver_test)
 
 qt_add_executable(system_info_test
@@ -217,6 +213,14 @@ add_test(
 )
 
 add_test(
+    NAME ci_workflow_test
+    COMMAND
+        sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/ci_workflow_test.sh
+        ${CMAKE_SOURCE_DIR}/.github/workflows/ci.yml
+)
+
+add_test(
     NAME install_flow_test
     COMMAND
         sh
@@ -232,7 +236,6 @@ add_test(
         sh
         ${CMAKE_CURRENT_SOURCE_DIR}/executable_version_test.sh
         $<TARGET_FILE:rpi-dashboard>
-        $<TARGET_FILE:dashboard-daemon>
         ${RpiDashboard_VERSION}
 )
 

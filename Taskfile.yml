@@ -13,7 +13,7 @@ tasks:
       - cmake --build --preset dev
 
   test:
-    desc: Build and run all tests
+    desc: Build and run dashboard tests
     deps: [build]
     cmds:
       - ctest --preset dev
@@ -33,6 +33,7 @@ tasks:
       - scripts/run-ci-container.sh tidy
       - scripts/run-ci-container.sh asan
       - scripts/run-ci-container.sh ubsan
+      - task daemon-test
 
   run:
     desc: Run the dashboard locally
@@ -84,10 +85,7 @@ tasks:
   install:
     desc: Build and install the Raspberry Pi kiosk
     cmds:
-      - cmake --preset release
-      - cmake --build --preset release
-      - sudo cmake --install build/release
-      - sudo /usr/local/libexec/rpi-dashboard/provision.sh
+      - ./install.sh
 
   test-asan:
     desc: Build and run tests with AddressSanitizer

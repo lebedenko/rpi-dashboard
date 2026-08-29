@@ -11,6 +11,8 @@ service without disrupting the current console session.
 
 - `task install` configures and builds the Release preset without privilege escalation. It uses
   `sudo` only to install the built files and run the provisioning helper.
+- A dashboard source package exposes the same lifecycle through `./install.sh`: configure, build,
+  and test as the invoking user, then use `sudo` only for CMake installation and provisioning.
 - The installed runtime consists of `/usr/local/bin/rpi-dashboard`, launcher and provisioning
   and fixed release-activation helpers in `/usr/local/libexec/rpi-dashboard/`, and
   `/usr/local/lib/systemd/system/rpi-dashboard.service`.
@@ -67,7 +69,7 @@ Systemd recommends credentials rather than environment variables for secrets; se
 ## Observable acceptance criteria
 
 - A temporary `DESTDIR` installation contains every documented path with executable helpers and
-  service contents intact.
+  service contents intact, and contains no daemon binary, unit, configuration, or package file.
 - A repeated temporary `DESTDIR` installation preserves existing dashboard configuration, adds the
   shipped weather defaults once, and does not duplicate them.
 - A deterministic fake-host test covers initial account creation, an idempotent valid-account run,
@@ -90,6 +92,7 @@ Framebuffer-console rotation and touchscreen calibration remain manual, device-s
 - Supporting non-aarch64 systems, Raspberry Pi models other than Pi 5, configurable install
   prefixes, or account names other than `dashboard` for production.
 - Installing the remote telemetry agent.
+- Building, testing, staging, or packaging `dashboard-daemon` as part of the dashboard graph.
 - Semantically merging individual keys into an existing configuration section.
 - Starting the kiosk during installation or configuring display/touch hardware automatically.
 - Downloading releases or granting general passwordless sudo; production deployment is specified

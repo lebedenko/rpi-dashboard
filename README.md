@@ -26,7 +26,7 @@ task run
 task run-windowed
 ```
 
-Build the standalone remote telemetry service without Qt:
+Build the independently configured remote telemetry service without Qt:
 
 ```sh
 task daemon-test
@@ -39,14 +39,19 @@ second cadence in `/etc/xdg/dashboard-daemon/config.toml`, then validate it:
 dashboard-daemon --config /etc/xdg/dashboard-daemon/config.toml --check-config
 ```
 
-The service stores a stable device UUID at `/var/lib/dashboard-daemon/device-id`. Build and install
-the native Release daemon with `task install:daemon`. The task uses `sudo` only for the packaged
-POSIX installer, which leaves the unit disabled and stopped. After configuration and validation,
-start it explicitly:
+The service stores a stable device UUID at `/var/lib/dashboard-daemon/device-id`. Release assets
+are native static-musl packages for `x86_64` and `aarch64`. Select the matching archive, edit its
+configuration before installation, and run the transactional root installer:
 
 ```sh
-sudo systemctl enable --now dashboard-daemon
+tar -xzf dashboard-daemon-0.1.1-linux-ARCH.tar.gz
+cd dashboard-daemon-0.1.1-linux-ARCH
+$EDITOR config.toml
+sudo ./install.sh
 ```
+
+First installation enables and starts the service. Upgrades preserve host configuration and roll
+the runtime and service state back if the new process does not remain healthy for five seconds.
 
 Without Task:
 
@@ -79,6 +84,10 @@ task test-pi PI_HOST=dashboard-pi.local PI_PATH=/home/dashboard/rpi-dashboard-te
 The task synchronizes source files without deleting remote files, excludes local build output, and invokes `task test` on the Pi. It does not replace the physical graphics and input checks below.
 
 ## Raspberry Pi TTY kiosk
+
+For manual installation, unpack `rpi-dashboard-0.1.1.tar.gz` as an unprivileged user and run
+`./install.sh`. It builds and tests natively before using `sudo` only for installation and Pi 5
+provisioning. Existing configuration is preserved; the kiosk is enabled but not started.
 
 Log in on an active local Raspberry Pi TTY, then build natively and start Cage as that non-root user with the dashboard as its fullscreen Wayland client:
 

@@ -2,65 +2,79 @@ name: Release
 
 on:
   push:
-    tags:
-      - "v*"
+    tags: ["v*"]
 
 permissions:
   contents: read
 
 jobs:
-  release:
+  validate:
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    permissions:
-      contents: write
     steps:
-      - name: Check out tagged source
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v7.0.1
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v7.0.1
+        with: {fetch-depth: 0, persist-credentials: false}
       - name: Validate tag, versions, and main ancestry
-        env:
-          TAG: ${{ github.ref_name }}
+        env: {TAG: "${{ github.ref_name }}"}
         run: |
-          case "$TAG" in
-            v0|v0.*) ;;
-            v[1-9][0-9]*.*.*) ;;
-            *) echo "Not a stable vMAJOR.MINOR.PATCH tag: $TAG" >&2; exit 2 ;;
-          esac
           version=${TAG#v}
           printf '%s\n' "$version" | grep -Eq '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'
           scripts/release.sh verify "$version"
           git fetch --no-tags origin main
           git merge-base --is-ancestor "$GITHUB_SHA" origin/main
 
-      - name: Build deterministic source assets
-        env:
-          TAG: ${{ github.ref_name }}
-        run: scripts/release.sh archive "${TAG#v}" "$RUNNER_TEMP/release"
+  dashboard:
+    needs: validate
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v7.0.1
+        with: {persist-credentials: false}
+      - run: scripts/release.sh dashboard "${GITHUB_REF_NAME#v}" "$RUNNER_TEMP/assets"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with: {name: dashboard-assets, path: "${{ runner.temp }}/assets/*", if-no-files-found: error}
 
-      - name: Extract changelog entry
-        env:
-          TAG: ${{ github.ref_name }}
+  daemon:
+    needs: validate
+    strategy:
+      matrix:
+        include:
+          - {arch: x86_64, runner: ubuntu-24.04}
+          - {arch: aarch64, runner: ubuntu-24.04-arm}
+    runs-on: ${{ matrix.runner }}
+    container: alpine:3.22.1@sha256:4bcff63911fcb4448bd4fdacec207030997caf25e9bea4045fa6c8c44de311d1
+    steps:
+      - run: apk add --no-cache build-base cmake ninja file git
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v7.0.1
+        with: {persist-credentials: false}
+      - name: Build and test static daemon natively
+        run: |
+          cmake -S daemon -B build/daemon-release -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXE_LINKER_FLAGS=-static
+          cmake --build build/daemon-release
+          ctest --test-dir build/daemon-release --output-on-failure
+          build/daemon-release/dashboard-daemon --version | grep -Fx "dashboard-daemon ${GITHUB_REF_NAME#v}"
+          sed 's/host = ""/host = "127.0.0.1"/' daemon/package/config.toml >"$RUNNER_TEMP/config.toml"
+          build/daemon-release/dashboard-daemon --config "$RUNNER_TEMP/config.toml" --check-config
+          file build/daemon-release/dashboard-daemon | grep -F 'statically linked'
+          readelf -h build/daemon-release/dashboard-daemon | grep -E '${{ matrix.arch == 'x86_64' && 'Advanced Micro Devices X86-64' || 'AArch64' }}'
+          ! readelf -l build/daemon-release/dashboard-daemon | grep -F INTERP
+      - run: scripts/release.sh daemon "${GITHUB_REF_NAME#v}" "${{ matrix.arch }}" build/daemon-release/dashboard-daemon "$RUNNER_TEMP/assets"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with: {name: "daemon-${{ matrix.arch }}-assets", path: "${{ runner.temp }}/assets/*", if-no-files-found: error}
+
+  publish:
+    needs: [dashboard, daemon]
+    runs-on: ubuntu-24.04
+    permissions: {contents: write}
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v7.0.1
+        with: {persist-credentials: false}
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with: {pattern: "*-assets", path: "${{ runner.temp }}/assets", merge-multiple: true}
+      - name: Verify and publish six assets
+        env: {GH_TOKEN: "${{ github.token }}", TAG: "${{ github.ref_name }}"}
         run: |
           version=${TAG#v}
-          awk -v heading="## [$version]" '
-            index($0, heading) == 1 { found=1; next }
-            found && /^## \[/ { exit }
-            found { print }
-          ' CHANGELOG.md >"$RUNNER_TEMP/release-notes.md"
-          test -s "$RUNNER_TEMP/release-notes.md"
-
-      - name: Publish GitHub Release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: ${{ github.ref_name }}
-        run: |
-          version=${TAG#v}
-          gh release create "$TAG" \
-            "$RUNNER_TEMP/release/rpi-dashboard-$version.tar.gz" \
-            "$RUNNER_TEMP/release/rpi-dashboard-$version.tar.gz.sha256" \
-            --verify-tag --generate-notes --notes-file "$RUNNER_TEMP/release-notes.md" \
-            --title "rpi-dashboard $version"
+          test "$(find "$RUNNER_TEMP/assets" -type f | wc -l)" -eq 6
+          (cd "$RUNNER_TEMP/assets" && sha256sum --check *.sha256)
+          for archive in rpi-dashboard-$version.tar.gz dashboard-daemon-$version-linux-x86_64.tar.gz dashboard-daemon-$version-linux-aarch64.tar.gz; do test -f "$RUNNER_TEMP/assets/$archive"; done
+          awk -v h="## [$version]" 'index($0,h)==1{f=1;next} f&&/^## \[/{exit} f{print}' CHANGELOG.md >"$RUNNER_TEMP/notes.md"
+          gh release create "$TAG" "$RUNNER_TEMP"/assets/* --verify-tag --generate-notes --notes-file "$RUNNER_TEMP/notes.md" --title "rpi-dashboard $version"

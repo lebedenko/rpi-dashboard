@@ -44,6 +44,24 @@ sh -n "$installed_libexec/run-dashboard-session.sh"
 sh -n "$installed_libexec/activate-release.sh"
 sh -n "$installed_libexec/provision.sh"
 
+actual_manifest="$test_dir/installed-manifest"
+expected_manifest="$test_dir/expected-manifest"
+(cd "$install_root" && find . -type f -o -type l) | LC_ALL=C sort >"$actual_manifest"
+cat >"$expected_manifest" <<'EOF'
+./usr/local/bin/rpi-dashboard
+./usr/local/etc/xdg/rpi-dashboard/config.toml
+./usr/local/lib/systemd/system/rpi-dashboard.service
+./usr/local/libexec/rpi-dashboard/activate-release.sh
+./usr/local/libexec/rpi-dashboard/provision.sh
+./usr/local/libexec/rpi-dashboard/run-dashboard-session.sh
+./usr/local/libexec/rpi-dashboard/run-kiosk.sh
+EOF
+cmp "$expected_manifest" "$actual_manifest"
+if find "$install_root" -iname '*dashboard-daemon*' -o -path '*/dashboard-daemon/*' | grep -q .; then
+  echo "install_flow_test: dashboard stage contains daemon files" >&2
+  exit 1
+fi
+
 fake_bin="$test_dir/bin"
 state="$test_dir/state"
 mkdir "$fake_bin" "$state"

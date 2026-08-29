@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.25)
 
 project(RpiDashboard
-    VERSION 0.1.0
+    VERSION 0.1.1
     DESCRIPTION "Standalone Qt dashboard for local and remote system telemetry"
     LANGUAGES CXX
 )
@@ -49,8 +49,6 @@ add_subdirectory(src/sysmetrics)
 add_subdirectory(src/projects)
 add_subdirectory(src/weather)
 add_subdirectory(src/dashboard)
-add_subdirectory(daemon)
-
 if(BUILD_TESTING)
     add_subdirectory(tests)
 endif()

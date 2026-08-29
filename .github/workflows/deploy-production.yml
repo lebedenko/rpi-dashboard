@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: Existing stable release version (for example 0.1.0)
+        description: Existing stable release version (for example 0.1.1)
         required: true
         type: string
 
