@@ -17,7 +17,9 @@ with its own checksum. Only the dashboard archive is deployed to the production 
   `dashboard-daemon-VERSION-linux-aarch64.tar.gz` assets with individual SHA-256 files. The
   dashboard manifest excludes `daemon/`; daemon packages contain exactly the documented four files.
 - Daemons build and test natively in pinned Alpine/musl environments on matching GitHub-hosted
-  architectures. Packaging verifies version, ELF architecture, and absence of an interpreter.
+  architectures. JavaScript actions run on the Ubuntu host rather than inside Alpine so both x64
+  and arm64 runners are supported. Packaging verifies version, ELF architecture, and absence of
+  an interpreter.
 - The release job alone receives `contents: write`; checkout credentials are not persisted.
 
 ## Deployment requirements
@@ -47,6 +49,8 @@ with its own checksum. Only the dashboard archive is deployed to the production 
   healthy activation, rollback, and failed-first-install recovery.
 - CI runs `dev`, `release`, `tidy`, `asan`, and `ubsan` as separately required checks.
 - CI also runs a separately required native daemon build and test check.
+- Both release daemon matrix entries run to completion independently, and each uploads its assets
+  after the pinned Alpine build succeeds.
 - A production workflow run records the protected environment and requested version, and the
   deployed binaries report that version.
 

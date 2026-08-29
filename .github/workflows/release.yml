@@ -35,28 +35,41 @@ jobs:
   daemon:
     needs: validate
     strategy:
+      fail-fast: false
       matrix:
         include:
-          - {arch: x86_64, runner: ubuntu-24.04}
-          - {arch: aarch64, runner: ubuntu-24.04-arm}
+          - {arch: x86_64, runner: ubuntu-24.04, machine: "Advanced Micro Devices X86-64"}
+          - {arch: aarch64, runner: ubuntu-24.04-arm, machine: AArch64}
     runs-on: ${{ matrix.runner }}
-    container: alpine:3.22.1@sha256:4bcff63911fcb4448bd4fdacec207030997caf25e9bea4045fa6c8c44de311d1
     steps:
-      - run: apk add --no-cache build-base cmake ninja file git
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v7.0.1
         with: {persist-credentials: false}
       - name: Build and test static daemon natively
+        env:
+          ALPINE_IMAGE: alpine:3.22.1@sha256:4bcff63911fcb4448bd4fdacec207030997caf25e9bea4045fa6c8c44de311d1
+          ARCH: ${{ matrix.arch }}
+          EXPECTED_MACHINE: ${{ matrix.machine }}
+          VERSION: ${{ github.ref_name }}
         run: |
-          cmake -S daemon -B build/daemon-release -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXE_LINKER_FLAGS=-static
-          cmake --build build/daemon-release
-          ctest --test-dir build/daemon-release --output-on-failure
-          build/daemon-release/dashboard-daemon --version | grep -Fx "dashboard-daemon ${GITHUB_REF_NAME#v}"
-          sed 's/host = ""/host = "127.0.0.1"/' daemon/package/config.toml >"$RUNNER_TEMP/config.toml"
-          build/daemon-release/dashboard-daemon --config "$RUNNER_TEMP/config.toml" --check-config
-          file build/daemon-release/dashboard-daemon | grep -F 'statically linked'
-          readelf -h build/daemon-release/dashboard-daemon | grep -E '${{ matrix.arch == 'x86_64' && 'Advanced Micro Devices X86-64' || 'AArch64' }}'
-          ! readelf -l build/daemon-release/dashboard-daemon | grep -F INTERP
-      - run: scripts/release.sh daemon "${GITHUB_REF_NAME#v}" "${{ matrix.arch }}" build/daemon-release/dashboard-daemon "$RUNNER_TEMP/assets"
+          VERSION=${VERSION#v}
+          docker run --rm \
+            --volume "$GITHUB_WORKSPACE:/workspace" \
+            --volume "$RUNNER_TEMP:/runner-temp" \
+            --workdir /workspace \
+            --env ARCH --env EXPECTED_MACHINE --env VERSION \
+            "$ALPINE_IMAGE" sh -euxc '
+              apk add --no-cache build-base cmake ninja file git
+              cmake -S daemon -B build/daemon-release -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXE_LINKER_FLAGS=-static
+              cmake --build build/daemon-release
+              ctest --test-dir build/daemon-release --output-on-failure
+              build/daemon-release/dashboard-daemon --version | grep -Fx "dashboard-daemon $VERSION"
+              sed '\''s/host = ""/host = "127.0.0.1"/'\'' daemon/package/config.toml >/runner-temp/config.toml
+              build/daemon-release/dashboard-daemon --config /runner-temp/config.toml --check-config
+              file build/daemon-release/dashboard-daemon | grep -F "statically linked"
+              readelf -h build/daemon-release/dashboard-daemon | grep -F "$EXPECTED_MACHINE"
+              ! readelf -l build/daemon-release/dashboard-daemon | grep -F INTERP
+              scripts/release.sh daemon "$VERSION" "$ARCH" build/daemon-release/dashboard-daemon /runner-temp/assets
+            '
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with: {name: "daemon-${{ matrix.arch }}-assets", path: "${{ runner.temp }}/assets/*", if-no-files-found: error}
 
