@@ -4,7 +4,7 @@
 
 Create a `main` ruleset with no bypass actors. Require pull requests with zero approvals, resolved
 conversations, current branches, linear history, and the `dev`, `release`, `tidy`, `asan`, and
-`ubsan` checks. Block force pushes and deletion. Enable squash merge only, automatic head-branch
+`ubsan`, and `daemon` checks. Block force pushes and deletion. Enable squash merge only, automatic head-branch
 deletion, and optionally auto-merge. Create a second `v*` tag ruleset that blocks updates and
 deletions. Signed commits remain optional; release tags are signed annotated tags.
 
@@ -13,6 +13,10 @@ artifacts for seven days, and require approval for first-time outside contributo
 actions used by this repository; each workflow reference is pinned to a full commit SHA. Enable
 Dependabot alerts and security updates. `.github/dependabot.yml` requests weekly updates for
 GitHub Actions and the CI Docker base image.
+
+The Actions allowlist includes pinned `actions/checkout`, `actions/upload-artifact`,
+`actions/download-artifact`, and `tailscale/github-action`. The daemon release jobs use the pinned
+multi-architecture Alpine image digest recorded in the workflow.
 
 Create the protected `raspberry-pi-production` environment, restrict it to protected `main`, require
 manual approval while allowing self-review, and disable administrator bypass. Add:
@@ -41,17 +45,23 @@ pull request → required CI → squash merge. Prepare a release PR that removes
 After merging, create and push the tag from updated `main`:
 
 ```sh
-git tag -s -a v0.1.0 -m 'rpi-dashboard 0.1.0'
-git push origin v0.1.0
+git tag -s -a v0.1.1 -m 'rpi-dashboard 0.1.1'
+git push origin v0.1.1
 ```
 
 Exercise the release workflow with a temporary non-release tag in a fork, or run
-`scripts/release.sh archive 0.1.0 /tmp/rpi-dashboard-release` locally, before the production tag.
+`scripts/release.sh dashboard 0.1.1 /tmp/rpi-dashboard-release` locally, before the production tag.
 Never move a published release tag.
+
+Confirm that the release has three archives and three adjacent checksum files. Verify each daemon
+archive's four-file prefixed manifest, executable version, ELF architecture, and static linkage.
+Operators edit the unpacked `config.toml` before `sudo ./install.sh`; upgrades retain host
+configuration and roll back runtime files and service state after a failed health check.
 
 ## Deploy and validate
 
-Run **Deploy production** with version `0.1.0`, approve the environment gate, and retain its
-deployment record. Confirm both installed binaries report `0.1.0`, then repeat the systemd,
+Run **Deploy production** with version `0.1.1`, approve the environment gate, and retain its
+deployment record. The workflow transfers only the dashboard archive and checksum. Confirm the
+dashboard reports `0.1.1`, then repeat the systemd,
 journal, display, touch, keyboard, VT recovery, and SSH checks in `docs/hardware-validation.md`.
 Backups under `/var/lib/rpi-dashboard/releases` are intentionally retained for the first release.

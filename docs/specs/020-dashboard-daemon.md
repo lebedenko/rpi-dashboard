@@ -35,11 +35,14 @@ and explicit rejection are fatal.
 
 ## Installation and support
 
-The archive contains `dashboard-daemon`, `dashboard-daemon.service`, `config.toml`, and
-`install.sh`. The root-only POSIX installer supports x86_64/aarch64 systemd hosts, installs below
-`/usr/local` and `/etc/xdg`, preserves existing configuration, reloads systemd, and leaves the
-service stopped and disabled. `task install:daemon` builds the native Release executable, stages
-those package files, and invokes the installer through `sudo`. Supported systems have Linux 5.4+
+Each architecture-specific archive contains `dashboard-daemon`, `dashboard-daemon.service`, an
+editable `config.toml`, and `install.sh` below a version-and-architecture directory. The root-only
+POSIX installer rejects incompatible architectures, missing systemd, and invalid packaged or
+preserved configuration before mutation. First installation atomically installs the files and
+enables and starts the service. Upgrade preserves configuration, replaces the binary and unit,
+and restarts it. Health requires a stable PID and restart count for five seconds. Upgrade failure
+restores the prior binary, unit, enablement, and running state; first-install failure removes the
+new runtime but keeps the edited configuration for diagnosis. Supported systems have Linux 5.4+
 and systemd 235+.
 
 ## Acceptance criteria
@@ -50,11 +53,12 @@ and systemd 235+.
 - A loopback run registers and sends a snapshot accepted by the Qt protocol receiver.
 - The service uses `DynamicUser`, `StateDirectory`, restricted filesystem access, journald, and
   restart-on-failure hardening.
-- Installation is atomic, preserves configuration, validates its host, and does not enable or
-  start the service.
+- Installation validates before mutation, is atomic, preserves configuration on upgrade, starts
+  on first install, and rolls runtime and systemd state back after failed upgrade health checks.
 - `task install:daemon` performs a Release build before installing the daemon and service package.
 
 ## Non-goals
 
 Authentication, encryption, discovery, Windows, macOS, 32-bit architectures, protocol redesign,
-and compatibility with pre-5.4 kernels or pre-235 systemd are excluded.
+cross-architecture execution, dashboard deployment, and compatibility with pre-5.4 kernels or
+pre-235 systemd are excluded.

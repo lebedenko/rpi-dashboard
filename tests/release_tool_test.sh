@@ -3,6 +3,7 @@
 set -eu
 
 release_script=$1
+source_root=$(CDPATH= cd -- "$(dirname -- "$release_script")/.." && pwd)
 test_dir=$(mktemp -d "${TMPDIR:-/tmp}/rpi-dashboard-release-test-XXXXXX")
 trap 'rm -rf -- "$test_dir"' EXIT HUP INT TERM
 repo=$test_dir/repo
@@ -10,21 +11,45 @@ mkdir "$repo"
 cp "$release_script" "$repo/release.sh"
 cat >"$repo/CMakeLists.txt" <<'EOF'
 project(RpiDashboard
-    VERSION 0.1.0
+    VERSION 0.1.1
 )
 EOF
 mkdir "$repo/daemon"
-printf '%s\n' 'project(DashboardDaemon VERSION 0.1.0 LANGUAGES CXX)' >"$repo/daemon/CMakeLists.txt"
-printf '%s\n' '# Changelog' '' '## [0.1.0] - 2026-08-28' '' '- Initial release.' >"$repo/CHANGELOG.md"
+printf '%s\n' 'project(DashboardDaemon VERSION 0.1.1 LANGUAGES CXX)' >"$repo/daemon/CMakeLists.txt"
+mkdir "$repo/daemon/package"
+printf '%s\n' daemon-only >"$repo/daemon/package/secret"
+cp "$source_root/daemon/package/config.toml" "$source_root/daemon/package/dashboard-daemon.service" "$source_root/daemon/package/install.sh" "$repo/daemon/package/"
+printf '%s\n' '# Changelog' '' '## [0.1.1] - 2026-08-29' '' '- Split packages.' >"$repo/CHANGELOG.md"
 (cd "$repo" && git init -q && git add . && git -c user.name=test -c user.email=test@example.invalid commit -qm test)
 
-(cd "$repo" && sh release.sh verify 0.1.0)
+(cd "$repo" && sh release.sh verify 0.1.1)
 if (cd "$repo" && sh release.sh verify 0.1 >/dev/null 2>&1); then
     echo "release_tool_test: accepted an unstable version" >&2
     exit 1
 fi
-(cd "$repo" && sh release.sh archive 0.1.0 "$test_dir/one")
-(cd "$repo" && sh release.sh archive 0.1.0 "$test_dir/two")
-cmp "$test_dir/one/rpi-dashboard-0.1.0.tar.gz" "$test_dir/two/rpi-dashboard-0.1.0.tar.gz"
-(cd "$test_dir/one" && sha256sum --check rpi-dashboard-0.1.0.tar.gz.sha256)
-tar -tzf "$test_dir/one/rpi-dashboard-0.1.0.tar.gz" | grep -Fqx 'rpi-dashboard-0.1.0/CHANGELOG.md'
+(cd "$repo" && sh release.sh dashboard 0.1.1 "$test_dir/one")
+(cd "$repo" && sh release.sh dashboard 0.1.1 "$test_dir/two")
+cmp "$test_dir/one/rpi-dashboard-0.1.1.tar.gz" "$test_dir/two/rpi-dashboard-0.1.1.tar.gz"
+(cd "$test_dir/one" && sha256sum --check rpi-dashboard-0.1.1.tar.gz.sha256)
+manifest=$(tar -tzf "$test_dir/one/rpi-dashboard-0.1.1.tar.gz")
+printf '%s\n' "$manifest" | grep -Fqx 'rpi-dashboard-0.1.1/CHANGELOG.md'
+if printf '%s\n' "$manifest" | grep -q '^rpi-dashboard-0.1.1/daemon/'; then
+    echo "release_tool_test: dashboard archive contains daemon files" >&2
+    exit 1
+fi
+cat >"$repo/dashboard-daemon" <<'EOF'
+#!/bin/sh
+[ "$1" = --version ] && printf '%s\n' 'dashboard-daemon 0.1.1'
+EOF
+chmod +x "$repo/dashboard-daemon"
+(cd "$repo" && sh release.sh daemon 0.1.1 x86_64 ./dashboard-daemon "$test_dir/daemon")
+(cd "$test_dir/daemon" && sha256sum --check dashboard-daemon-0.1.1-linux-x86_64.tar.gz.sha256)
+tar -tzf "$test_dir/daemon/dashboard-daemon-0.1.1-linux-x86_64.tar.gz" | LC_ALL=C sort >"$test_dir/daemon-manifest"
+cat >"$test_dir/expected-daemon-manifest" <<'EOF'
+dashboard-daemon-0.1.1-linux-x86_64/
+dashboard-daemon-0.1.1-linux-x86_64/config.toml
+dashboard-daemon-0.1.1-linux-x86_64/dashboard-daemon
+dashboard-daemon-0.1.1-linux-x86_64/dashboard-daemon.service
+dashboard-daemon-0.1.1-linux-x86_64/install.sh
+EOF
+cmp "$test_dir/expected-daemon-manifest" "$test_dir/daemon-manifest"
