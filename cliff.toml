@@ -1,0 +1,40 @@
+# git-cliff 2.13.1 configuration. The container digest is pinned in
+# scripts/run-git-cliff.sh.
+[changelog]
+header = ""
+body = """
+{% for name in ["0 Breaking", "Added", "Fixed", "Changed", "Build and dependencies", "Documentation"] %}
+{% set grouped = commits | filter(attribute="group", value=name) %}
+{% if grouped | length > 0 %}
+### {% if name == "0 Breaking" %}Breaking{% else %}{{ name }}{% endif %}
+
+{% for commit in grouped %}- {% if commit.breaking %}**Breaking:** {% endif %}{{ commit.message | upper_first }}
+{% endfor %}
+{% endif %}
+{% endfor %}"""
+footer = ""
+trim = true
+
+[git]
+conventional_commits = true
+filter_unconventional = true
+split_commits = false
+commit_parsers = [
+  { message = "^.*!:", group = "0 Breaking" },
+  { body = ".*BREAKING CHANGE.*", group = "0 Breaking" },
+  { message = "^feat(?:\\([^)]*\\))?:", group = "Added" },
+  { message = "^fix(?:\\([^)]*\\))?:", group = "Fixed" },
+  { message = "^(?:perf|refactor)(?:\\([^)]*\\))?:", group = "Changed" },
+  { message = "^(?:build|ci)(?:\\([^)]*\\))?:", group = "Build and dependencies" },
+  { message = "^chore\\(deps[^)]*\\):", group = "Build and dependencies" },
+  { message = "^docs(?:\\([^)]*\\))?:", group = "Documentation" },
+  { message = "^(?:test|style|chore)(?:\\([^)]*\\))?:", skip = true },
+  { message = "^chore\\(release\\):", skip = true },
+]
+commit_preprocessors = [
+  { pattern = " \\(#([0-9]+)\\)$", replace = " ([#$1](https://github.com/lebedenko/rpi-dashboard/pull/$1))" },
+]
+protect_breaking_commits = true
+filter_commits = true
+topo_order = false
+sort_commits = "oldest"

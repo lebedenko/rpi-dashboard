@@ -44,8 +44,8 @@ are native static-musl packages for `x86_64` and `aarch64`. Select the matching 
 configuration before installation, and run the transactional root installer:
 
 ```sh
-tar -xzf dashboard-daemon-0.1.1-linux-ARCH.tar.gz
-cd dashboard-daemon-0.1.1-linux-ARCH
+tar -xzf dashboard-daemon-VERSION-linux-ARCH.tar.gz
+cd dashboard-daemon-VERSION-linux-ARCH
 $EDITOR config.toml
 sudo ./install.sh
 ```
@@ -70,7 +70,7 @@ publication and digest-lock procedure is documented in
 [the reproducible CI toolchain specification](docs/specs/016-reproducible-ci-toolchain.md).
 
 Changes use short-lived branches, Conventional Commit subjects, pull requests, and squash merges.
-The protected-branch, signed-tag, checksummed-release, and manually approved Raspberry Pi deployment
+The protected-branch, generated-changelog, checksummed-release, and manually approved Raspberry Pi deployment
 procedure is documented in [the release runbook](docs/release-runbook.md).
 
 For exact-geometry laptop UI work, `task run-windowed` opens a normal 1480×320 window; production launches remain fullscreen. `task test-asan` and `task test-ubsan` run separate sanitizer builds. `QT_SCALE_FACTOR` may be varied for extra DPI robustness checks, but the primary geometry is scale 1 at logical 1480×320.
@@ -85,7 +85,7 @@ The task synchronizes source files without deleting remote files, excludes local
 
 ## Raspberry Pi TTY kiosk
 
-For manual installation, unpack `rpi-dashboard-0.1.1.tar.gz` as an unprivileged user and run
+For manual installation, unpack `rpi-dashboard-VERSION.tar.gz` as an unprivileged user and run
 `./install.sh`. It builds and tests natively before using `sudo` only for installation and Pi 5
 provisioning. Existing configuration is preserved; the kiosk is enabled but not started.
 

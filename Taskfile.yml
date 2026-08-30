@@ -118,3 +118,24 @@ tasks:
     desc: Remove local build outputs
     cmds:
       - cmake -E remove_directory build
+
+  release:prepare:
+    desc: Prepare VERSION and generated CHANGELOG.md on a release branch
+    requires: {vars: [VERSION]}
+    cmds:
+      - scripts/release-prepare.sh prepare '{{.VERSION}}'
+
+  release:check:
+    desc: Verify committed release metadata and focused release tests
+    requires: {vars: [VERSION]}
+    cmds:
+      - scripts/release-prepare.sh check '{{.VERSION}}'
+      - cmake --preset dev
+      - cmake --build --preset dev
+      - ctest --preset dev -R '^(executable_version|release_)' --output-on-failure
+
+  release:publish:
+    desc: Dispatch and watch a guarded release from synchronized main
+    requires: {vars: [VERSION]}
+    cmds:
+      - scripts/release-publish.sh '{{.VERSION}}'
