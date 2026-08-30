@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file. The format is b
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and releases follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.4] - 2026-08-30
+
+### Fixed
+
+- Prevent empty daemon archives ([#6](https://github.com/lebedenko/rpi-dashboard/pull/6))
+
 ## [0.1.3] - 2026-08-30
 
 ### Fixed
@@ -21,5 +27,6 @@ All notable changes to this project are documented in this file. The format is b
 - Reproducible five-preset CI, checksummed source releases, and manually approved production
   deployment over Tailscale.
 
+[0.1.4]: https://github.com/lebedenko/rpi-dashboard/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/lebedenko/rpi-dashboard/compare/v0.1.0...v0.1.3
 [0.1.0]: https://github.com/lebedenko/rpi-dashboard/releases/tag/v0.1.0
