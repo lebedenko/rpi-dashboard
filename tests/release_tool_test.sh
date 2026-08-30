@@ -50,3 +50,21 @@ dashboard-daemon-0.1.1-linux-x86_64/dashboard-daemon.service
 dashboard-daemon-0.1.1-linux-x86_64/install.sh
 EOF
 cmp "$test_dir/expected-daemon-manifest" "$test_dir/daemon-manifest"
+
+mkdir "$test_dir/failing-bin"
+cat >"$test_dir/failing-bin/tar" <<'EOF'
+#!/bin/sh
+case " $* " in
+  *' --sort=name '*) echo 'tar: unrecognized option: sort=name' >&2; exit 64 ;;
+  *) exec "$REAL_TAR" "$@" ;;
+esac
+EOF
+chmod +x "$test_dir/failing-bin/tar"
+real_tar=$(command -v tar)
+if (cd "$repo" && PATH="$test_dir/failing-bin:$PATH" REAL_TAR="$real_tar" \
+    sh release.sh daemon 0.1.1 x86_64 ./dashboard-daemon "$test_dir/tar-failure"); then
+    echo "release_tool_test: tar failure produced a successful empty archive" >&2
+    exit 1
+fi
+[ ! -e "$test_dir/tar-failure/dashboard-daemon-0.1.1-linux-x86_64.tar.gz.sha256" ]
+[ ! -e "$test_dir/tar-failure/dashboard-daemon-0.1.1-linux-x86_64.tar.gz" ]

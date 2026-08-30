@@ -12,7 +12,9 @@ checksum() { (cd "$(dirname "$1")" && sha256sum "$(basename "$1")" >"$(basename 
 dashboard_archive() {
   version=$1 output=$2; verify "$version"; mkdir -p "$output"
   archive="$output/rpi-dashboard-$version.tar.gz"
-  git archive --format=tar --prefix="rpi-dashboard-$version/" "${RELEASE_GIT_REF:-HEAD}" -- . ':(exclude)daemon' | gzip -n -9 >"$archive"
+  work=$(mktemp -d "${TMPDIR:-/tmp}/rpi-dashboard-package-XXXXXX"); trap 'rm -rf -- "$work"' EXIT HUP INT TERM
+  git archive --format=tar --prefix="rpi-dashboard-$version/" --output="$work/dashboard.tar" "${RELEASE_GIT_REF:-HEAD}" -- . ':(exclude)daemon'
+  gzip -n -9 <"$work/dashboard.tar" >"$archive"
   checksum "$archive"
 }
 daemon_archive() {
@@ -27,7 +29,9 @@ daemon_archive() {
   sed "s/@PACKAGE_ARCH@/$arch/g" daemon/package/install.sh >"$work/$prefix/install.sh"
   chmod 0755 "$work/$prefix/dashboard-daemon" "$work/$prefix/install.sh"
   archive="$output/$prefix.tar.gz"
-  tar --sort=name --owner=0 --group=0 --numeric-owner --mtime='UTC 1970-01-01' -C "$work" -cf - "$prefix" | gzip -n -9 >"$archive"
+  tar --version | grep -F 'GNU tar' >/dev/null || { echo "release: daemon packaging requires GNU tar" >&2; exit 1; }
+  tar --sort=name --owner=0 --group=0 --numeric-owner --mtime='UTC 1970-01-01' -C "$work" -cf "$work/$prefix.tar" "$prefix"
+  gzip -n -9 <"$work/$prefix.tar" >"$archive"
   checksum "$archive"
 }
 [ "$#" -ge 2 ] || usage
