@@ -55,7 +55,7 @@ jobs:
             --volume "$GITHUB_WORKSPACE:/workspace" --volume "$RUNNER_TEMP:/runner-temp" \
             --workdir /workspace --env ARCH --env EXPECTED_MACHINE --env VERSION \
             "$ALPINE_IMAGE" sh -euxc '
-              apk add --no-cache build-base cmake ninja file git
+              apk add --no-cache build-base cmake ninja file git tar
               cmake -S daemon -B build/daemon-release -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXE_LINKER_FLAGS=-static
               cmake --build build/daemon-release
               ctest --test-dir build/daemon-release --output-on-failure
@@ -66,6 +66,13 @@ jobs:
               readelf -h build/daemon-release/dashboard-daemon | grep -F "$EXPECTED_MACHINE"
               ! readelf -l build/daemon-release/dashboard-daemon | grep -F INTERP
               scripts/release.sh daemon "$VERSION" "$ARCH" build/daemon-release/dashboard-daemon /runner-temp/assets
+              prefix="dashboard-daemon-$VERSION-linux-$ARCH"
+              archive="/runner-temp/assets/$prefix.tar.gz"
+              manifest=$(tar -tzf "$archive")
+              test "$(printf "%s\n" "$manifest" | wc -l)" -eq 5
+              for entry in "$prefix/" "$prefix/config.toml" "$prefix/dashboard-daemon" "$prefix/dashboard-daemon.service" "$prefix/install.sh"; do
+                printf "%s\n" "$manifest" | grep -Fx "$entry"
+              done
             '
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with: {name: "daemon-${{ matrix.arch }}-assets", path: "${{ runner.temp }}/assets/*", if-no-files-found: error}
@@ -85,6 +92,14 @@ jobs:
           test "$(find "$RUNNER_TEMP/assets" -type f | wc -l)" -eq 6
           (cd "$RUNNER_TEMP/assets" && sha256sum --check *.sha256)
           for archive in rpi-dashboard-$VERSION.tar.gz dashboard-daemon-$VERSION-linux-x86_64.tar.gz dashboard-daemon-$VERSION-linux-aarch64.tar.gz; do test -f "$RUNNER_TEMP/assets/$archive"; done
+          for arch in x86_64 aarch64; do
+            prefix="dashboard-daemon-$VERSION-linux-$arch"
+            manifest=$(tar -tzf "$RUNNER_TEMP/assets/$prefix.tar.gz")
+            test "$(printf '%s\n' "$manifest" | wc -l)" -eq 5
+            for entry in "$prefix/" "$prefix/config.toml" "$prefix/dashboard-daemon" "$prefix/dashboard-daemon.service" "$prefix/install.sh"; do
+              printf '%s\n' "$manifest" | grep -Fx "$entry"
+            done
+          done
           awk -v h="## [$VERSION]" 'index($0,h)==1{f=1;next} f&&/^## \[/{exit} f{print}' CHANGELOG.md >release-notes.md
           release=$(gh api "repos/$GITHUB_REPOSITORY/releases" --paginate --jq ".[] | select(.tag_name == \"$tag\") | [.id, .draft, .target_commitish] | @tsv" | head -n1)
           if [ -n "$release" ]; then

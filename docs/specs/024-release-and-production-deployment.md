@@ -31,7 +31,8 @@ to the production Raspberry Pi.
 - Daemons build and test natively in pinned Alpine/musl environments on matching GitHub-hosted
   architectures. JavaScript actions run on the Ubuntu host rather than inside Alpine so both x64
   and arm64 runners are supported. Packaging verifies version, ELF architecture, and absence of
-  an interpreter.
+  an interpreter. The Alpine environment explicitly installs GNU tar, packaging propagates tar
+  failures before compression, and publication verifies each archive's exact non-empty manifest.
 - The dispatch-only release workflow is serialized, validates the requested version and exact
   `main` SHA, and builds every artifact before its final job receives `contents: write`. Checkout
   credentials are not persisted. The final job uses the committed changelog section as the release
@@ -64,7 +65,8 @@ to the production Raspberry Pi.
 - Deterministic shell tests reject malformed, reused, non-increasing, and mismatched versions;
   verify changelog categories, omissions, breaking-first ordering, links, dates, baseline selection,
   and regeneration; exercise publication guards and retry conflicts; reproduce byte-identical
-  archives; and verify checksums, staging, activation, rollback, and failed-first-install recovery.
+  archives; reject tar failures and empty daemon archives; and verify checksums, staging,
+  activation, rollback, and failed-first-install recovery.
 - CI runs `dev`, `release`, `tidy`, `asan`, and `ubsan` as separately required checks.
 - CI also runs a separately required native daemon build and test check.
 - Both release daemon matrix entries run to completion independently, and each uploads its assets
