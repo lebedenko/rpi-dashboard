@@ -1,37 +1,37 @@
 name: Release
-
 on:
-  push:
-    tags: ["v*"]
-
+  workflow_dispatch:
+    inputs:
+      version: {description: Stable MAJOR.MINOR.PATCH version committed on main, required: true, type: string}
+      sha: {description: Exact synchronized main commit to release, required: true, type: string}
 permissions:
   contents: read
-
+concurrency:
+  group: release-${{ inputs.version }}
+  cancel-in-progress: false
 jobs:
   validate:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v7.0.1
         with: {fetch-depth: 0, persist-credentials: false}
-      - name: Validate tag, versions, and main ancestry
-        env: {TAG: "${{ github.ref_name }}"}
+      - name: Validate exact main metadata
+        env: {VERSION: "${{ inputs.version }}", REQUESTED_SHA: "${{ inputs.sha }}"}
         run: |
-          version=${TAG#v}
-          printf '%s\n' "$version" | grep -Eq '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'
-          scripts/release.sh verify "$version"
+          test "$GITHUB_REF_NAME" = main
+          test "$GITHUB_SHA" = "$REQUESTED_SHA"
           git fetch --no-tags origin main
-          git merge-base --is-ancestor "$GITHUB_SHA" origin/main
-
+          test "$GITHUB_SHA" = "$(git rev-parse origin/main)"
+          scripts/release.sh verify "$VERSION"
   dashboard:
     needs: validate
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v7.0.1
         with: {persist-credentials: false}
-      - run: scripts/release.sh dashboard "${GITHUB_REF_NAME#v}" "$RUNNER_TEMP/assets"
+      - run: scripts/release.sh dashboard "${{ inputs.version }}" "$RUNNER_TEMP/assets"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with: {name: dashboard-assets, path: "${{ runner.temp }}/assets/*", if-no-files-found: error}
-
   daemon:
     needs: validate
     strategy:
@@ -49,14 +49,11 @@ jobs:
           ALPINE_IMAGE: alpine:3.22.1@sha256:4bcff63911fcb4448bd4fdacec207030997caf25e9bea4045fa6c8c44de311d1
           ARCH: ${{ matrix.arch }}
           EXPECTED_MACHINE: ${{ matrix.machine }}
-          VERSION: ${{ github.ref_name }}
+          VERSION: ${{ inputs.version }}
         run: |
-          VERSION=${VERSION#v}
           docker run --rm \
-            --volume "$GITHUB_WORKSPACE:/workspace" \
-            --volume "$RUNNER_TEMP:/runner-temp" \
-            --workdir /workspace \
-            --env ARCH --env EXPECTED_MACHINE --env VERSION \
+            --volume "$GITHUB_WORKSPACE:/workspace" --volume "$RUNNER_TEMP:/runner-temp" \
+            --workdir /workspace --env ARCH --env EXPECTED_MACHINE --env VERSION \
             "$ALPINE_IMAGE" sh -euxc '
               apk add --no-cache build-base cmake ninja file git
               cmake -S daemon -B build/daemon-release -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXE_LINKER_FLAGS=-static
@@ -72,7 +69,6 @@ jobs:
             '
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with: {name: "daemon-${{ matrix.arch }}-assets", path: "${{ runner.temp }}/assets/*", if-no-files-found: error}
-
   publish:
     needs: [dashboard, daemon]
     runs-on: ubuntu-24.04
@@ -82,12 +78,21 @@ jobs:
         with: {persist-credentials: false}
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with: {pattern: "*-assets", path: "${{ runner.temp }}/assets", merge-multiple: true}
-      - name: Verify and publish six assets
-        env: {GH_TOKEN: "${{ github.token }}", TAG: "${{ github.ref_name }}"}
+      - name: Verify assets and publish release
+        env: {GH_TOKEN: "${{ github.token }}", VERSION: "${{ inputs.version }}"}
         run: |
-          version=${TAG#v}
+          tag="v$VERSION"
           test "$(find "$RUNNER_TEMP/assets" -type f | wc -l)" -eq 6
           (cd "$RUNNER_TEMP/assets" && sha256sum --check *.sha256)
-          for archive in rpi-dashboard-$version.tar.gz dashboard-daemon-$version-linux-x86_64.tar.gz dashboard-daemon-$version-linux-aarch64.tar.gz; do test -f "$RUNNER_TEMP/assets/$archive"; done
-          awk -v h="## [$version]" 'index($0,h)==1{f=1;next} f&&/^## \[/{exit} f{print}' CHANGELOG.md >"$RUNNER_TEMP/notes.md"
-          gh release create "$TAG" "$RUNNER_TEMP"/assets/* --verify-tag --generate-notes --notes-file "$RUNNER_TEMP/notes.md" --title "rpi-dashboard $version"
+          for archive in rpi-dashboard-$VERSION.tar.gz dashboard-daemon-$VERSION-linux-x86_64.tar.gz dashboard-daemon-$VERSION-linux-aarch64.tar.gz; do test -f "$RUNNER_TEMP/assets/$archive"; done
+          awk -v h="## [$VERSION]" 'index($0,h)==1{f=1;next} f&&/^## \[/{exit} f{print}' CHANGELOG.md >release-notes.md
+          release=$(gh api "repos/$GITHUB_REPOSITORY/releases" --paginate --jq ".[] | select(.tag_name == \"$tag\") | [.id, .draft, .target_commitish] | @tsv" | head -n1)
+          if [ -n "$release" ]; then
+            test "$(printf '%s\n' "$release" | cut -f2)" = true
+            test "$(printf '%s\n' "$release" | cut -f3)" = "$GITHUB_SHA"
+            gh release upload "$tag" "$RUNNER_TEMP"/assets/* --clobber
+          else
+            test -z "$(git ls-remote --tags origin "refs/tags/$tag")"
+            gh release create "$tag" "$RUNNER_TEMP"/assets/* --draft --target "$GITHUB_SHA" --notes-file release-notes.md --title "rpi-dashboard $VERSION"
+          fi
+          gh release edit "$tag" --notes-file release-notes.md --title "rpi-dashboard $VERSION" --draft=false

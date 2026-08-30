@@ -4,14 +4,12 @@ All notable changes to this project are documented in this file. The format is b
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and releases follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
-## [0.1.1] - 2026-08-29
+## [0.1.3] - 2026-08-30
 
 ### Fixed
 
-- Split dashboard source/deployment packaging from native static daemon packages.
-- Added transactional daemon installation with configuration preservation and health rollback.
+- Split dashboard and daemon release packages ([#3](https://github.com/lebedenko/rpi-dashboard/pull/3))
+- Run daemon release actions on host ([#4](https://github.com/lebedenko/rpi-dashboard/pull/4))
 
 ## [0.1.0] - 2026-08-28
 
@@ -23,6 +21,5 @@ All notable changes to this project are documented in this file. The format is b
 - Reproducible five-preset CI, checksummed source releases, and manually approved production
   deployment over Tailscale.
 
-[Unreleased]: https://github.com/lebedenko/rpi-dashboard/compare/v0.1.1...HEAD
-[0.1.1]: https://github.com/lebedenko/rpi-dashboard/compare/v0.1.0...v0.1.1
+[0.1.3]: https://github.com/lebedenko/rpi-dashboard/compare/v0.1.0...v0.1.3
 [0.1.0]: https://github.com/lebedenko/rpi-dashboard/releases/tag/v0.1.0

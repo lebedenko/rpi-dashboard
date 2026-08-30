@@ -2,13 +2,10 @@
 set -eu
 usage() { echo "Usage: $0 verify VERSION | dashboard VERSION OUTPUT | daemon VERSION ARCH BINARY OUTPUT" >&2; exit 2; }
 stable_version() { printf '%s\n' "$1" | grep -Eq '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'; }
-project_version() { sed -n '/^project(RpiDashboard$/,/^)/s/^[[:space:]]*VERSION[[:space:]]*\([^[:space:]]*\).*$/\1/p' CMakeLists.txt; }
-daemon_version() { sed -n 's/^project(DashboardDaemon VERSION \([^[:space:]]*\).*$/\1/p' daemon/CMakeLists.txt; }
 verify() {
   version=$1
   stable_version "$version" || { echo "release: version must be stable MAJOR.MINOR.PATCH: $version" >&2; exit 2; }
-  [ "$(project_version)" = "$version" ] || { echo "release: dashboard CMake version does not match $version" >&2; exit 1; }
-  [ "$(daemon_version)" = "$version" ] || { echo "release: daemon CMake version does not match $version" >&2; exit 1; }
+  [ "$(sed -n '1p' VERSION)" = "$version" ] || { echo "release: VERSION does not match $version" >&2; exit 1; }
   grep -F "## [$version] - " CHANGELOG.md >/dev/null || { echo "release: CHANGELOG.md has no dated $version entry" >&2; exit 1; }
 }
 checksum() { (cd "$(dirname "$1")" && sha256sum "$(basename "$1")" >"$(basename "$1").sha256"); }

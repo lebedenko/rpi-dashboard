@@ -4,9 +4,10 @@
 
 Create a `main` ruleset with no bypass actors. Require pull requests with zero approvals, resolved
 conversations, current branches, linear history, and the `dev`, `release`, `tidy`, `asan`, and
-`ubsan`, and `daemon` checks. Block force pushes and deletion. Enable squash merge only, automatic head-branch
-deletion, and optionally auto-merge. Create a second `v*` tag ruleset that blocks updates and
-deletions. Signed commits remain optional; release tags are signed annotated tags.
+`ubsan`, `daemon`, and `conventional-title` checks. Block force pushes and deletion. Enable squash
+merge only, automatic head-branch deletion, and optionally auto-merge. Create a second `v*` tag
+ruleset that blocks updates and deletions. Signed commits remain optional; the release workflow
+creates lightweight tags only after every artifact has built successfully.
 
 Set the default Actions token to read-only, disallow Actions-created pull requests, retain
 artifacts for seven days, and require approval for first-time outside contributors. Allow only the
@@ -37,21 +38,39 @@ the tailnet.
 
 ## Development and release
 
-Use: specification → short-lived branch → focused Conventional Commit changes → changelog entry →
-pull request → required CI → squash merge. Prepare a release PR that removes remaining
-`[Unreleased]` content, confirms both CMake versions, and runs focused release/deployment tests,
-`task test`, `task check`, and `task ci`.
+Use: specification → short-lived branch → focused Conventional Commit changes → pull request →
+required CI → squash merge. PR titles must be Conventional Commit subjects because squash titles
+become changelog entries. Tests, styles, generic chores, and `chore(release)` commits are omitted;
+use a supported release-note type for user-visible work.
 
-After merging, create and push the tag from updated `main`:
+On a clean short-lived branch, explicitly choose a greater unused stable version and generate the
+release metadata:
 
 ```sh
-git tag -s -a v0.1.1 -m 'rpi-dashboard 0.1.1'
-git push origin v0.1.1
+task release:prepare VERSION=x.y.z
 ```
 
-Exercise the release workflow with a temporary non-release tag in a fork, or run
-`scripts/release.sh dashboard 0.1.1 /tmp/rpi-dashboard-release` locally, before the production tag.
-Never move a published release tag.
+Review the root `VERSION` and generated `CHANGELOG.md`. Changelog generation uses the latest
+successfully published stable GitHub Release as its baseline, so failed tag attempts do not hide
+commits. Commit the two files as `chore(release): prepare x.y.z`, open a normal PR, and run:
+
+```sh
+task release:check VERSION=x.y.z
+task test
+task check
+task ci
+```
+
+After merge, update a clean local `main` so it exactly matches `origin/main`, then publish:
+
+```sh
+task release:publish VERSION=x.y.z
+```
+
+The command requires successful CI for that exact SHA, dispatches the serialized release workflow,
+and watches it to completion. Validation or build failure creates no tag or release. If final
+publication is interrupted, rerunning may resume only a draft for the same version and SHA. Never
+move, overwrite, or delete an existing tag or published release.
 
 Confirm that the release has three archives and three adjacent checksum files. Verify each daemon
 archive's four-file prefixed manifest, executable version, ELF architecture, and static linkage.
@@ -60,8 +79,8 @@ configuration and roll back runtime files and service state after a failed healt
 
 ## Deploy and validate
 
-Run **Deploy production** with version `0.1.1`, approve the environment gate, and retain its
+Run **Deploy production** with the published version, approve the environment gate, and retain its
 deployment record. The workflow transfers only the dashboard archive and checksum. Confirm the
-dashboard reports `0.1.1`, then repeat the systemd,
+dashboard reports the selected version, then repeat the systemd,
 journal, display, touch, keyboard, VT recovery, and SSH checks in `docs/hardware-validation.md`.
 Backups under `/var/lib/rpi-dashboard/releases` are intentionally retained for the first release.

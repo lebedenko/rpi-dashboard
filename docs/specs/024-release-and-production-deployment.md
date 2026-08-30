@@ -1,17 +1,29 @@
-# Split release and Raspberry Pi production deployment
+# Build-before-tag release and Raspberry Pi production deployment
 
 ## Intent
 
-Publish the immutable correction as `v0.1.1` from protected `main`. One release contains a
-dashboard-only source archive and native static-musl daemon archives for x86_64 and aarch64, each
-with its own checksum. Only the dashboard archive is deployed to the production Raspberry Pi.
+Prepare explicit release metadata on a normal branch, review it through a pull request, and build
+all release artifacts from the merged `main` commit before creating its GitHub Release and
+lightweight tag. One release contains a dashboard-only source archive and native static-musl daemon
+archives for x86_64 and aarch64, each with its own checksum. Only the dashboard archive is deployed
+to the production Raspberry Pi.
 
 ## Release requirements
 
-- `rpi-dashboard --version` and `dashboard-daemon --version` report the same version declared by
-  their CMake projects.
-- Only stable `vMAJOR.MINOR.PATCH` tags can publish. Both CMake versions and a dated Keep a
-  Changelog entry must match, and the tagged commit must be an ancestor of `origin/main`.
+- The root `VERSION` file is the only version authority. Both CMake projects read it, and
+  `rpi-dashboard --version` and `dashboard-daemon --version` report it.
+- `task release:prepare VERSION=x.y.z` accepts only an explicit, unused, increasing stable version
+  on a clean non-`main` branch. It updates `VERSION` and deterministically replaces `CHANGELOG.md`
+  with a UTC-dated section generated from Conventional squash-merge subjects.
+- Changelog generation starts after the latest successfully published stable GitHub Release, not
+  the highest tag. It preserves published history and therefore ignores failed release-attempt tags.
+- `feat` entries are Added; `fix` entries are Fixed; `perf` and `refactor` entries are Changed;
+  `build`, `ci`, and dependency chores are Build and dependencies; and `docs` entries are
+  Documentation. Breaking changes appear first. Tests, styles, generic chores, and release
+  preparation commits are omitted. Squash PR numbers link to GitHub.
+- `task release:check VERSION=x.y.z` validates metadata and deterministic regeneration before
+  publication. `task release:publish VERSION=x.y.z` requires clean synchronized `main`, successful
+  CI for its exact SHA, and no conflicting release or tag, then dispatches and watches the release.
 - The release workflow creates deterministic `rpi-dashboard-VERSION.tar.gz`,
   `dashboard-daemon-VERSION-linux-x86_64.tar.gz`, and
   `dashboard-daemon-VERSION-linux-aarch64.tar.gz` assets with individual SHA-256 files. The
@@ -20,7 +32,12 @@ with its own checksum. Only the dashboard archive is deployed to the production 
   architectures. JavaScript actions run on the Ubuntu host rather than inside Alpine so both x64
   and arm64 runners are supported. Packaging verifies version, ELF architecture, and absence of
   an interpreter.
-- The release job alone receives `contents: write`; checkout credentials are not persisted.
+- The dispatch-only release workflow is serialized, validates the requested version and exact
+  `main` SHA, and builds every artifact before its final job receives `contents: write`. Checkout
+  credentials are not persisted. The final job uses the committed changelog section as the release
+  body and atomically creates the lightweight tag with `gh release create --target "$GITHUB_SHA"`.
+- An interrupted final publication may leave a draft for the same version and SHA; retry resumes
+  that draft. Existing tags or releases pointing elsewhere are never moved, overwritten, or deleted.
 
 ## Deployment requirements
 
@@ -44,9 +61,10 @@ with its own checksum. Only the dashboard archive is deployed to the production 
 
 ## Observable acceptance criteria
 
-- Deterministic shell tests reject malformed/mismatched versions, reproduce byte-identical source
-  archives, verify checksums, enforce the staging allowlist, preserve configuration, exercise
-  healthy activation, rollback, and failed-first-install recovery.
+- Deterministic shell tests reject malformed, reused, non-increasing, and mismatched versions;
+  verify changelog categories, omissions, breaking-first ordering, links, dates, baseline selection,
+  and regeneration; exercise publication guards and retry conflicts; reproduce byte-identical
+  archives; and verify checksums, staging, activation, rollback, and failed-first-install recovery.
 - CI runs `dev`, `release`, `tidy`, `asan`, and `ubsan` as separately required checks.
 - CI also runs a separately required native daemon build and test check.
 - Both release daemon matrix entries run to completion independently, and each uploads its assets
@@ -60,5 +78,6 @@ with its own checksum. Only the dashboard archive is deployed to the production 
   dashboard source/stage.
 - A persistent self-hosted runner, automatic production deployment, static public SSH addressing,
   automatic backup deletion, or committing credentials and hardware-specific configuration.
-- Creating GitHub rulesets, secrets, tags, releases, or deployments from local test code. The
-  signed annotated tag and protected production deployment remain operator actions after merge.
+- Inferring a version from commits; automating commits, branches, pull requests, merges, or
+  production deployment; creating GitHub rulesets or secrets; or moving/deleting failed `v0.1.1`
+  and `v0.1.2` tags. Version choice and production deployment remain explicit operator actions.

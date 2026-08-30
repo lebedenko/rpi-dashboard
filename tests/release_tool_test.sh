@@ -9,11 +9,8 @@ trap 'rm -rf -- "$test_dir"' EXIT HUP INT TERM
 repo=$test_dir/repo
 mkdir "$repo"
 cp "$release_script" "$repo/release.sh"
-cat >"$repo/CMakeLists.txt" <<'EOF'
-project(RpiDashboard
-    VERSION 0.1.1
-)
-EOF
+printf '%s\n' 0.1.1 >"$repo/VERSION"
+printf '%s\n' 'project(RpiDashboard VERSION 0.1.1)' >"$repo/CMakeLists.txt"
 mkdir "$repo/daemon"
 printf '%s\n' 'project(DashboardDaemon VERSION 0.1.1 LANGUAGES CXX)' >"$repo/daemon/CMakeLists.txt"
 mkdir "$repo/daemon/package"

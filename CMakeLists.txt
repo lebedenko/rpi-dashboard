@@ -1,7 +1,12 @@
 cmake_minimum_required(VERSION 3.25)
 
+file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/VERSION" RPI_DASHBOARD_VERSION LIMIT_COUNT 1)
+if(NOT RPI_DASHBOARD_VERSION MATCHES "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$")
+    message(FATAL_ERROR "VERSION must contain one stable MAJOR.MINOR.PATCH version")
+endif()
+
 project(RpiDashboard
-    VERSION 0.1.1
+    VERSION ${RPI_DASHBOARD_VERSION}
     DESCRIPTION "Standalone Qt dashboard for local and remote system telemetry"
     LANGUAGES CXX
 )
