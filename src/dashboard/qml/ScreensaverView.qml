@@ -8,6 +8,7 @@ Item {
     readonly property string iconCode: root.validIconCode(root.service ? root.service.iconCode : "")
     readonly property url wallpaperSource: "qrc:/rpi-dashboard/weather-bg/" + root.iconCode + ".png"
     readonly property bool weatherReady: root.service && root.service.state === "ready"
+    readonly property bool dayScene: root.iconCode.endsWith("d")
     readonly property string locationText: root.service && root.service.city
                                            ? qsTr("%1, %2").arg(root.service.city).arg(root.service.country)
                                            : qsTr("Location unavailable")
@@ -40,96 +41,170 @@ Item {
         Accessible.ignored: true
     }
 
-    Row {
+    Rectangle {
+        objectName: "screensaverLeftScrim"
         anchors.left: parent.left
-        anchors.leftMargin: 84
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+        width: Math.min(1120, parent.width)
+        gradient: Gradient {
+            orientation: Gradient.Horizontal
+            GradientStop {
+                objectName: "screensaverScrimStart"
+                position: 0.0
+                color: Qt.rgba(Theme.background.r, Theme.background.g, Theme.background.b,
+                               root.dayScene ? 0.68 : 0.24)
+            }
+            GradientStop {
+                objectName: "screensaverScrimMiddle"
+                position: 0.85
+                color: Qt.rgba(Theme.background.r, Theme.background.g, Theme.background.b,
+                               root.dayScene ? 0.58 : 0.18)
+            }
+            GradientStop {
+                objectName: "screensaverScrimEnd"
+                position: 1.0
+                color: Qt.rgba(Theme.background.r, Theme.background.g, Theme.background.b, 0.0)
+            }
+        }
+        Accessible.ignored: true
+    }
+
+    Item {
+        id: contentRow
+        anchors.left: parent.left
+        anchors.leftMargin: 64
         anchors.verticalCenter: parent.verticalCenter
-        spacing: 38
+        implicitWidth: conditionBlock.x + conditionBlock.width
+        implicitHeight: temperatureText.height
 
         Image {
             objectName: "screensaverConditionIcon"
-            width: 220
-            height: 150
-            sourceSize: Qt.size(220, 150)
+            anchors.left: parent.left
+            anchors.verticalCenter: parent.verticalCenter
+            width: 110
+            height: 110
+            sourceSize: Qt.size(110, 110)
             fillMode: Image.PreserveAspectFit
             source: "image://weather/" + root.iconCode + "/5de7ff/ffc857/a66cff"
             Accessible.ignored: true
         }
 
         Text {
+            id: temperatureText
             objectName: "screensaverTemperature"
+            anchors.left: parent.left
+            anchors.leftMargin: 142
             anchors.verticalCenter: parent.verticalCenter
             color: Theme.focusAccent
             font.family: Theme.sansFontFamily
-            font.pixelSize: 164
+            font.pixelSize: 152
             font.weight: Font.Light
             text: root.weatherReady ? root.temperature(root.service.temperatureCelsius) : "—"
         }
 
-        Column {
-            anchors.verticalCenter: parent.verticalCenter
-            anchors.verticalCenterOffset: 34
-            spacing: 4
+        Item {
+            id: conditionBlock
+            objectName: "screensaverConditionBlock"
+            anchors.left: temperatureText.right
+            anchors.leftMargin: 32
+            anchors.top: temperatureText.top
+            anchors.bottom: temperatureText.bottom
+            implicitWidth: Math.max(conditionText.width, locationRow.implicitWidth)
+            width: implicitWidth
 
             Text {
+                id: conditionText
                 objectName: "screensaverCondition"
+                y: locationRow.y - height + 6
                 color: root.weatherReady ? Theme.focusAccent : Theme.textSecondary
                 font.family: Theme.sansFontFamily
                 font.pixelSize: 32
-                font.weight: Font.Medium
+                font.weight: Font.Normal
                 text: root.weatherReady && root.service.condition ? root.service.condition.toUpperCase()
                                                                         : qsTr("WEATHER UNAVAILABLE")
             }
-            Text {
-                objectName: "screensaverLocation"
-                color: Theme.textMuted
-                font.family: Theme.sansFontFamily
-                font.pixelSize: 25
-                font.weight: Font.Light
-                text: root.locationText.toUpperCase()
-            }
-            Text {
-                objectName: "screensaverStatus"
-                visible: root.service && root.service.stale
-                color: Theme.staleStatus
-                font.family: Theme.fixedFontFamily
-                font.pixelSize: 12
-                text: qsTr("STALE")
+
+            Item {
+                id: locationRow
+                objectName: "screensaverLocationRow"
+                y: temperatureText.baselineOffset - locationText.baselineOffset
+                implicitWidth: locationText.width + (statusText.visible ? statusText.width + 10 : 0)
+                implicitHeight: locationText.height
+                width: implicitWidth
+                height: implicitHeight
+
+                Text {
+                    id: locationText
+                    objectName: "screensaverLocation"
+                    color: Theme.textMuted
+                    font.family: Theme.sansFontFamily
+                    font.pixelSize: 24
+                    font.weight: Font.Light
+                    text: root.locationText.toUpperCase()
+                }
+
+                Text {
+                    id: statusText
+                    objectName: "screensaverStatus"
+                    x: locationText.width + 10
+                    y: locationText.baselineOffset - baselineOffset
+                    visible: root.service && root.service.stale
+                    color: Theme.staleStatus
+                    font.family: Theme.fixedFontFamily
+                    font.pixelSize: 12
+                    text: qsTr("STALE")
+                }
             }
         }
     }
 
-    Row {
+    Rectangle {
+        objectName: "screensaverDetailsBacking"
         anchors.right: parent.right
-        anchors.rightMargin: 62
+        anchors.rightMargin: 20
         anchors.bottom: parent.bottom
-        anchors.bottomMargin: 28
-        spacing: 26
+        anchors.bottomMargin: 8
+        implicitWidth: detailsRow.implicitWidth + 24
+        implicitHeight: detailsRow.implicitHeight + 12
+        radius: Theme.radiusMedium
+        border.width: 0
+        color: Qt.rgba(Theme.background.r, Theme.background.g, Theme.background.b,
+                       root.dayScene ? 0.78 : 0.62)
 
-        Text {
-            objectName: "screensaverFeelsLike"
-            color: Theme.textSecondary
-            font.family: Theme.sansFontFamily
-            font.pixelSize: 22
-            text: qsTr("FEELS %1").arg(root.weatherReady ? root.temperature(root.service.feelsLikeCelsius) : "—")
-        }
-        Text { color: Theme.textMuted; font.pixelSize: 22; text: "|" }
-        Text {
-            objectName: "screensaverRange"
-            color: Theme.textSecondary
-            font.family: Theme.sansFontFamily
-            font.pixelSize: 22
-            text: qsTr("H %1  ·  L %2").arg(root.weatherReady ? root.temperature(root.service.highCelsius) : "—")
-                                      .arg(root.weatherReady ? root.temperature(root.service.lowCelsius) : "—")
-        }
-        Text { color: Theme.textMuted; font.pixelSize: 22; text: "|" }
-        Text {
-            objectName: "screensaverSunset"
-            color: Theme.attentionStatus
-            font.family: Theme.sansFontFamily
-            font.pixelSize: 22
-            text: qsTr("SUNSET %1").arg(root.weatherReady && root.service.localSunset
-                                        ? root.service.localSunset : "—")
+        Row {
+            id: detailsRow
+            objectName: "screensaverDetailsRow"
+            anchors.right: parent.right
+            anchors.rightMargin: 12
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: 6
+            spacing: 8
+
+            Text { objectName: "screensaverFeelsLabel"; color: Theme.textMuted; font.family: Theme.sansFontFamily; font.pixelSize: 22; text: qsTr("FEELS") }
+            Text { objectName: "screensaverFeelsValue"; color: Theme.focusAccent; font.family: Theme.sansFontFamily; font.pixelSize: 22; text: root.weatherReady ? root.temperature(root.service.feelsLikeCelsius) : "—" }
+            Text { objectName: "screensaverFirstSeparator"; color: Theme.textMuted; font.family: Theme.sansFontFamily; font.pixelSize: 22; text: "|" }
+            Text { objectName: "screensaverHighLabel"; color: Theme.textMuted; font.family: Theme.sansFontFamily; font.pixelSize: 22; text: qsTr("H") }
+            Text { objectName: "screensaverHighValue"; color: Theme.focusAccent; font.family: Theme.sansFontFamily; font.pixelSize: 22; text: root.weatherReady ? root.temperature(root.service.highCelsius) : "—" }
+            Text { objectName: "screensaverRangeSeparator"; color: Theme.violetAccent; font.family: Theme.sansFontFamily; font.pixelSize: 22; text: "·" }
+            Text { objectName: "screensaverLowLabel"; color: Theme.textMuted; font.family: Theme.sansFontFamily; font.pixelSize: 22; text: qsTr("L") }
+            Text { objectName: "screensaverLowValue"; color: Theme.focusAccent; font.family: Theme.sansFontFamily; font.pixelSize: 22; text: root.weatherReady ? root.temperature(root.service.lowCelsius) : "—" }
+            Text { objectName: "screensaverSecondSeparator"; color: Theme.textMuted; font.family: Theme.sansFontFamily; font.pixelSize: 22; text: "|" }
+            Text {
+                objectName: "screensaverSolarEventLabel"
+                color: Theme.textMuted
+                font.family: Theme.sansFontFamily
+                font.pixelSize: 22
+                text: root.service && root.service.nextSolarEventKind === "sunrise" ? qsTr("SUNRISE") : qsTr("SUNSET")
+            }
+            Text {
+                objectName: "screensaverSolarEventTime"
+                color: Theme.attentionStatus
+                font.family: Theme.sansFontFamily
+                font.pixelSize: 22
+                text: root.weatherReady && root.service.localNextSolarEventTime
+                      ? root.service.localNextSolarEventTime : "—"
+            }
         }
     }
 }

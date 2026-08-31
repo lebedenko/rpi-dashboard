@@ -43,6 +43,8 @@ struct HourlyForecast {
 
 struct DailyForecast {
   QDateTime timestampUtc;
+  QDateTime sunriseUtc;
+  QDateTime sunsetUtc;
   QString iconCode;
   double minimumCelsius{};
   double maximumCelsius{};

@@ -6,10 +6,15 @@
 
 #include <QDir>
 #include <QFile>
+#include <QFileInfo>
+#include <QJsonArray>
 #include <QJsonDocument>
+#include <QJsonObject>
+#include <QLocale>
 #include <QStandardPaths>
 #include <QTemporaryDir>
 #include <QTest>
+#include <QTimeZone>
 #include <QTimer>
 
 using namespace dashboard::weather;
@@ -31,6 +36,7 @@ class FakeWeatherProvider final : public WeatherProvider {
     snapshot.current.condition = QStringLiteral("Clear");
     emit forecastReady(snapshot);
   }
+  void succeed(const Snapshot& snapshot) { emit forecastReady(snapshot); }
   void fail(const QString& diagnostic, bool authentication = false, int retryAfter = 0) {
     emit failed(diagnostic, authentication, retryAfter);
   }
@@ -106,6 +112,12 @@ class WeatherTest final : public QObject {
   void rejectsInvalidConfiguration();
   void credentialFileTakesPrecedence();
   void parsesProviderFixtures();
+  void selectsNextSolarEventAcrossDayBoundary();
+  void selectsSolarEventsBeforeDawnAndDuringDay();
+  void fallsBackWhenSolarEventsAreUnavailable();
+  void formatsNextSolarEventAtForecastOffset();
+  void switchesSolarEventAtBoundary();
+  void loadsLegacyCacheWithoutSolarEvents();
   void truncatesForecastModels();
   void validatesAndRecolorsIcons();
   void automaticLocationRecoversOnTimedRetry();
@@ -183,6 +195,146 @@ void WeatherTest::parsesProviderFixtures() {
   const auto automatic = IpGeolocationProvider::parseLocation(
       QJsonDocument::fromJson(R"({"city":"Lviv","country_code2":"UA","latitude":"49.84","longitude":"24.03"})"));
   QCOMPARE(automatic.country, QStringLiteral("UA"));
+
+  const auto forecast = OpenWeatherProvider::parseOneCall(QJsonDocument::fromJson(R"({
+        "timezone":"Europe/Kyiv","timezone_offset":10800,
+        "current":{"dt":1700000000,"temp":20,"feels_like":19,"humidity":60,"pressure":1012,
+                   "wind_speed":2,"wind_deg":180,"weather":[{"description":"clear","icon":"01d"}]},
+        "hourly":[],
+        "daily":[{"dt":1700000000,"sunrise":1700001000,"sunset":1700040000,"pop":0.1,
+                  "temp":{"min":12,"max":22},"weather":[{"icon":"01d"}]}]
+      })"),
+                                                          location);
+  QCOMPARE(forecast.daily.first().sunriseUtc, QDateTime::fromSecsSinceEpoch(1700001000, QTimeZone::UTC));
+  QCOMPARE(forecast.daily.first().sunsetUtc, QDateTime::fromSecsSinceEpoch(1700040000, QTimeZone::UTC));
+}
+
+void WeatherTest::selectsNextSolarEventAcrossDayBoundary() {
+  auto weather = std::make_unique<FakeWeatherProvider>();
+  auto* weatherFake = weather.get();
+  auto geocoding = std::make_unique<FakeGeocodingProvider>();
+  auto automatic = std::make_unique<FakeAutomaticLocationProvider>();
+  auto config = configuration(LocationMode::Coordinates);
+  const auto now = QDateTime::currentDateTimeUtc();
+  WeatherService service(config, std::move(weather), std::move(geocoding), std::move(automatic));
+  Snapshot snapshot{.provider = QStringLiteral("openweather"),
+                    .location = weatherFake->lastLocation,
+                    .fetchedUtc = now,
+                    .current = {.iconCode = QStringLiteral("01n")}};
+  snapshot.daily = {{.sunriseUtc = now.addSecs(-12 * 3600), .sunsetUtc = now.addSecs(-3600)},
+                    {.sunriseUtc = now.addSecs(8 * 3600), .sunsetUtc = now.addSecs(20 * 3600)}};
+  weatherFake->succeed(snapshot);
+
+  QCOMPARE(service.nextSolarEventKind(), QStringLiteral("sunrise"));
+  QCOMPARE(service.localNextSolarEventTime(), QLocale().toString(now.addSecs(8 * 3600).time(), QLocale::ShortFormat));
+}
+
+void WeatherTest::selectsSolarEventsBeforeDawnAndDuringDay() {
+  auto weather = std::make_unique<FakeWeatherProvider>();
+  auto* weatherFake = weather.get();
+  auto geocoding = std::make_unique<FakeGeocodingProvider>();
+  auto automatic = std::make_unique<FakeAutomaticLocationProvider>();
+  WeatherService service(configuration(LocationMode::Coordinates), std::move(weather), std::move(geocoding),
+                         std::move(automatic));
+  const auto now = QDateTime::currentDateTimeUtc();
+  Snapshot snapshot{.provider = QStringLiteral("openweather"),
+                    .location = weatherFake->lastLocation,
+                    .fetchedUtc = now,
+                    .current = {.iconCode = QStringLiteral("01n")},
+                    .daily = {{.sunriseUtc = now.addSecs(3600), .sunsetUtc = now.addSecs(12 * 3600)}}};
+  weatherFake->succeed(snapshot);
+  QCOMPARE(service.nextSolarEventKind(), QStringLiteral("sunrise"));
+
+  snapshot.current.iconCode = QStringLiteral("01d");
+  snapshot.daily.first().sunriseUtc = now.addSecs(-3600);
+  weatherFake->succeed(snapshot);
+  QCOMPARE(service.nextSolarEventKind(), QStringLiteral("sunset"));
+}
+
+void WeatherTest::fallsBackWhenSolarEventsAreUnavailable() {
+  auto weather = std::make_unique<FakeWeatherProvider>();
+  auto* weatherFake = weather.get();
+  auto geocoding = std::make_unique<FakeGeocodingProvider>();
+  auto automatic = std::make_unique<FakeAutomaticLocationProvider>();
+  WeatherService service(configuration(LocationMode::Coordinates), std::move(weather), std::move(geocoding),
+                         std::move(automatic));
+  Snapshot snapshot{.provider = QStringLiteral("openweather"),
+                    .location = weatherFake->lastLocation,
+                    .fetchedUtc = QDateTime::currentDateTimeUtc(),
+                    .current = {.iconCode = QStringLiteral("02n")}};
+  weatherFake->succeed(snapshot);
+  QCOMPARE(service.nextSolarEventKind(), QStringLiteral("sunrise"));
+  QVERIFY(service.localNextSolarEventTime().isEmpty());
+}
+
+void WeatherTest::formatsNextSolarEventAtForecastOffset() {
+  constexpr int kForecastOffsetSeconds = (5 * 3600) + (30 * 60);
+  auto weather = std::make_unique<FakeWeatherProvider>();
+  auto* weatherFake = weather.get();
+  auto geocoding = std::make_unique<FakeGeocodingProvider>();
+  auto automatic = std::make_unique<FakeAutomaticLocationProvider>();
+  WeatherService service(configuration(LocationMode::Coordinates), std::move(weather), std::move(geocoding),
+                         std::move(automatic));
+  const auto event = QDateTime::currentDateTimeUtc().addSecs(3600);
+  Snapshot snapshot{.provider = QStringLiteral("openweather"),
+                    .location = weatherFake->lastLocation,
+                    .timezoneOffsetSeconds = kForecastOffsetSeconds,
+                    .fetchedUtc = QDateTime::currentDateTimeUtc(),
+                    .daily = {{.sunriseUtc = event}}};
+  weatherFake->succeed(snapshot);
+  QCOMPARE(service.localNextSolarEventTime(),
+           QLocale().toString(event.addSecs(kForecastOffsetSeconds).time(), QLocale::ShortFormat));
+}
+
+void WeatherTest::switchesSolarEventAtBoundary() {
+  auto weather = std::make_unique<FakeWeatherProvider>();
+  auto* weatherFake = weather.get();
+  auto geocoding = std::make_unique<FakeGeocodingProvider>();
+  auto automatic = std::make_unique<FakeAutomaticLocationProvider>();
+  WeatherService service(configuration(LocationMode::Coordinates), std::move(weather), std::move(geocoding),
+                         std::move(automatic));
+  const auto now = QDateTime::currentDateTimeUtc();
+  Snapshot snapshot{.provider = QStringLiteral("openweather"),
+                    .location = weatherFake->lastLocation,
+                    .fetchedUtc = now,
+                    .daily = {{.sunriseUtc = now.addSecs(1), .sunsetUtc = now.addSecs(3600)}}};
+  weatherFake->succeed(snapshot);
+  QCOMPARE(service.nextSolarEventKind(), QStringLiteral("sunrise"));
+  QTRY_COMPARE_WITH_TIMEOUT(service.nextSolarEventKind(), QStringLiteral("sunset"), 2500);
+}
+
+void WeatherTest::loadsLegacyCacheWithoutSolarEvents() {
+  QTemporaryDir cacheRoot;
+  QVERIFY(cacheRoot.isValid());
+  const auto previousCacheHome = qgetenv("XDG_CACHE_HOME");
+  qputenv("XDG_CACHE_HOME", QFile::encodeName(cacheRoot.path()));
+  QStandardPaths::setTestModeEnabled(false);
+  auto config = configuration(LocationMode::Coordinates);
+  const auto cache =
+      QDir(QStandardPaths::writableLocation(QStandardPaths::CacheLocation)).filePath(QStringLiteral("weather.json"));
+  QDir().mkpath(QFileInfo(cache).absolutePath());
+  QFile file(cache);
+  QVERIFY(file.open(QIODevice::WriteOnly));
+  file.write(QJsonDocument(
+                 QJsonObject{{QStringLiteral("provider"), QStringLiteral("openweather")},
+                             {QStringLiteral("location"),
+                              QJsonObject{{QStringLiteral("latitude"), 0.0}, {QStringLiteral("longitude"), 0.0}}},
+                             {QStringLiteral("timezoneOffset"), 0},
+                             {QStringLiteral("fetched"), QDateTime::currentDateTimeUtc().toString(Qt::ISODate)},
+                             {QStringLiteral("current"), QJsonObject{{QStringLiteral("icon"), QStringLiteral("01d")}}},
+                             {QStringLiteral("hourly"), QJsonArray{}},
+                             {QStringLiteral("daily"), QJsonArray{}}})
+                 .toJson(QJsonDocument::Compact));
+  file.close();
+  auto reloadWeather = std::make_unique<FakeWeatherProvider>();
+  auto reloadGeocoding = std::make_unique<FakeGeocodingProvider>();
+  auto reloadAutomatic = std::make_unique<FakeAutomaticLocationProvider>();
+  WeatherService reloaded(config, std::move(reloadWeather), std::move(reloadGeocoding), std::move(reloadAutomatic));
+  QCOMPARE(reloaded.state(), QStringLiteral("loading"));
+  QCOMPARE(reloaded.nextSolarEventKind(), QStringLiteral("sunset"));
+  QVERIFY(reloaded.localNextSolarEventTime().isEmpty());
+  QStandardPaths::setTestModeEnabled(true);
+  qputenv("XDG_CACHE_HOME", previousCacheHome);
 }
 
 void WeatherTest::truncatesForecastModels() {
