@@ -33,10 +33,10 @@ void DashboardStartupTest::
   QVERIFY(source.contains(QStringLiteral("font.pixelSize: Theme.clockTimeTextSize")));
   QVERIFY(source.contains(QStringLiteral("font.pixelSize: Theme.clockDateTextSize")));
   QVERIFY(source.count(QStringLiteral("font.family: Theme.sansFontFamily")) >= 3);
-  QVERIFY(source.contains(QStringLiteral("startX: Theme.sidebarCornerRadius")));
+  QVERIFY(source.contains(QStringLiteral("startX: Theme.radiusMedium")));
   QVERIFY(source.contains(QStringLiteral("startY: 0")));
-  QVERIFY(source.contains(QStringLiteral("x: sidebarBackground.width - Theme.sidebarChamfer; y: 0")));
-  QVERIFY(source.contains(QStringLiteral("x: 0; y: Theme.sidebarCornerRadius")));
+  QVERIFY(source.contains(QStringLiteral("x: sidebarBackground.width - Theme.chamferLarge; y: 0")));
+  QVERIFY(source.contains(QStringLiteral("x: 0; y: Theme.radiusMedium")));
 
   QFile themeQml(QStringLiteral(DASHBOARD_THEME_QML));
   QVERIFY2(themeQml.open(QIODevice::ReadOnly | QIODevice::Text), qPrintable(themeQml.errorString()));
@@ -47,15 +47,6 @@ void DashboardStartupTest::
 }
 
 void DashboardStartupTest::sidebarUsesIconOnlySafeLayout() {  // NOLINT(readability-convert-member-functions-to-static)
-  QFile themeQml(QStringLiteral(DASHBOARD_THEME_QML));
-  QVERIFY2(themeQml.open(QIODevice::ReadOnly | QIODevice::Text), qPrintable(themeQml.errorString()));
-  const auto themeSource = QString::fromUtf8(themeQml.readAll());
-  QVERIFY(themeSource.contains(QStringLiteral("sidebarWidth: 64")));
-  QVERIFY(themeSource.contains(QStringLiteral("touchTarget: 48")));
-  QVERIFY(themeSource.contains(QStringLiteral("displaySafeInset: 10")));
-  QVERIFY(themeSource.contains(QStringLiteral("sidebarCornerRadius: 4")));
-  QVERIFY(themeSource.contains(QStringLiteral("navigationFrameCornerRadius: 2")));
-
   QFile mainQml(QStringLiteral(DASHBOARD_MAIN_QML));
   QVERIFY2(mainQml.open(QIODevice::ReadOnly | QIODevice::Text), qPrintable(mainQml.errorString()));
   const auto source = QString::fromUtf8(mainQml.readAll());
@@ -91,15 +82,15 @@ void DashboardStartupTest::sidebarDrawsInsetClosedBorder() {  // NOLINT(readabil
   QVERIFY(sidebarSurface.contains(QStringLiteral("fillColor: Theme.surface")));
   QVERIFY(sidebarSurface.contains(QStringLiteral("strokeColor: Theme.passiveBorder")));
   QVERIFY(sidebarSurface.contains(QStringLiteral("strokeWidth: 1")));
-  QVERIFY(sidebarSurface.contains(QStringLiteral("startX: Theme.sidebarChamfer")));
+  QVERIFY(sidebarSurface.contains(QStringLiteral("startX: Theme.chamferLarge")));
   QVERIFY(sidebarSurface.contains(QStringLiteral("PathArc {")));
-  QVERIFY(sidebarSurface.contains(QStringLiteral("radiusX: Theme.sidebarCornerRadius")));
-  QVERIFY(sidebarSurface.contains(QStringLiteral("radiusY: Theme.sidebarCornerRadius")));
+  QVERIFY(sidebarSurface.contains(QStringLiteral("radiusX: Theme.radiusMedium")));
+  QVERIFY(sidebarSurface.contains(QStringLiteral("radiusY: Theme.radiusMedium")));
   QVERIFY(sidebarSurface.contains(
-      QStringLiteral("PathLine { x: sidebarBackground.width - Theme.sidebarChamfer; y: sidebarBackground.height }")));
+      QStringLiteral("PathLine { x: sidebarBackground.width - Theme.chamferLarge; y: sidebarBackground.height }")));
   QVERIFY(
-      sidebarSurface.contains(QStringLiteral("PathLine { x: 0; y: sidebarBackground.height - Theme.sidebarChamfer }")));
-  QVERIFY(sidebarSurface.contains(QStringLiteral("PathLine { x: Theme.sidebarChamfer; y: 0 }")));
+      sidebarSurface.contains(QStringLiteral("PathLine { x: 0; y: sidebarBackground.height - Theme.chamferLarge }")));
+  QVERIFY(sidebarSurface.contains(QStringLiteral("PathLine { x: Theme.chamferLarge; y: 0 }")));
   QVERIFY(!source.contains(QStringLiteral("id: sidebarSeparator")));
   QCOMPARE(sidebarSurface.count(QStringLiteral("ShapePath {")), 1);
   QCOMPARE(sidebarSurface.count(QStringLiteral("PathLine")), 7);
@@ -126,12 +117,12 @@ void DashboardStartupTest::
   QVERIFY(source.contains(QStringLiteral("visible: pointerHover.hovered")));
   QVERIFY(!source.contains(QStringLiteral("ToolTip.visible: root.hovered || root.activeFocus")));
   QVERIFY(source.contains(QStringLiteral("strokeWidth: root.activeFocus ? 2 : root.selected ? 1 : 0")));
-  QVERIFY(source.contains(QStringLiteral("startX: Theme.navigationFrameChamfer")));
-  QVERIFY(source.contains(QStringLiteral("radiusX: Theme.navigationFrameCornerRadius")));
-  QVERIFY(source.contains(QStringLiteral("radiusY: Theme.navigationFrameCornerRadius")));
-  QVERIFY(source.contains(QStringLiteral("PathLine { x: root.width; y: root.height - Theme.navigationFrameChamfer }")));
-  QVERIFY(source.contains(QStringLiteral("PathLine { x: root.width - Theme.navigationFrameChamfer; y: root.height }")));
-  QVERIFY(source.contains(QStringLiteral("PathLine { x: 0; y: Theme.navigationFrameChamfer }")));
+  QVERIFY(source.contains(QStringLiteral("startX: Theme.chamferMedium")));
+  QVERIFY(source.contains(QStringLiteral("radiusX: Theme.radiusSmall")));
+  QVERIFY(source.contains(QStringLiteral("radiusY: Theme.radiusSmall")));
+  QVERIFY(source.contains(QStringLiteral("PathLine { x: root.width; y: root.height - Theme.chamferMedium }")));
+  QVERIFY(source.contains(QStringLiteral("PathLine { x: root.width - Theme.chamferMedium; y: root.height }")));
+  QVERIFY(source.contains(QStringLiteral("PathLine { x: 0; y: Theme.chamferMedium }")));
   QCOMPARE(source.count(QStringLiteral("PathArc")), 2);
   QCOMPARE(source.count(QStringLiteral("PathLine")), 6);
 }

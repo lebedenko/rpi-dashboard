@@ -48,7 +48,7 @@ Item {
                 color: Theme.surfaceElevated
                 border.width: emptyState.activeFocus ? 2 : 1
                 border.color: emptyState.activeFocus ? Theme.focusAccent : Theme.passiveBorder
-                radius: 8
+                radius: Theme.radiusLarge
 
                 Rectangle {
                     anchors.top: parent.top
