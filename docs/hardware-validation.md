@@ -62,9 +62,12 @@ sudo -u dashboard test -d /run/user/$(id -u dashboard)
 
 The service process must run as `dashboard`, the local session must own tty1 on `seat0`, and the
 runtime-directory check must succeed. When the encrypted `github-token` credential is installed,
-confirm that private GitHub data loads without credential text appearing in the journal. Press
-Ctrl+Q and confirm that the clean exit starts `getty@tty1.service` and returns to a login prompt;
-restart the kiosk with `sudo systemctl start rpi-dashboard.service` if desired.
+confirm that private GitHub data loads without credential text appearing in the journal. Change a
+visible configuration value, run `sudo systemctl restart rpi-dashboard.service`, and confirm that
+the dashboard remains active and displays the changed value. Press Ctrl+Q and confirm that the
+clean exit starts `getty@tty1.service` and returns to a login prompt. Start the dashboard again,
+run `sudo systemctl stop rpi-dashboard.service`, and confirm that the getty returns; a later
+`sudo systemctl start rpi-dashboard.service` must return tty1 to the dashboard.
 Finally repeat the display transform, five-point touch, keyboard navigation, VT switching, and SSH
 recovery checks recorded above.
 
