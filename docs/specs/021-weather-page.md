@@ -37,8 +37,10 @@ credential-bearing URLs.
 
 - OpenWeather One Call 3.0 and current air pollution are requested concurrently, each with an
   independent timeout. Forecast success is publishable when AQI fails.
-- Automatic location is resolved once. Refreshes never overlap. Authentication failures stop
-  automatic retries; transient failures use bounded exponential backoff and respect Retry-After.
+- Automatic and city locations are resolved until successful. Once resolved, scheduled refreshes
+  request forecasts without resolving the location again. Location and forecast requests never
+  overlap. Authentication failures stop timed retries, but F5/manual refresh retries immediately;
+  transient failures use bounded exponential backoff and respect Retry-After.
 - Provider-neutral snapshots use Celsius, km/h, millimetres, percentages, hPa, and μg/m³.
 - Matching snapshots are atomically cached below `QStandardPaths::CacheLocation`. A loaded cache is
   marked stale by age and is never used for another provider or location.
@@ -56,6 +58,7 @@ credential-bearing URLs.
 - The contextual rail shows OpenWeather AQI category/index, local sunset, today's rain probability,
   and visible OpenWeather attribution with a link.
 - Loading, unconfigured, stale, and unavailable states do not blank previously available data.
+- Cached data remains visible and stale while location or forecast recovery is underway.
 - F5 refreshes weather. Left, Right, and Home retain page navigation. Custom controls have useful
   accessible names, and touch targets are at least 48 logical pixels.
 
@@ -65,7 +68,11 @@ credential-bearing URLs.
   coordinates, invalid intervals, TOML errors, and unknown providers fail deterministically.
 - Provider fixture parsing handles optional values and timezone offsets without live API access.
 - Weather state, diagnostics, cache freshness, eight hourly rows, five daily rows, partial AQI
-  failure, and manual retry are observable through `WeatherService`.
+- Weather state, diagnostics, cache freshness, eight hourly rows, five daily rows, partial AQI
+  failure, location/forecast recovery, non-overlap, and manual retry after transient or
+  authentication failures are observable through `WeatherService`.
+- Runtime location, forecast, and AQI failures, plus relevant startup credential failures, reach
+  the journal as sanitized warnings without API keys or credential-bearing URL query data.
 - All 18 weather SVGs are packaged, use neutral fallback styles, are safely recolored through the
   local image provider, and invalid icon identifiers resolve to a neutral fallback.
 - At 1480×320 all four content regions and the weather rail are visible. Weather states,

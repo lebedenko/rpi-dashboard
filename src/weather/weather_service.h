@@ -7,6 +7,7 @@
 #include <QObject>
 #include <QTimer>
 
+#include <cstdint>
 #include <memory>
 
 namespace dashboard::weather {
@@ -72,7 +73,10 @@ class WeatherService final : public QObject {
   void changed();
 
  private:
+  enum class Operation : std::uint8_t { None, ResolveLocation, RequestForecast };
+
   void initialize();
+  void startOperation(bool manual);
   void setLocation(const Location& location);
   void publish(Snapshot snapshot);
   void fail(const QString& diagnostic, bool authenticationFailure, int retryAfterSeconds);
@@ -88,12 +92,14 @@ class WeatherService final : public QObject {
   Snapshot snapshot_;
   HourlyForecastModel hourlyModel_;
   DailyForecastModel dailyModel_;
-  QTimer refreshTimer_;
+  QTimer* refreshTimer_{};
   QString state_{QStringLiteral("unconfigured")};
   QString diagnostics_;
   bool stale_{};
   bool inFlight_{};
+  bool locationResolved_{};
   bool authenticationStopped_{};
+  Operation operation_{Operation::None};
   int failureCount_{};
 };
 

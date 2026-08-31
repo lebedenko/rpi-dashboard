@@ -31,6 +31,9 @@ service without disrupting the current console session.
 - The service replaces `getty@tty1`, runs as `dashboard`, opens a PAM/logind session on tty1, lets
   Cage manage VT switching, restarts only after failure, and sends diagnostics to both the journal
   and console.
+- The service weakly wants and starts after both `network-online.target` and
+  `NetworkManager-wait-online.service`. Application-level retry remains responsible for recovery
+  when networking is lost or the online check cannot establish connectivity.
 
 ## GitHub credential handling
 
@@ -70,6 +73,8 @@ Systemd recommends credentials rather than environment variables for secrets; se
 
 - A temporary `DESTDIR` installation contains every documented path with executable helpers and
   service contents intact, and contains no daemon binary, unit, configuration, or package file.
+- The installed service contains `Wants` and `After` relationships for `network-online.target` and
+  `NetworkManager-wait-online.service`.
 - A repeated temporary `DESTDIR` installation preserves existing dashboard configuration, adds the
   shipped weather defaults once, and does not duplicate them.
 - A deterministic fake-host test covers initial account creation, an idempotent valid-account run,
