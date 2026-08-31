@@ -42,8 +42,8 @@ QString sanitizedDiagnostic(QString diagnostic) {
     const auto match = urlExpression.match(diagnostic, offset);
     if (!match.hasMatch()) break;
     QUrl url(match.captured());
-    url.setQuery({});
-    url.setFragment({});
+    url.setQuery(QString{});
+    url.setFragment(QString{});
     const QString sanitized = url.toString(QUrl::RemoveQuery | QUrl::RemoveFragment);
     diagnostic.replace(match.capturedStart(), match.capturedLength(), sanitized);
     offset = match.capturedStart() + sanitized.size();
