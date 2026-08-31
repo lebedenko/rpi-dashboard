@@ -6,6 +6,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QLocale>
+#include <QRegularExpression>
 #include <QSaveFile>
 #include <QStandardPaths>
 
@@ -32,6 +33,22 @@ Location jsonLocation(const QJsonObject& object) {
           .country = object.value(QStringLiteral("country")).toString(),
           .latitude = object.value(QStringLiteral("latitude")).toDouble(),
           .longitude = object.value(QStringLiteral("longitude")).toDouble()};
+}
+
+QString sanitizedDiagnostic(QString diagnostic) {
+  static const QRegularExpression urlExpression(QStringLiteral(R"(https?://[^\s]+)"));
+  qsizetype offset = 0;
+  while (true) {
+    const auto match = urlExpression.match(diagnostic, offset);
+    if (!match.hasMatch()) break;
+    QUrl url(match.captured());
+    url.setQuery(QString{});
+    url.setFragment(QString{});
+    const QString sanitized = url.toString(QUrl::RemoveQuery | QUrl::RemoveFragment);
+    diagnostic.replace(match.capturedStart(), match.capturedLength(), sanitized);
+    offset = match.capturedStart() + sanitized.size();
+  }
+  return diagnostic;
 }
 }  // namespace
 
@@ -63,8 +80,10 @@ WeatherService::WeatherService(WeatherConfig config, std::unique_ptr<WeatherProv
 }
 
 void WeatherService::initialize() {
-  refreshTimer_.setSingleShot(true);
-  connect(&refreshTimer_, &QTimer::timeout, this, &WeatherService::refresh);
+  refreshTimer_ = new QTimer(this);
+  refreshTimer_->setSingleShot(true);
+  refreshTimer_->setObjectName(QStringLiteral("weatherRefreshTimer"));
+  connect(refreshTimer_, &QTimer::timeout, this, [this] { startOperation(false); });
   if (!config_) return;
   connectProviders();
   loadCache();
@@ -75,12 +94,8 @@ void WeatherService::initialize() {
   }
   if (config_->locationMode == LocationMode::Coordinates) {
     setLocation({.latitude = config_->latitude, .longitude = config_->longitude});
-  } else if (config_->locationMode == LocationMode::City) {
-    state_ = QStringLiteral("locating");
-    geocoding_->resolve(config_->city);
   } else {
-    state_ = QStringLiteral("locating");
-    automatic_->resolve();
+    startOperation(false);
   }
   emit changed();
 }
@@ -94,7 +109,8 @@ void WeatherService::connectProviders() {
     saveCache();
   });
   connect(weather_.get(), &WeatherProvider::airQualityFailed, this, [this](const QString& diagnostic) {
-    diagnostics_ = diagnostic;
+    diagnostics_ = sanitizedDiagnostic(diagnostic);
+    qWarning().noquote() << diagnostics_;
     emit changed();
   });
   connect(weather_.get(), &WeatherProvider::failed, this, &WeatherService::fail);
@@ -105,26 +121,41 @@ void WeatherService::connectProviders() {
 }
 
 void WeatherService::setLocation(const Location& location) {
+  inFlight_ = false;
+  operation_ = Operation::None;
   location_ = location;
+  locationResolved_ = true;
   if (snapshot_.fetchedUtc.isValid() && snapshot_.location.cacheKey() != location.cacheKey()) {
     snapshot_ = {};
     hourlyModel_.replace({}, 0);
     dailyModel_.replace({}, 0);
     stale_ = false;
   }
-  refresh();
+  startOperation(false);
 }
 
-void WeatherService::refresh() {
+void WeatherService::refresh() { startOperation(true); }
+
+void WeatherService::startOperation(bool manual) {
   if (!config_ || inFlight_ || !weather_) return;
-  authenticationStopped_ = false;
-  if (location_.cacheKey() == QStringLiteral("0.0000,0.0000") && config_->locationMode != LocationMode::Coordinates)
-    return;
+  if (!manual && authenticationStopped_) return;
+  if (manual) {
+    authenticationStopped_ = false;
+    refreshTimer_->stop();
+  }
   inFlight_ = true;
-  state_ = QStringLiteral("loading");
+  operation_ = locationResolved_ ? Operation::RequestForecast : Operation::ResolveLocation;
+  state_ = locationResolved_ ? QStringLiteral("loading") : QStringLiteral("locating");
+  if (snapshot_.fetchedUtc.isValid()) stale_ = true;
   diagnostics_.clear();
   emit changed();
-  weather_->request(location_);
+  if (operation_ == Operation::RequestForecast) {
+    weather_->request(location_);
+  } else if (config_->locationMode == LocationMode::City) {
+    geocoding_->resolve(config_->city);
+  } else {
+    automatic_->resolve();
+  }
 }
 
 void WeatherService::publish(Snapshot snapshot) {
@@ -134,25 +165,28 @@ void WeatherService::publish(Snapshot snapshot) {
   hourlyModel_.replace(snapshot_.hourly, snapshot_.timezoneOffsetSeconds);
   dailyModel_.replace(snapshot_.daily, snapshot_.timezoneOffsetSeconds);
   inFlight_ = false;
+  operation_ = Operation::None;
   stale_ = false;
   failureCount_ = 0;
   state_ = QStringLiteral("ready");
   diagnostics_.clear();
-  refreshTimer_.start(config_->refreshIntervalSeconds * 1000);
+  refreshTimer_->start(config_->refreshIntervalSeconds * 1000);
   saveCache();
   emit changed();
 }
 
 void WeatherService::fail(const QString& diagnostic, bool authenticationFailure, int retryAfterSeconds) {
   inFlight_ = false;
-  diagnostics_ = diagnostic;
+  operation_ = Operation::None;
+  diagnostics_ = sanitizedDiagnostic(diagnostic);
+  qWarning().noquote() << diagnostics_;
   stale_ = snapshot_.fetchedUtc.isValid();
   state_ = QStringLiteral("error");
   authenticationStopped_ = authenticationFailure;
   if (!authenticationFailure) {
     ++failureCount_;
     const int backoff = std::min(config_->refreshIntervalSeconds, 30 * (1 << std::min(failureCount_ - 1, 5)));
-    refreshTimer_.start(std::max(backoff, retryAfterSeconds) * 1000);
+    refreshTimer_->start(std::max(backoff, retryAfterSeconds) * 1000);
   }
   emit changed();
 }

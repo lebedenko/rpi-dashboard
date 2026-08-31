@@ -1,21 +1,106 @@
 #include "weather/weather_config.h"
 #include "weather/weather_models.h"
 #include "weather/weather_provider.h"
+#include "weather/weather_service.h"
 #include "weather_icon_provider.h"
 
 #include <QDir>
 #include <QFile>
 #include <QJsonDocument>
+#include <QStandardPaths>
 #include <QTemporaryDir>
 #include <QTest>
+#include <QTimer>
 
 using namespace dashboard::weather;
 // NOLINTBEGIN(readability-convert-member-functions-to-static,readability-identifier-naming)
+
+namespace {
+
+class FakeWeatherProvider final : public WeatherProvider {
+ public:
+  using WeatherProvider::WeatherProvider;
+  void request(const Location& location) override {
+    ++requests;
+    lastLocation = location;
+  }
+  void succeed(const Location& location, const QString& city = QStringLiteral("Lviv")) {
+    Snapshot snapshot{
+        .provider = QStringLiteral("openweather"), .location = location, .fetchedUtc = QDateTime::currentDateTimeUtc()};
+    snapshot.location.city = city;
+    snapshot.current.condition = QStringLiteral("Clear");
+    emit forecastReady(snapshot);
+  }
+  void fail(const QString& diagnostic, bool authentication = false, int retryAfter = 0) {
+    emit failed(diagnostic, authentication, retryAfter);
+  }
+  void failAirQuality(const QString& diagnostic) { emit airQualityFailed(diagnostic); }
+
+  int requests{};
+  Location lastLocation;
+};
+
+class FakeGeocodingProvider final : public GeocodingProvider {
+ public:
+  using GeocodingProvider::GeocodingProvider;
+  void resolve(const QString& city) override {
+    ++requests;
+    lastCity = city;
+  }
+  void succeed(const Location& location) { emit resolved(location); }
+  void fail(const QString& diagnostic, bool authentication = false, int retryAfter = 0) {
+    emit failed(diagnostic, authentication, retryAfter);
+  }
+
+  int requests{};
+  QString lastCity;
+};
+
+class FakeAutomaticLocationProvider final : public AutomaticLocationProvider {
+ public:
+  using AutomaticLocationProvider::AutomaticLocationProvider;
+  void resolve() override { ++requests; }
+  void succeed(const Location& location) { emit resolved(location); }
+  void fail(const QString& diagnostic, bool authentication = false, int retryAfter = 0) {
+    emit failed(diagnostic, authentication, retryAfter);
+  }
+
+  int requests{};
+};
+
+WeatherConfig configuration(LocationMode mode) {
+  WeatherConfig config;
+  config.locationMode = mode;
+  config.refreshIntervalSeconds = 60;
+  config.city = QStringLiteral("Lviv,UA");
+  return config;
+}
+
+void fireRetryTimer(WeatherService& service) {
+  auto* timer = service.findChild<QTimer*>(QStringLiteral("weatherRefreshTimer"));
+  QVERIFY(timer);
+  timer->stop();
+  QVERIFY(QMetaObject::invokeMethod(timer, "timeout", Qt::DirectConnection));
+}
+
+QStringList& warningMessages() {
+  static QStringList messages;
+  return messages;
+}
+void captureWarnings(QtMsgType type, const QMessageLogContext& context, const QString& message) {
+  Q_UNUSED(context);
+  if (type == QtWarningMsg) {
+    warningMessages().push_back(message);
+  }
+}
+
+}  // namespace
 
 class WeatherTest final : public QObject {
   Q_OBJECT
 
  private slots:
+  void init();
   void parsesLocationModes();
   void rejectsInvalidConfiguration_data();
   void rejectsInvalidConfiguration();
@@ -23,7 +108,20 @@ class WeatherTest final : public QObject {
   void parsesProviderFixtures();
   void truncatesForecastModels();
   void validatesAndRecolorsIcons();
+  void automaticLocationRecoversOnTimedRetry();
+  void cityLocationRecoversOnTimedAndManualRetry();
+  void manualRefreshRetriesAuthenticationFailure();
+  void forecastRetryDoesNotResolveLocationAgain();
+  void operationsDoNotOverlapAndZeroCoordinatesAreResolved();
+  void cachedDataSurvivesSanitizedRuntimeFailures();
 };
+
+void WeatherTest::init() {
+  QStandardPaths::setTestModeEnabled(true);
+  const auto cache =
+      QDir(QStandardPaths::writableLocation(QStandardPaths::CacheLocation)).filePath(QStringLiteral("weather.json"));
+  QFile::remove(cache);
+}
 
 void WeatherTest::parsesLocationModes() {
   auto coordinates = parseWeatherConfig(
@@ -114,6 +212,128 @@ void WeatherTest::validatesAndRecolorsIcons() {
     QVERIFY(contents.contains("current-color-scheme"));
     QVERIFY(contents.contains("#8b95a5"));
   }
+}
+
+void WeatherTest::automaticLocationRecoversOnTimedRetry() {
+  auto weather = std::make_unique<FakeWeatherProvider>();
+  auto* weatherFake = weather.get();
+  auto geocoding = std::make_unique<FakeGeocodingProvider>();
+  auto automatic = std::make_unique<FakeAutomaticLocationProvider>();
+  auto* automaticFake = automatic.get();
+  WeatherService service(configuration(LocationMode::Automatic), std::move(weather), std::move(geocoding),
+                         std::move(automatic));
+
+  QCOMPARE(automaticFake->requests, 1);
+  automaticFake->fail(QStringLiteral("Automatic location request failed"));
+  QCOMPARE(service.state(), QStringLiteral("error"));
+  fireRetryTimer(service);
+  QCOMPARE(automaticFake->requests, 2);
+  automaticFake->succeed({.city = QStringLiteral("Null Island"), .country = QStringLiteral("ZZ")});
+  QCOMPARE(weatherFake->requests, 1);
+  QCOMPARE(weatherFake->lastLocation.cacheKey(), QStringLiteral("0.0000,0.0000"));
+  weatherFake->succeed(weatherFake->lastLocation, QStringLiteral("Null Island"));
+  QCOMPARE(service.state(), QStringLiteral("ready"));
+}
+
+void WeatherTest::cityLocationRecoversOnTimedAndManualRetry() {
+  auto weather = std::make_unique<FakeWeatherProvider>();
+  auto* weatherFake = weather.get();
+  auto geocoding = std::make_unique<FakeGeocodingProvider>();
+  auto* geocodingFake = geocoding.get();
+  auto automatic = std::make_unique<FakeAutomaticLocationProvider>();
+  WeatherService service(configuration(LocationMode::City), std::move(weather), std::move(geocoding),
+                         std::move(automatic));
+
+  geocodingFake->fail(QStringLiteral("Geocoding request failed"));
+  fireRetryTimer(service);
+  QCOMPARE(geocodingFake->requests, 2);
+  geocodingFake->fail(QStringLiteral("Geocoding request failed"));
+  service.refresh();
+  QCOMPARE(geocodingFake->requests, 3);
+  geocodingFake->succeed(
+      {.city = QStringLiteral("Lviv"), .country = QStringLiteral("UA"), .latitude = 49.84, .longitude = 24.03});
+  QCOMPARE(weatherFake->requests, 1);
+}
+
+void WeatherTest::manualRefreshRetriesAuthenticationFailure() {
+  auto weather = std::make_unique<FakeWeatherProvider>();
+  auto geocoding = std::make_unique<FakeGeocodingProvider>();
+  auto automatic = std::make_unique<FakeAutomaticLocationProvider>();
+  auto* automaticFake = automatic.get();
+  WeatherService service(configuration(LocationMode::Automatic), std::move(weather), std::move(geocoding),
+                         std::move(automatic));
+
+  automaticFake->fail(QStringLiteral("Automatic location authentication failed"), true);
+  auto* timer = service.findChild<QTimer*>(QStringLiteral("weatherRefreshTimer"));
+  QVERIFY(timer);
+  QVERIFY(!timer->isActive());
+  fireRetryTimer(service);
+  QCOMPARE(automaticFake->requests, 1);
+  service.refresh();
+  QCOMPARE(automaticFake->requests, 2);
+}
+
+void WeatherTest::forecastRetryDoesNotResolveLocationAgain() {
+  auto weather = std::make_unique<FakeWeatherProvider>();
+  auto* weatherFake = weather.get();
+  auto geocoding = std::make_unique<FakeGeocodingProvider>();
+  auto automatic = std::make_unique<FakeAutomaticLocationProvider>();
+  auto* automaticFake = automatic.get();
+  WeatherService service(configuration(LocationMode::Automatic), std::move(weather), std::move(geocoding),
+                         std::move(automatic));
+  const Location location{
+      .city = QStringLiteral("Lviv"), .country = QStringLiteral("UA"), .latitude = 49.84, .longitude = 24.03};
+  automaticFake->succeed(location);
+  weatherFake->fail(QStringLiteral("Weather request failed"));
+  fireRetryTimer(service);
+  QCOMPARE(automaticFake->requests, 1);
+  QCOMPARE(weatherFake->requests, 2);
+}
+
+void WeatherTest::operationsDoNotOverlapAndZeroCoordinatesAreResolved() {
+  auto weather = std::make_unique<FakeWeatherProvider>();
+  auto* weatherFake = weather.get();
+  auto geocoding = std::make_unique<FakeGeocodingProvider>();
+  auto automatic = std::make_unique<FakeAutomaticLocationProvider>();
+  auto* automaticFake = automatic.get();
+  WeatherService service(configuration(LocationMode::Automatic), std::move(weather), std::move(geocoding),
+                         std::move(automatic));
+
+  service.refresh();
+  fireRetryTimer(service);
+  QCOMPARE(automaticFake->requests, 1);
+  automaticFake->succeed({});
+  QCOMPARE(weatherFake->requests, 1);
+  service.refresh();
+  fireRetryTimer(service);
+  QCOMPARE(weatherFake->requests, 1);
+}
+
+void WeatherTest::cachedDataSurvivesSanitizedRuntimeFailures() {
+  auto config = configuration(LocationMode::Coordinates);
+  config.latitude = 49.84;
+  config.longitude = 24.03;
+  auto weather = std::make_unique<FakeWeatherProvider>();
+  auto* weatherFake = weather.get();
+  auto geocoding = std::make_unique<FakeGeocodingProvider>();
+  auto automatic = std::make_unique<FakeAutomaticLocationProvider>();
+  WeatherService service(config, std::move(weather), std::move(geocoding), std::move(automatic));
+  weatherFake->succeed(weatherFake->lastLocation);
+
+  warningMessages().clear();
+  const auto previousHandler = qInstallMessageHandler(captureWarnings);
+  service.refresh();
+  weatherFake->fail(QStringLiteral("Weather request failed: https://api.example.test/data?appid=secret&x=1"));
+  weatherFake->failAirQuality(QStringLiteral("AQI failed: https://api.example.test/air?apiKey=secret"));
+  qInstallMessageHandler(previousHandler);
+
+  QCOMPARE(service.city(), QStringLiteral("Lviv"));
+  QVERIFY(service.stale());
+  const auto warnings = warningMessages().join(QLatin1Char('\n'));
+  QVERIFY(warnings.contains(QStringLiteral("Weather request failed")));
+  QVERIFY(warnings.contains(QStringLiteral("AQI failed")));
+  QVERIFY(!warnings.contains(QStringLiteral("secret")));
+  QVERIFY(!warnings.contains(QStringLiteral("?")));
 }
 
 QTEST_MAIN(WeatherTest)

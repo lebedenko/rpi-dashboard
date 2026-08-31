@@ -23,6 +23,22 @@
 #include <cstdlib>
 #include <memory>
 
+namespace {
+
+void logWeatherCredentialDiagnostics(const dashboard::DashboardConfig& config,
+                                     const dashboard::weather::CredentialResult& openWeather,
+                                     const dashboard::weather::CredentialResult& automaticLocation) {
+  if (config.weather && !openWeather.diagnostic.isEmpty()) {
+    qWarning().noquote() << openWeather.diagnostic;
+  }
+  if (config.weather && config.weather->locationMode == dashboard::weather::LocationMode::Automatic &&
+      !automaticLocation.diagnostic.isEmpty()) {
+    qWarning().noquote() << automaticLocation.diagnostic;
+  }
+}
+
+}  // namespace
+
 int main(int argc, char* argv[]) {
   QGuiApplication application(argc, argv);
   QGuiApplication::setApplicationName(QStringLiteral("rpi-dashboard"));
@@ -109,6 +125,7 @@ int main(int argc, char* argv[]) {
       openWeatherKeyFile, qgetenv("OPENWEATHER_API_KEY"), QStringLiteral("OpenWeather"));
   const auto ipgeolocation_credential = dashboard::weather::loadCredential(
       ipGeolocationKeyFile, qgetenv("IPGEOLOCATION_API_KEY"), QStringLiteral("IP geolocation"));
+  logWeatherCredentialDiagnostics(config, openweather_credential, ipgeolocation_credential);
   dashboard::weather::WeatherService weather_service(config.weather, openweather_credential.value,
                                                      ipgeolocation_credential.value);
   dashboard::telemetry::RemoteDeviceRegistry remote_devices;

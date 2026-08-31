@@ -1,5 +1,6 @@
 #include <QFile>
 #include <QProcess>
+#include <QTemporaryDir>
 #include <QtTest>
 
 class DashboardStartupTest : public QObject {
@@ -16,6 +17,7 @@ class DashboardStartupTest : public QObject {
   void bundledFontsArePackaged();
   void deviceCardSourcesAndChevronArePackaged();
   void initializesQmlAndKeepsRunning();
+  void reportsWeatherCredentialFailuresWithoutSecrets();
 };
 
 void DashboardStartupTest::
@@ -271,6 +273,58 @@ void DashboardStartupTest::initializesQmlAndKeepsRunning() {  // NOLINT(readabil
   }
 
   QVERIFY2(terminated, "dashboard did not terminate promptly");
+}
+
+void DashboardStartupTest::
+    reportsWeatherCredentialFailuresWithoutSecrets() {  // NOLINT(readability-convert-member-functions-to-static)
+  QTemporaryDir directory;
+  QVERIFY(directory.isValid());
+  QFile config(directory.filePath(QStringLiteral("config.toml")));
+  QVERIFY(config.open(QIODevice::WriteOnly | QIODevice::Text));
+  config.write(R"([credentials]
+openweather_api_key_file = "/missing/openweather-do-not-log"
+ipgeolocation_api_key_file = "/missing/ipgeolocation-do-not-log"
+
+[weather]
+provider = "openweather"
+refresh_interval_seconds = 600
+
+[weather.location]
+automatic_provider = "ipgeolocation"
+)");
+  config.close();
+
+  QProcess dashboard;
+  auto environment = QProcessEnvironment::systemEnvironment();
+  environment.insert(QStringLiteral("QT_QPA_PLATFORM"), QStringLiteral("offscreen"));
+  environment.insert(QStringLiteral("QT_FORCE_STDERR_LOGGING"), QStringLiteral("1"));
+  environment.remove(QStringLiteral("OPENWEATHER_API_KEY_FILE"));
+  environment.remove(QStringLiteral("IPGEOLOCATION_API_KEY_FILE"));
+  dashboard.setProcessEnvironment(environment);
+  dashboard.setReadChannel(QProcess::StandardError);
+  dashboard.setProgram(QStringLiteral(DASHBOARD_EXECUTABLE));
+  dashboard.setArguments({QStringLiteral("--config"), config.fileName()});
+  dashboard.start();
+
+  QVERIFY2(dashboard.waitForStarted(), qPrintable(dashboard.errorString()));
+  QVERIFY2(dashboard.waitForReadyRead(2000), qPrintable(dashboard.errorString()));
+  QByteArray standardError = dashboard.readAllStandardError();
+  if (!standardError.contains("IP geolocation credential file could not be read")) {
+    dashboard.waitForReadyRead(500);
+    standardError += dashboard.readAllStandardError();
+  }
+  dashboard.terminate();
+  if (!dashboard.waitForFinished(3000)) {
+    dashboard.kill();
+    dashboard.waitForFinished(3000);
+  }
+
+  const auto diagnostics = QString::fromUtf8(standardError + dashboard.readAllStandardError());
+  QVERIFY2(diagnostics.contains(QStringLiteral("OpenWeather credential file could not be read")),
+           qPrintable(diagnostics));
+  QVERIFY2(diagnostics.contains(QStringLiteral("IP geolocation credential file could not be read")),
+           qPrintable(diagnostics));
+  QVERIFY(!diagnostics.contains(QStringLiteral("do-not-log")));
 }
 
 QTEST_GUILESS_MAIN(DashboardStartupTest)
