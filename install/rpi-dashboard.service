@@ -3,6 +3,7 @@ Description=rpi-dashboard kiosk
 After=systemd-user-sessions.service plymouth-quit.service
 Conflicts=getty@tty1.service
 OnSuccess=getty@tty1.service
+OnSuccessJobMode=fail
 
 [Service]
 Type=simple
