@@ -22,8 +22,8 @@ configured GitHub user or organization.
 ## Observable acceptance criteria
 
 - The entire page, including its header and master/detail content, is enclosed by one flat frame
-  with four equal chamfered corners. The list, detail, selected row, and stage cards reuse the same
-  page-local chamfer geometry. The page uses no gradient, shadow, blur, or `Canvas` effects.
+  with four equal `Theme.chamferMedium` corners. The list, detail, project rows, and stage cards use
+  `Theme.chamferSmall`. The page uses no gradient, shadow, blur, or `Canvas` effects.
 - The translated source title is `Projects`, is visually rendered as `PROJECTS`, uses the primary
   accent, and uses the Rajdhani heading role. Project, health, stage, and outcome labels render
   uppercase; list branches and relative ages render lowercase.

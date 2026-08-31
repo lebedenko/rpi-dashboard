@@ -14,7 +14,7 @@ Experiment with an inset, fully bordered sidebar while preserving the compact vi
 - Default, hover, pressed, selected, and keyboard-focus states are visually distinct. Selection remains visible after keyboard focus leaves.
 - Button frames use 8 px chamfers at top-left and bottom-right. Their top-right and bottom-left corners use a 2 px radius. Selected buttons use a very subtle tinted surface and a 1 px cyan/blue frame; focused buttons use a 2 px focus-accent frame.
 - One closed path fills the sidebar surface and draws its complete 1 px passive border.
-- The top-left, bottom-left, and bottom-right corners use `Theme.sidebarChamfer`. The top-right corner uses `Theme.sidebarCornerRadius` and a circular arc.
+- The top-left, bottom-left, and bottom-right corners use `Theme.chamferLarge`. The top-right corner uses `Theme.radiusMedium` and a circular arc.
 - Delayed tooltips reveal translated navigation names only while a hover-capable pointer is over a button; touch activation and keyboard focus do not show or persist a tooltip.
 
 ## Acceptance criteria

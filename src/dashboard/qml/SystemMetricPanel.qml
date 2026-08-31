@@ -23,7 +23,7 @@ Control {
         color: Theme.cardSurface
         border.width: 1
         border.color: Theme.cardFrame
-        radius: 4
+        radius: Theme.radiusMedium
     }
 
     contentItem: Item {
