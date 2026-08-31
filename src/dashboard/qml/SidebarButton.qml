@@ -38,26 +38,26 @@ Button {
                                                           : "transparent"
             strokeWidth: root.activeFocus ? 2 : root.selected ? 1 : 0
             joinStyle: ShapePath.MiterJoin
-            startX: Theme.navigationFrameChamfer
+            startX: Theme.chamferMedium
             startY: 0
-            PathLine { x: root.width - Theme.navigationFrameCornerRadius; y: 0 }
+            PathLine { x: root.width - Theme.radiusSmall; y: 0 }
             PathArc {
                 x: root.width
-                y: Theme.navigationFrameCornerRadius
-                radiusX: Theme.navigationFrameCornerRadius
-                radiusY: Theme.navigationFrameCornerRadius
+                y: Theme.radiusSmall
+                radiusX: Theme.radiusSmall
+                radiusY: Theme.radiusSmall
             }
-            PathLine { x: root.width; y: root.height - Theme.navigationFrameChamfer }
-            PathLine { x: root.width - Theme.navigationFrameChamfer; y: root.height }
-            PathLine { x: Theme.navigationFrameCornerRadius; y: root.height }
+            PathLine { x: root.width; y: root.height - Theme.chamferMedium }
+            PathLine { x: root.width - Theme.chamferMedium; y: root.height }
+            PathLine { x: Theme.radiusSmall; y: root.height }
             PathArc {
                 x: 0
-                y: root.height - Theme.navigationFrameCornerRadius
-                radiusX: Theme.navigationFrameCornerRadius
-                radiusY: Theme.navigationFrameCornerRadius
+                y: root.height - Theme.radiusSmall
+                radiusX: Theme.radiusSmall
+                radiusY: Theme.radiusSmall
             }
-            PathLine { x: 0; y: Theme.navigationFrameChamfer }
-            PathLine { x: Theme.navigationFrameChamfer; y: 0 }
+            PathLine { x: 0; y: Theme.chamferMedium }
+            PathLine { x: Theme.chamferMedium; y: 0 }
         }
     }
 

@@ -115,10 +115,35 @@ Item {
             compare(Theme.primaryAccent, "#19d3f3");
             compare(Theme.focusAccent, "#5de7ff");
             compare(Theme.cardAccent, "#20d4f7");
-            compare(Theme.cpuSeries, "#36b9ff");
-            compare(Theme.memorySeries, "#a66cff");
+            compare(Theme.cpuSeries, Theme.blueAccent);
+            compare(Theme.memorySeries, Theme.violetAccent);
             compare(Theme.onlineStatus, "#50f0a0");
+            compare(Theme.healthyStatus, Theme.onlineStatus);
+            compare(Theme.runningStatus, Theme.primaryAccent);
+            compare(Theme.staleStatus, Theme.violetAccent);
+            compare(Theme.unknownStatus, Theme.textMuted);
+            compare(Theme.chartGrid, "#1a8295ac");
+            compare(Theme.chartAxis, "#338295ac");
             compare(dashboardWindow.color, Theme.background);
+        }
+
+        function test_themeShapeScaleAndStatusColors() {
+            compare(Theme.chamferSmall, 6);
+            compare(Theme.chamferMedium, 8);
+            compare(Theme.chamferLarge, 12);
+            compare(Theme.radiusSmall, 2);
+            compare(Theme.radiusMedium, 4);
+            compare(Theme.radiusLarge, 8);
+            compare(Theme.statusColor("online"), Theme.onlineStatus);
+            compare(Theme.statusColor("registered"), Theme.primaryAccent);
+            compare(Theme.statusColor("healthy"), Theme.onlineStatus);
+            compare(Theme.statusColor("running"), Theme.primaryAccent);
+            compare(Theme.statusColor("attention"), Theme.attentionStatus);
+            compare(Theme.statusColor("failed"), Theme.failureStatus);
+            compare(Theme.statusColor("stale"), Theme.violetAccent);
+            compare(Theme.statusColor("unknown"), Theme.textMuted);
+            compare(Theme.statusColor("offline"), Theme.textMuted);
+            compare(Theme.statusColor("unexpected"), Theme.textMuted);
         }
 
         function test_pageSelectionAndBoundedNavigation() {
@@ -240,6 +265,9 @@ Item {
             verify(!!header);
             verify(!!listFrame);
             verify(!!detail);
+            compare(frame.chamfer, Theme.chamferMedium);
+            compare(listFrame.chamfer, Theme.chamferSmall);
+            compare(detail.chamfer, Theme.chamferSmall);
             compare(header.height, 48);
             verify(Math.abs(heading.y + heading.height / 2 - header.y - header.height / 2) <= 0.5);
             compare(heading.text, "PROJECTS");
@@ -247,10 +275,10 @@ Item {
             compare(heading.font.family, Theme.sansFontFamily);
             compare(heading.font.weight, Theme.headingFontWeight);
             compare(list.width, 330);
-            compare(list.x - listFrame.x, 8);
-            compare(list.y - listFrame.y, 8);
-            compare(listFrame.x + listFrame.width - list.x - list.width, 8);
-            compare(listFrame.y + listFrame.height - list.y - list.height, 8);
+            compare(list.x - listFrame.x, Theme.spacingSmall);
+            compare(list.y - listFrame.y, Theme.spacingSmall);
+            compare(listFrame.x + listFrame.width - list.x - list.width, Theme.spacingSmall);
+            compare(listFrame.y + listFrame.height - list.y - list.height, Theme.spacingSmall);
             compare(first.height, 56);
             compare(second.y - first.y - first.height, 6);
             verify(list.x >= frame.x && list.y >= frame.y);
@@ -270,6 +298,7 @@ Item {
             const branch = findChild(first, "projectBranch0");
             const age = findChild(first, "projectAge0");
             compare(firstFrame.stroke, Theme.primaryAccent);
+            compare(firstFrame.chamfer, Theme.chamferSmall);
             compare(secondFrame.stroke, Theme.sectionDivider);
             compare(findChild(first, "projectHealthRail0").color, Theme.failureStatus);
             compare(statusDisc.color, Theme.failureStatus);
@@ -733,6 +762,9 @@ Item {
             for (const objectName of ["currentConditionsPanel", "hourlyForecastPanel", "dailyForecastPanel", "weatherRail", "weatherAqi", "weatherSunset", "weatherRain"])
                 verify(!!findChild(dashboardWindow.contentItem, objectName), objectName);
             const page = findChild(dashboardWindow.contentItem, "weatherPage");
+            compare(findChild(dashboardWindow.contentItem, "currentConditionsPanel").radius, Theme.radiusMedium);
+            compare(findChild(dashboardWindow.contentItem, "hourlyForecastPanel").radius, Theme.radiusMedium);
+            compare(findChild(dashboardWindow.contentItem, "dailyForecastPanel").radius, Theme.radiusMedium);
             verify(page.Accessible.name.includes("Lviv"));
             const refreshCount = fakeWeatherService.refreshCount;
             keyClick(Qt.Key_F5);

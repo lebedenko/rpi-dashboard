@@ -36,20 +36,20 @@ Item {
             strokeColor: Theme.passiveBorder
             strokeWidth: 1
             joinStyle: ShapePath.MiterJoin
-            startX: Theme.sidebarCornerRadius
+            startX: Theme.radiusMedium
             startY: 0
-            PathLine { x: sidebarBackground.width - Theme.sidebarChamfer; y: 0 }
-            PathLine { x: sidebarBackground.width; y: Theme.sidebarChamfer }
-            PathLine { x: sidebarBackground.width; y: sidebarBackground.height - Theme.sidebarChamfer }
-            PathLine { x: sidebarBackground.width - Theme.sidebarChamfer; y: sidebarBackground.height }
-            PathLine { x: Theme.sidebarChamfer; y: sidebarBackground.height }
-            PathLine { x: 0; y: sidebarBackground.height - Theme.sidebarChamfer }
-            PathLine { x: 0; y: Theme.sidebarCornerRadius }
+            PathLine { x: sidebarBackground.width - Theme.chamferLarge; y: 0 }
+            PathLine { x: sidebarBackground.width; y: Theme.chamferLarge }
+            PathLine { x: sidebarBackground.width; y: sidebarBackground.height - Theme.chamferLarge }
+            PathLine { x: sidebarBackground.width - Theme.chamferLarge; y: sidebarBackground.height }
+            PathLine { x: Theme.chamferLarge; y: sidebarBackground.height }
+            PathLine { x: 0; y: sidebarBackground.height - Theme.chamferLarge }
+            PathLine { x: 0; y: Theme.radiusMedium }
             PathArc {
-                x: Theme.sidebarCornerRadius
+                x: Theme.radiusMedium
                 y: 0
-                radiusX: Theme.sidebarCornerRadius
-                radiusY: Theme.sidebarCornerRadius
+                radiusX: Theme.radiusMedium
+                radiusY: Theme.radiusMedium
             }
         }
     }
@@ -91,7 +91,7 @@ Item {
         }
 
         Rectangle {
-            width: parent.width - 16
+            width: parent.width - Theme.spacingMedium
             height: 1
             anchors.horizontalCenter: parent.horizontalCenter
             color: Theme.sectionDivider
@@ -101,7 +101,7 @@ Item {
         Text {
             objectName: "globalCiHealth"
             width: parent.width
-            color: root.statusColor(root.projectsService ? root.projectsService.aggregateHealth : "unknown")
+            color: Theme.statusColor(root.projectsService ? root.projectsService.aggregateHealth : "unknown")
             font.family: Theme.sansFontFamily
             font.pixelSize: Theme.sectionTitleTextSize
             font.weight: Theme.technicalFontWeight
@@ -152,13 +152,6 @@ Item {
                         "running": qsTr("RUNNING"), "stale": qsTr("STALE"),
                         "healthy": qsTr("HEALTHY"), "unknown": qsTr("UNKNOWN")}
         return labels[health] || labels.unknown
-    }
-
-    function statusColor(health): color {
-        const colors = {"failed": Theme.failureStatus, "attention": Theme.attentionStatus,
-                        "running": Theme.runningStatus, "stale": Theme.staleStatus,
-                        "healthy": Theme.healthyStatus, "unknown": Theme.unknownStatus}
-        return colors[health] || Theme.unknownStatus
     }
 
     Timer {
