@@ -39,6 +39,8 @@ grep -Fqx 'value = "preserve me"' "$installed_config"
 [ "$(grep -Fxc '[weather.location]' "$installed_config")" -eq 1 ]
 cmp "$source_directory/install/rpi-dashboard.service" "$installed_service"
 grep -Fqx 'OnSuccess=getty@tty1.service' "$installed_service"
+grep -Fqx 'Wants=network-online.target NetworkManager-wait-online.service' "$installed_service"
+grep -Fqx 'After=systemd-user-sessions.service plymouth-quit.service network-online.target NetworkManager-wait-online.service' "$installed_service"
 sh -n "$installed_libexec/run-kiosk.sh"
 sh -n "$installed_libexec/run-dashboard-session.sh"
 sh -n "$installed_libexec/activate-release.sh"

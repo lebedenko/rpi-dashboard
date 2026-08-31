@@ -1,6 +1,7 @@
 [Unit]
 Description=rpi-dashboard kiosk
-After=systemd-user-sessions.service plymouth-quit.service
+Wants=network-online.target NetworkManager-wait-online.service
+After=systemd-user-sessions.service plymouth-quit.service network-online.target NetworkManager-wait-online.service
 Conflicts=getty@tty1.service
 OnSuccess=getty@tty1.service
 
