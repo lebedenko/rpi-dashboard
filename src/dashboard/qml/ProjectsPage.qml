@@ -15,12 +15,6 @@ FocusScope {
                         "stale": qsTr("STALE"), "healthy": qsTr("HEALTHY"), "unknown": qsTr("UNKNOWN")}
         return labels[health] || labels.unknown
     }
-    function statusColor(health): color {
-        const colors = {"failed": Theme.failureStatus, "attention": Theme.attentionStatus,
-                        "running": Theme.runningStatus, "stale": Theme.staleStatus,
-                        "healthy": Theme.healthyStatus, "unknown": Theme.unknownStatus}
-        return colors[health] || Theme.unknownStatus
-    }
     function available(value): string { return value === undefined || value === null || String(value).length === 0 ? "—" : String(value) }
     function selectCurrent(): void { if (root.service && projectList.currentIndex >= 0) root.service.selectProject(projectList.currentIndex) }
     function focusSelected(): void { if (projectList.currentItem) projectList.currentItem.forceActiveFocus(); else projectList.forceActiveFocus() }
@@ -42,7 +36,7 @@ FocusScope {
         id: frameRoot
         required property color fill
         required property color stroke
-        property real chamfer: Theme.projectsPanelChamfer
+        property real chamfer: Theme.chamferSmall
         preferredRendererType: Shape.CurveRenderer
         ShapePath {
             fillColor: frameRoot.fill; strokeColor: frameRoot.stroke; strokeWidth: 1
@@ -60,8 +54,8 @@ FocusScope {
 
     ChamferFrame {
         id: pageFrame; objectName: "projectsPageFrame"
-        anchors.fill: parent; anchors.margins: 8
-        fill: Theme.surface; stroke: Theme.cardFrame; chamfer: Theme.projectsFrameChamfer
+        anchors.fill: parent; anchors.margins: Theme.spacingSmall
+        fill: Theme.surface; stroke: Theme.cardFrame; chamfer: Theme.chamferMedium
     }
     Item {
         id: headerBand
@@ -92,12 +86,12 @@ FocusScope {
 
     ChamferFrame {
         id: listFrame; objectName: "projectsListFrame"
-        x: pageFrame.x + 8; y: headerBand.y + headerBand.height; width: 346; height: pageFrame.height - headerBand.height - 8
+        x: pageFrame.x + Theme.spacingSmall; y: headerBand.y + headerBand.height; width: 346; height: pageFrame.height - headerBand.height - Theme.spacingSmall
         fill: Theme.cardSurface; stroke: Theme.sectionDividerStrong
     }
     ListView {
         id: projectList; objectName: "projectList"
-        anchors.fill: listFrame; anchors.margins: 8
+        anchors.fill: listFrame; anchors.margins: Theme.spacingSmall
         model: root.service ? root.service.projectModel : null
         currentIndex: root.service ? root.service.selectedProjectIndex : -1
         spacing: 6; clip: true; reuseItems: true; activeFocusOnTab: true
@@ -109,6 +103,7 @@ FocusScope {
             required property string branch
             required property string age
             required property string health
+            readonly property color resolvedStatusColor: Theme.statusColor(projectRow.health)
             objectName: "projectRow" + index
             width: ListView.view.width; height: 56; padding: 0; highlighted: ListView.isCurrentItem
             Accessible.name: qsTr("%1, %2, %3").arg(name).arg(branch).arg(root.statusLabel(health))
@@ -118,10 +113,10 @@ FocusScope {
                 objectName: "projectCardFrame" + projectRow.index
                 fill: projectRow.highlighted ? Theme.selectedSurface : Theme.cardSurface
                 stroke: projectRow.highlighted ? Theme.primaryAccent : Theme.sectionDivider
-                chamfer: Theme.projectsRowChamfer
+                chamfer: Theme.chamferSmall
             }
             contentItem: Item {
-                Rectangle { objectName: "projectHealthRail" + projectRow.index; width: 4; anchors.left: parent.left; anchors.leftMargin: 8; anchors.top: parent.top; anchors.topMargin: 8; anchors.bottom: parent.bottom; anchors.bottomMargin: 8; color: root.statusColor(projectRow.health); Accessible.ignored: true }
+                Rectangle { objectName: "projectHealthRail" + projectRow.index; width: 4; anchors.left: parent.left; anchors.leftMargin: Theme.spacingSmall; anchors.top: parent.top; anchors.topMargin: Theme.spacingSmall; anchors.bottom: parent.bottom; anchors.bottomMargin: Theme.spacingSmall; color: projectRow.resolvedStatusColor; Accessible.ignored: true }
                 Row {
                     id: statusGroup
                     objectName: "projectStatusGroup" + projectRow.index
@@ -129,12 +124,12 @@ FocusScope {
                     spacing: 6
                     Item {
                         width: 7; height: statusText.height
-                        Rectangle { objectName: "projectStatusDisc" + projectRow.index; width: 7; height: 7; radius: 4; anchors.centerIn: parent; color: root.statusColor(projectRow.health); Accessible.ignored: true }
+                        Rectangle { objectName: "projectStatusDisc" + projectRow.index; width: 7; height: 7; radius: width / 2; anchors.centerIn: parent; color: projectRow.resolvedStatusColor; Accessible.ignored: true }
                     }
-                    Text { id: statusText; objectName: "projectHealth" + projectRow.index; color: root.statusColor(projectRow.health); font.family: Theme.sansFontFamily; font.pixelSize: Theme.captionTextSize; font.weight: Theme.headingFontWeight; text: root.statusLabel(projectRow.health) }
+                    Text { id: statusText; objectName: "projectHealth" + projectRow.index; color: projectRow.resolvedStatusColor; font.family: Theme.sansFontFamily; font.pixelSize: Theme.captionTextSize; font.weight: Theme.headingFontWeight; text: root.statusLabel(projectRow.health) }
                 }
-                Text { objectName: "projectName" + projectRow.index; anchors.left: parent.left; anchors.leftMargin: 24; anchors.right: statusGroup.left; anchors.rightMargin: 12; anchors.top: parent.top; anchors.topMargin: 7; color: Theme.textPrimary; elide: Text.ElideRight; renderType: Text.NativeRendering; font.family: Theme.sansFontFamily; font.hintingPreference: Font.PreferFullHinting; font.pixelSize: Theme.bodyTextSize; font.weight: Theme.informationFontWeight; text: projectRow.name.toUpperCase() }
-                Text { objectName: "projectBranch" + projectRow.index; anchors.left: parent.left; anchors.leftMargin: 24; anchors.right: projectAge.left; anchors.rightMargin: 12; anchors.bottom: parent.bottom; anchors.bottomMargin: 6; color: Theme.textMuted; elide: Text.ElideRight; font.family: Theme.fixedFontFamily; font.pixelSize: Theme.captionTextSize; font.weight: Theme.technicalLightFontWeight; text: projectRow.branch.toLowerCase() }
+                Text { objectName: "projectName" + projectRow.index; anchors.left: parent.left; anchors.leftMargin: Theme.spacingLarge; anchors.right: statusGroup.left; anchors.rightMargin: 12; anchors.top: parent.top; anchors.topMargin: 7; color: Theme.textPrimary; elide: Text.ElideRight; renderType: Text.NativeRendering; font.family: Theme.sansFontFamily; font.hintingPreference: Font.PreferFullHinting; font.pixelSize: Theme.bodyTextSize; font.weight: Theme.informationFontWeight; text: projectRow.name.toUpperCase() }
+                Text { objectName: "projectBranch" + projectRow.index; anchors.left: parent.left; anchors.leftMargin: Theme.spacingLarge; anchors.right: projectAge.left; anchors.rightMargin: 12; anchors.bottom: parent.bottom; anchors.bottomMargin: 6; color: Theme.textMuted; elide: Text.ElideRight; font.family: Theme.fixedFontFamily; font.pixelSize: Theme.captionTextSize; font.weight: Theme.technicalLightFontWeight; text: projectRow.branch.toLowerCase() }
                 Text { id: projectAge; objectName: "projectAge" + projectRow.index; anchors.right: parent.right; anchors.rightMargin: 12; anchors.bottom: parent.bottom; anchors.bottomMargin: 6; color: Theme.textMuted; font.family: Theme.fixedFontFamily; font.pixelSize: Theme.captionTextSize; font.weight: Theme.technicalLightFontWeight; text: projectRow.age.toLowerCase() }
             }
         }
@@ -142,7 +137,7 @@ FocusScope {
 
     ChamferFrame {
         id: detail; objectName: "projectDetail"
-        anchors.left: listFrame.right; anchors.leftMargin: 8; anchors.right: pageFrame.right; anchors.rightMargin: 8
+        anchors.left: listFrame.right; anchors.leftMargin: Theme.spacingSmall; anchors.right: pageFrame.right; anchors.rightMargin: Theme.spacingSmall
         anchors.top: listFrame.top; anchors.bottom: listFrame.bottom
         fill: Theme.surface; stroke: Theme.sectionDividerStrong
     }
@@ -150,14 +145,14 @@ FocusScope {
         id: detailContent; anchors.fill: detail; anchors.margins: 10
         Text { id: repositoryLabel; objectName: "selectedRepository"; anchors.left: parent.left; anchors.top: parent.top; color: Theme.textPrimary; font.family: Theme.sansFontFamily; font.pixelSize: Theme.metricTextSize; font.weight: Theme.headingFontWeight; text: root.service ? root.available(root.service.selectedRepository).toUpperCase() : "—" }
         Text { objectName: "selectedIdentity"; anchors.left: repositoryLabel.right; anchors.leftMargin: 9; anchors.baseline: repositoryLabel.baseline; color: Theme.textSecondary; font.family: Theme.fixedFontFamily; font.pixelSize: Theme.captionTextSize; font.weight: Theme.technicalRegularFontWeight; text: root.service ? qsTr("%1 · %2").arg(root.available(root.service.selectedBranch).toUpperCase()).arg(root.available(root.service.selectedRevision).toUpperCase()) : "—" }
-        Text { objectName: "selectedHealth"; anchors.left: parent.left; anchors.top: repositoryLabel.bottom; color: root.statusColor(root.service ? root.service.selectedHealth : "unknown"); font.family: Theme.sansFontFamily; font.pixelSize: Theme.captionTextSize; font.weight: Theme.headingFontWeight; text: root.statusLabel(root.service ? root.service.selectedHealth : "unknown") }
+        Text { objectName: "selectedHealth"; anchors.left: parent.left; anchors.top: repositoryLabel.bottom; color: Theme.statusColor(root.service ? root.service.selectedHealth : "unknown"); font.family: Theme.sansFontFamily; font.pixelSize: Theme.captionTextSize; font.weight: Theme.headingFontWeight; text: root.statusLabel(root.service ? root.service.selectedHealth : "unknown") }
         Text { objectName: "selectedRun"; anchors.right: parent.right; anchors.top: parent.top; color: Theme.textPrimary; font.family: Theme.fixedFontFamily; font.pixelSize: Theme.bodyTextSize; font.weight: Theme.technicalFontWeight; text: root.service ? root.available(root.service.selectedRun) : "—" }
         Text { objectName: "selectedRunAge"; anchors.right: parent.right; anchors.top: parent.top; anchors.topMargin: 20; color: Theme.textMuted; font.family: Theme.fixedFontFamily; font.pixelSize: Theme.captionTextSize; font.weight: Theme.technicalLightFontWeight; text: root.service ? root.available(root.service.selectedRunAge).toLowerCase() : "—" }
 
         Row {
             id: stages; objectName: "stageCards"
             anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top; anchors.topMargin: 43
-            height: 58; spacing: 8
+            height: 58; spacing: Theme.spacingSmall
             Repeater {
                 model: root.service ? root.service.stageModel : null
                 delegate: Item {
@@ -165,18 +160,19 @@ FocusScope {
                     required property int index
                     required property string name
                     required property string health
-                    width: (stages.width - 24) / 4; height: stages.height
-                    ChamferFrame { anchors.fill: parent; fill: Theme.cardSurface; stroke: root.statusColor(stageCard.health); chamfer: Theme.projectsPanelChamfer }
-                    Text { objectName: "stageName" + stageCard.index; anchors.horizontalCenter: parent.horizontalCenter; anchors.top: parent.top; anchors.topMargin: 9; width: parent.width - 16; color: Theme.textPrimary; elide: Text.ElideRight; horizontalAlignment: Text.AlignHCenter; font.family: Theme.sansFontFamily; font.pixelSize: Theme.bodyTextSize; font.weight: Theme.informationFontWeight; text: stageCard.name.toUpperCase() }
-                    Text { objectName: "stageOutcome" + stageCard.index; anchors.horizontalCenter: parent.horizontalCenter; anchors.bottom: parent.bottom; anchors.bottomMargin: 7; color: root.statusColor(stageCard.health); font.family: Theme.sansFontFamily; font.pixelSize: Theme.captionTextSize; font.weight: Theme.headingFontWeight; text: (stageCard.health === "healthy" ? "✓ " : "") + root.statusLabel(stageCard.health) }
+                    readonly property color resolvedStatusColor: Theme.statusColor(stageCard.health)
+                    width: (stages.width - Theme.spacingLarge) / 4; height: stages.height
+                    ChamferFrame { anchors.fill: parent; fill: Theme.cardSurface; stroke: stageCard.resolvedStatusColor; chamfer: Theme.chamferSmall }
+                    Text { objectName: "stageName" + stageCard.index; anchors.horizontalCenter: parent.horizontalCenter; anchors.top: parent.top; anchors.topMargin: 9; width: parent.width - Theme.spacingMedium; color: Theme.textPrimary; elide: Text.ElideRight; horizontalAlignment: Text.AlignHCenter; font.family: Theme.sansFontFamily; font.pixelSize: Theme.bodyTextSize; font.weight: Theme.informationFontWeight; text: stageCard.name.toUpperCase() }
+                    Text { objectName: "stageOutcome" + stageCard.index; anchors.horizontalCenter: parent.horizontalCenter; anchors.bottom: parent.bottom; anchors.bottomMargin: 7; color: stageCard.resolvedStatusColor; font.family: Theme.sansFontFamily; font.pixelSize: Theme.captionTextSize; font.weight: Theme.headingFontWeight; text: (stageCard.health === "healthy" ? "✓ " : "") + root.statusLabel(stageCard.health) }
                     Rectangle { visible: stageCard.index > 0; x: -8; anchors.verticalCenter: parent.verticalCenter; width: 8; height: 1; color: Theme.sectionDividerStrong; Accessible.ignored: true }
                 }
             }
         }
         Row {
             id: metrics
-            anchors.left: stages.left; anchors.right: stages.right; anchors.top: stages.bottom; anchors.topMargin: 8
-            height: 44; spacing: 8
+            anchors.left: stages.left; anchors.right: stages.right; anchors.top: stages.bottom; anchors.topMargin: Theme.spacingSmall
+            height: 44; spacing: Theme.spacingSmall
             Repeater {
                 model: [{"label": qsTr("DURATION"), "value": root.service ? root.available(root.service.duration) : "—"},
                         {"label": qsTr("JOBS"), "value": root.service ? root.available(root.service.jobsSummary) : "—"},
@@ -186,10 +182,10 @@ FocusScope {
                     id: metricCard
                     required property int index
                     required property var modelData
-                    width: (metrics.width - 24) / 4; height: metrics.height
+                    width: (metrics.width - Theme.spacingLarge) / 4; height: metrics.height
                     Rectangle { anchors.fill: parent; color: Theme.surfaceElevated; border.color: Theme.sectionDividerStrong }
-                    Text { objectName: "metricLabel" + metricCard.index; anchors.left: parent.left; anchors.leftMargin: 8; anchors.top: parent.top; anchors.topMargin: 5; color: Theme.textSecondary; font.family: Theme.sansFontFamily; font.pixelSize: Theme.captionTextSize; font.weight: Theme.labelFontWeight; text: metricCard.modelData.label }
-                    Text { objectName: "metricValue" + metricCard.index; anchors.left: parent.left; anchors.leftMargin: 8; anchors.bottom: parent.bottom; anchors.bottomMargin: 4; color: Theme.textPrimary; font.family: Theme.fixedFontFamily; font.pixelSize: Theme.captionTextSize; font.weight: Theme.technicalRegularFontWeight; text: metricCard.modelData.value }
+                    Text { objectName: "metricLabel" + metricCard.index; anchors.left: parent.left; anchors.leftMargin: Theme.spacingSmall; anchors.top: parent.top; anchors.topMargin: 5; color: Theme.textSecondary; font.family: Theme.sansFontFamily; font.pixelSize: Theme.captionTextSize; font.weight: Theme.labelFontWeight; text: metricCard.modelData.label }
+                    Text { objectName: "metricValue" + metricCard.index; anchors.left: parent.left; anchors.leftMargin: Theme.spacingSmall; anchors.bottom: parent.bottom; anchors.bottomMargin: 4; color: Theme.textPrimary; font.family: Theme.fixedFontFamily; font.pixelSize: Theme.captionTextSize; font.weight: Theme.technicalRegularFontWeight; text: metricCard.modelData.value }
                 }
             }
         }
@@ -206,7 +202,7 @@ FocusScope {
                     required property string key
                     required property string health
                     width: Math.max(12, (historyStrip.width - 76) / 20); height: historyStrip.height
-                    color: root.statusColor(health)
+                    color: Theme.statusColor(health)
                     Accessible.role: Accessible.StaticText
                     Accessible.name: qsTr("Run %1, %2").arg(key).arg(root.statusLabel(health))
                 }

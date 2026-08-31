@@ -252,21 +252,21 @@ ApplicationWindow {
                     strokeColor: Theme.passiveBorder
                     strokeWidth: 1
                     joinStyle: ShapePath.MiterJoin
-                    startX: Theme.sidebarChamfer
+                    startX: Theme.chamferLarge
                     startY: 0
-                    PathLine { x: sidebarBackground.width - Theme.sidebarCornerRadius; y: 0 }
+                    PathLine { x: sidebarBackground.width - Theme.radiusMedium; y: 0 }
                     PathArc {
                         x: sidebarBackground.width
-                        y: Theme.sidebarCornerRadius
-                        radiusX: Theme.sidebarCornerRadius
-                        radiusY: Theme.sidebarCornerRadius
+                        y: Theme.radiusMedium
+                        radiusX: Theme.radiusMedium
+                        radiusY: Theme.radiusMedium
                     }
-                    PathLine { x: sidebarBackground.width; y: sidebarBackground.height - Theme.sidebarChamfer }
-                    PathLine { x: sidebarBackground.width - Theme.sidebarChamfer; y: sidebarBackground.height }
-                    PathLine { x: Theme.sidebarChamfer; y: sidebarBackground.height }
-                    PathLine { x: 0; y: sidebarBackground.height - Theme.sidebarChamfer }
-                    PathLine { x: 0; y: Theme.sidebarChamfer }
-                    PathLine { x: Theme.sidebarChamfer; y: 0 }
+                    PathLine { x: sidebarBackground.width; y: sidebarBackground.height - Theme.chamferLarge }
+                    PathLine { x: sidebarBackground.width - Theme.chamferLarge; y: sidebarBackground.height }
+                    PathLine { x: Theme.chamferLarge; y: sidebarBackground.height }
+                    PathLine { x: 0; y: sidebarBackground.height - Theme.chamferLarge }
+                    PathLine { x: 0; y: Theme.chamferLarge }
+                    PathLine { x: Theme.chamferLarge; y: 0 }
                 }
             }
 

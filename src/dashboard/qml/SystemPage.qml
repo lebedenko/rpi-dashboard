@@ -97,7 +97,7 @@ Item {
                         border.width: tab.activeFocus ? 2 : 1
                         border.color: tab.activeFocus ? Theme.focusAccent
                                                           : root.selectedIndex === tab.index ? Theme.primaryAccent : Theme.passiveBorder
-                        radius: 4
+                        radius: Theme.radiusMedium
                     }
                 }
             }

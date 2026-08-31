@@ -38,9 +38,7 @@ Control {
     readonly property string statusText: root.statusKey === "online" ? qsTr("ONLINE")
                                                 : root.statusKey === "registered" ? qsTr("REGISTERED")
                                                 : root.statusKey === "stale" ? qsTr("STALE") : qsTr("OFFLINE")
-    readonly property color statusColor: root.statusKey === "online" ? Theme.onlineStatus
-                                              : root.statusKey === "registered" ? Theme.primaryAccent
-                                              : root.statusKey === "stale" ? Theme.staleStatus : Theme.textMuted
+    readonly property color statusColor: Theme.statusColor(root.statusKey)
 
     height: root.expanded ? root.expandedHeight : Theme.deviceHeaderHeight
     padding: Theme.cardFrameInset
@@ -104,7 +102,7 @@ Control {
         readonly property int valuePixelSize: Theme.bodyTextSize
         Rectangle { anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom; height: 1; color: Theme.sectionDivider }
         Image {
-            anchors.left: parent.left; anchors.leftMargin: 8; anchors.verticalCenter: parent.verticalCenter
+            anchors.left: parent.left; anchors.leftMargin: Theme.spacingSmall; anchors.verticalCenter: parent.verticalCenter
             width: 16; height: 16; source: parent.iconSource; sourceSize.width: 16; sourceSize.height: 16; Accessible.ignored: true
         }
         Text {
@@ -113,7 +111,7 @@ Control {
             font.family: Theme.fixedFontFamily; font.pixelSize: Theme.captionTextSize
         }
         Text {
-            anchors.left: parent.left; anchors.leftMargin: Theme.detailIconRailWidth + 94; anchors.right: parent.right; anchors.rightMargin: 8
+            anchors.left: parent.left; anchors.leftMargin: Theme.detailIconRailWidth + 94; anchors.right: parent.right; anchors.rightMargin: Theme.spacingSmall
             anchors.verticalCenter: parent.verticalCenter; text: parent.detailValue; textFormat: Text.PlainText
             color: Theme.textPrimary; elide: Text.ElideRight
             font.family: Theme.sansFontFamily; font.pixelSize: parent.valuePixelSize; font.weight: Theme.informationFontWeight
@@ -127,12 +125,12 @@ Control {
             ShapePath {
                 fillColor: Theme.cardSurface; strokeColor: Theme.cardFrame; strokeWidth: 1; joinStyle: ShapePath.MiterJoin
                 startX: Theme.deviceFrameStep; startY: 0
-                PathLine { x: outerFrame.width - Theme.deviceFrameChamfer; y: 0 }
-                PathLine { x: outerFrame.width; y: Theme.deviceFrameChamfer }
+                PathLine { x: outerFrame.width - Theme.chamferLarge; y: 0 }
+                PathLine { x: outerFrame.width; y: Theme.chamferLarge }
                 PathLine { x: outerFrame.width; y: outerFrame.height - Theme.deviceFrameStep }
                 PathLine { x: outerFrame.width - Theme.deviceFrameStep; y: outerFrame.height }
-                PathLine { x: Theme.deviceFrameChamfer; y: outerFrame.height }
-                PathLine { x: 0; y: outerFrame.height - Theme.deviceFrameChamfer }
+                PathLine { x: Theme.chamferLarge; y: outerFrame.height }
+                PathLine { x: 0; y: outerFrame.height - Theme.chamferLarge }
                 PathLine { x: 0; y: Theme.deviceFrameStep }
                 PathLine { x: Theme.deviceFrameStep; y: 0 }
             }
@@ -167,13 +165,13 @@ Control {
                 ShapePath {
                     fillColor: Theme.badgeSurface; strokeColor: root.statusColor; strokeWidth: 1
                     startX: 0; startY: 0
-                    PathLine { x: statusBadge.width - Theme.badgeChamfer; y: 0 }
+                    PathLine { x: statusBadge.width - Theme.chamferLarge; y: 0 }
                     PathLine { x: statusBadge.width; y: statusBadge.height / 2 }
-                    PathLine { x: statusBadge.width - Theme.badgeChamfer; y: statusBadge.height }
+                    PathLine { x: statusBadge.width - Theme.chamferLarge; y: statusBadge.height }
                     PathLine { x: 0; y: statusBadge.height }
                     PathLine { x: 0; y: 0 }
                 }
-                Rectangle { x: 15; anchors.verticalCenter: parent.verticalCenter; width: 10; height: 10; radius: 5; color: root.statusColor }
+                Rectangle { x: 15; anchors.verticalCenter: parent.verticalCenter; width: 10; height: 10; radius: width / 2; color: root.statusColor }
                 Text {
                     objectName: "deviceStatus"; x: 34; anchors.verticalCenter: parent.verticalCenter
                     text: root.statusText; textFormat: Text.PlainText
@@ -219,7 +217,7 @@ Control {
                 onClicked: root.expansionRequested()
                 background: Rectangle {
                     color: chevron.down ? Theme.surfaceRaised : "transparent"
-                    border.width: chevron.activeFocus ? 2 : 1; border.color: chevron.activeFocus ? Theme.focusAccent : Theme.passiveBorder; radius: 2
+                    border.width: chevron.activeFocus ? 2 : 1; border.color: chevron.activeFocus ? Theme.focusAccent : Theme.passiveBorder; radius: Theme.radiusSmall
                 }
             }
         }
