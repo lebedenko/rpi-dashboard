@@ -136,10 +136,13 @@ target_compile_definitions(dashboard_startup_test
         DASHBOARD_CLOCK_SIDEBAR_QML="${CMAKE_SOURCE_DIR}/src/dashboard/qml/ClockSidebar.qml"
         DASHBOARD_MAIN_QML="${CMAKE_SOURCE_DIR}/src/dashboard/qml/Main.qml"
         DASHBOARD_DEVICE_CARD_QML="${CMAKE_SOURCE_DIR}/src/dashboard/qml/DeviceCard.qml"
+        DASHBOARD_FRAME_QML="${CMAKE_SOURCE_DIR}/src/dashboard/qml/Frame.qml"
         DASHBOARD_OVERVIEW_PAGE_QML="${CMAKE_SOURCE_DIR}/src/dashboard/qml/OverviewPage.qml"
         DASHBOARD_PROJECTS_PAGE_QML="${CMAKE_SOURCE_DIR}/src/dashboard/qml/ProjectsPage.qml"
         DASHBOARD_SYSTEM_PAGE_QML="${CMAKE_SOURCE_DIR}/src/dashboard/qml/SystemPage.qml"
         DASHBOARD_SYSTEM_METRIC_PANEL_QML="${CMAKE_SOURCE_DIR}/src/dashboard/qml/SystemMetricPanel.qml"
+        DASHBOARD_WEATHER_PAGE_QML="${CMAKE_SOURCE_DIR}/src/dashboard/qml/WeatherPage.qml"
+        DASHBOARD_SCREENSAVER_VIEW_QML="${CMAKE_SOURCE_DIR}/src/dashboard/qml/ScreensaverView.qml"
         DASHBOARD_PAGE_QML="${CMAKE_SOURCE_DIR}/src/dashboard/qml/DashboardPage.qml"
         DASHBOARD_SIDEBAR_BUTTON_QML="${CMAKE_SOURCE_DIR}/src/dashboard/qml/SidebarButton.qml"
         DASHBOARD_THEME_QML="${CMAKE_SOURCE_DIR}/src/dashboard/qml/Theme.qml"
@@ -161,6 +164,7 @@ qt_add_executable(dashboard_qml_test
 
 target_sources(dashboard_qml_test
     PRIVATE
+        tst_Frame.qml
         tst_Main.qml
 )
 

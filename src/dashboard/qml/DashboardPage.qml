@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
+import Rpi.Dashboard as Dashboard
 
 Item {
     id: root
@@ -44,11 +45,11 @@ Item {
                 font.weight: Theme.informationFontWeight
             }
 
-            background: Rectangle {
-                color: Theme.surfaceElevated
-                border.width: emptyState.activeFocus ? 2 : 1
-                border.color: emptyState.activeFocus ? Theme.focusAccent : Theme.passiveBorder
-                radius: Theme.radiusLarge
+            background: Dashboard.Frame {
+                backgroundColor: Theme.surfaceElevated
+                lineWidth: emptyState.activeFocus ? 2 : 1
+                color: emptyState.activeFocus ? Theme.focusAccent : Theme.passiveBorder
+                corners: ({ rounded: Theme.radiusLarge })
 
                 Rectangle {
                     anchors.top: parent.top

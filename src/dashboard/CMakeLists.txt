@@ -22,6 +22,7 @@ qt_add_qml_module(rpi-dashboard-qml
         qml/ClockSidebar.qml
         qml/DashboardPage.qml
         qml/DeviceCard.qml
+        qml/Frame.qml
         qml/Main.qml
         qml/OverviewPage.qml
         qml/ProjectsPage.qml

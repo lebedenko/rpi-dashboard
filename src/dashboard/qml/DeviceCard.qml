@@ -1,7 +1,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls.Basic
-import QtQuick.Shapes
+import Rpi.Dashboard as Dashboard
 
 Control {
     id: root
@@ -119,21 +119,12 @@ Control {
     }
 
     background: Item {
-        Shape {
+        Dashboard.Frame {
             id: outerFrame
             anchors.fill: parent; anchors.margins: Theme.cardFrameInset; Accessible.ignored: true
-            ShapePath {
-                fillColor: Theme.cardSurface; strokeColor: Theme.cardFrame; strokeWidth: 1; joinStyle: ShapePath.MiterJoin
-                startX: Theme.deviceFrameStep; startY: 0
-                PathLine { x: outerFrame.width - Theme.chamferLarge; y: 0 }
-                PathLine { x: outerFrame.width; y: Theme.chamferLarge }
-                PathLine { x: outerFrame.width; y: outerFrame.height - Theme.deviceFrameStep }
-                PathLine { x: outerFrame.width - Theme.deviceFrameStep; y: outerFrame.height }
-                PathLine { x: Theme.chamferLarge; y: outerFrame.height }
-                PathLine { x: 0; y: outerFrame.height - Theme.chamferLarge }
-                PathLine { x: 0; y: Theme.deviceFrameStep }
-                PathLine { x: Theme.deviceFrameStep; y: 0 }
-            }
+            backgroundColor: Theme.cardSurface; color: Theme.cardFrame
+            corners: ({ topLeft: { chamfered: Theme.deviceFrameStep }, topRight: { chamfered: Theme.chamferLarge },
+                        bottomRight: { chamfered: Theme.deviceFrameStep }, bottomLeft: { chamfered: Theme.chamferLarge } })
         }
         Rectangle { x: Theme.deviceFrameStep; y: Theme.cardFrameInset; width: Math.min(150, parent.width * 0.13); height: 2; color: Theme.cardAccent }
         Rectangle { x: parent.width - width - Theme.deviceFrameStep; y: parent.height - Theme.cardFrameInset - 2; width: Math.min(128, parent.width * 0.11); height: 2; color: Theme.cardAccent }
@@ -159,18 +150,11 @@ Control {
                 text: root.hostname; textFormat: Text.PlainText; color: Theme.textPrimary; elide: Text.ElideRight
                 font.family: Theme.sansFontFamily; font.pixelSize: Theme.headingTextSize; font.weight: Theme.headingFontWeight
             }
-            Shape {
+            Dashboard.Frame {
                 id: statusBadge
                 x: 314; anchors.verticalCenter: parent.verticalCenter; width: Theme.statusBadgeWidth; height: Theme.statusBadgeHeight; Accessible.ignored: true
-                ShapePath {
-                    fillColor: Theme.badgeSurface; strokeColor: root.statusColor; strokeWidth: 1
-                    startX: 0; startY: 0
-                    PathLine { x: statusBadge.width - Theme.chamferLarge; y: 0 }
-                    PathLine { x: statusBadge.width; y: statusBadge.height / 2 }
-                    PathLine { x: statusBadge.width - Theme.chamferLarge; y: statusBadge.height }
-                    PathLine { x: 0; y: statusBadge.height }
-                    PathLine { x: 0; y: 0 }
-                }
+                backgroundColor: Theme.badgeSurface; color: root.statusColor
+                corners: ({ topRight: { chamfered: Theme.chamferLarge }, bottomRight: { chamfered: Theme.chamferLarge } })
                 Rectangle { x: 15; anchors.verticalCenter: parent.verticalCenter; width: 10; height: 10; radius: width / 2; color: root.statusColor }
                 Text {
                     objectName: "deviceStatus"; x: 34; anchors.verticalCenter: parent.verticalCenter
@@ -215,9 +199,10 @@ Control {
                 icon.width: 24; icon.height: 24; rotation: root.expanded ? 180 : 0
                 Accessible.name: root.chevronAccessibleName
                 onClicked: root.expansionRequested()
-                background: Rectangle {
-                    color: chevron.down ? Theme.surfaceRaised : "transparent"
-                    border.width: chevron.activeFocus ? 2 : 1; border.color: chevron.activeFocus ? Theme.focusAccent : Theme.passiveBorder; radius: Theme.radiusSmall
+                background: Dashboard.Frame {
+                    backgroundColor: chevron.down ? Theme.surfaceRaised : "transparent"
+                    lineWidth: chevron.activeFocus ? 2 : 1; color: chevron.activeFocus ? Theme.focusAccent : Theme.passiveBorder
+                    corners: ({ rounded: Theme.radiusSmall })
                 }
             }
         }
@@ -247,9 +232,9 @@ Control {
                         text: qsTr("DEVICE DETAILS"); textFormat: Text.PlainText; color: Theme.cardAccent
                         font.family: Theme.sansFontFamily; font.pixelSize: Theme.sectionTitleTextSize; font.weight: Theme.technicalFontWeight
                     }
-                    Rectangle {
+                    Dashboard.Frame {
                         anchors.left: parent.left; anchors.top: parent.top; anchors.topMargin: Theme.detailHeaderHeight; anchors.bottom: parent.bottom
-                        width: Theme.detailIconRailWidth; color: Theme.detailRailSurface; border.width: 1; border.color: Theme.detailRailFrame
+                        width: Theme.detailIconRailWidth; backgroundColor: Theme.detailRailSurface; color: Theme.detailRailFrame
                     }
                     DetailRow { objectName: "detailRow0"; x: 0; y: Theme.detailHeaderHeight; width: parent.width; height: (parent.height - Theme.detailHeaderHeight) / 7; iconSource: Qt.resolvedUrl("icons/detail-os.svg"); detailLabel: qsTr("OS"); detailValue: root.osDescription }
                     DetailRow { objectName: "detailRow1"; x: 0; y: Theme.detailHeaderHeight + height; width: parent.width; height: (parent.height - Theme.detailHeaderHeight) / 7; iconSource: Qt.resolvedUrl("icons/detail-kernel.svg"); detailLabel: qsTr("KERNEL"); detailValue: root.kernelDescription }
@@ -332,10 +317,11 @@ Control {
                             color: Theme.chartText; font.family: Theme.fixedFontFamily; font.pixelSize: Theme.axisTextSize
                         }
                     }
-                    Rectangle {
+                    Dashboard.Frame {
                         objectName: "remoteHistoryUnavailable"
                         anchors.fill: parent
-                        color: Theme.cardSurface
+                        backgroundColor: Theme.cardSurface
+                        lineWidth: 0
                         visible: !root.historyAvailable
                         Text {
                             anchors.centerIn: parent

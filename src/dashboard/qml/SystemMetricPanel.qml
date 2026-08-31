@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls.Basic
+import Rpi.Dashboard as Dashboard
 
 Control {
     id: root
@@ -19,11 +20,10 @@ Control {
     Accessible.role: Accessible.StaticText
     Accessible.name: root.accessibleSummary
 
-    background: Rectangle {
-        color: Theme.cardSurface
-        border.width: 1
-        border.color: Theme.cardFrame
-        radius: Theme.radiusMedium
+    background: Dashboard.Frame {
+        backgroundColor: Theme.cardSurface
+        color: Theme.cardFrame
+        corners: ({ rounded: Theme.radiusMedium })
     }
 
     contentItem: Item {

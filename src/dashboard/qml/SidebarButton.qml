@@ -1,6 +1,6 @@
 import QtQuick
 import QtQuick.Controls.Basic
-import QtQuick.Shapes
+import Rpi.Dashboard as Dashboard
 
 Button {
     id: root
@@ -27,38 +27,21 @@ Button {
                              : root.hovered ? Theme.textSecondary
                                             : Theme.textMuted
     }
-    background: Shape {
-        ShapePath {
-            fillColor: root.down ? Theme.surfaceRaised
-                                 : root.selected ? Theme.selectedSurface
-                                                 : root.hovered ? Theme.surfaceElevated
-                                                                : "transparent"
-            strokeColor: root.activeFocus ? Theme.focusAccent
-                                          : root.selected ? Theme.primaryAccent
-                                                          : "transparent"
-            strokeWidth: root.activeFocus ? 2 : root.selected ? 1 : 0
-            joinStyle: ShapePath.MiterJoin
-            startX: Theme.chamferMedium
-            startY: 0
-            PathLine { x: root.width - Theme.radiusSmall; y: 0 }
-            PathArc {
-                x: root.width
-                y: Theme.radiusSmall
-                radiusX: Theme.radiusSmall
-                radiusY: Theme.radiusSmall
-            }
-            PathLine { x: root.width; y: root.height - Theme.chamferMedium }
-            PathLine { x: root.width - Theme.chamferMedium; y: root.height }
-            PathLine { x: Theme.radiusSmall; y: root.height }
-            PathArc {
-                x: 0
-                y: root.height - Theme.radiusSmall
-                radiusX: Theme.radiusSmall
-                radiusY: Theme.radiusSmall
-            }
-            PathLine { x: 0; y: Theme.chamferMedium }
-            PathLine { x: Theme.chamferMedium; y: 0 }
-        }
+    background: Dashboard.Frame {
+        backgroundColor: root.down ? Theme.surfaceRaised
+                                   : root.selected ? Theme.selectedSurface
+                                                   : root.hovered ? Theme.surfaceElevated
+                                                                  : "transparent"
+        color: root.activeFocus ? Theme.focusAccent
+                                : root.selected ? Theme.primaryAccent
+                                                : "transparent"
+        lineWidth: root.activeFocus ? 2 : root.selected ? 1 : 0
+        corners: ({
+            topLeft: { chamfered: Theme.chamferMedium },
+            topRight: { rounded: Theme.radiusSmall },
+            bottomRight: { chamfered: Theme.chamferMedium },
+            bottomLeft: { rounded: Theme.radiusSmall }
+        })
     }
 
     HoverHandler {

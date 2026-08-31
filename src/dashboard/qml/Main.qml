@@ -2,7 +2,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
-import QtQuick.Shapes
+import Rpi.Dashboard as Dashboard
 
 ApplicationWindow {
     id: root
@@ -241,33 +241,18 @@ ApplicationWindow {
             Layout.topMargin: Theme.displaySafeInset
             Layout.bottomMargin: Theme.displaySafeInset
 
-            Shape {
+            Dashboard.Frame {
                 id: sidebarBackground
 
                 anchors.fill: parent
-                Accessible.ignored: true
-
-                ShapePath {
-                    fillColor: Theme.surface
-                    strokeColor: Theme.passiveBorder
-                    strokeWidth: 1
-                    joinStyle: ShapePath.MiterJoin
-                    startX: Theme.chamferLarge
-                    startY: 0
-                    PathLine { x: sidebarBackground.width - Theme.radiusMedium; y: 0 }
-                    PathArc {
-                        x: sidebarBackground.width
-                        y: Theme.radiusMedium
-                        radiusX: Theme.radiusMedium
-                        radiusY: Theme.radiusMedium
-                    }
-                    PathLine { x: sidebarBackground.width; y: sidebarBackground.height - Theme.chamferLarge }
-                    PathLine { x: sidebarBackground.width - Theme.chamferLarge; y: sidebarBackground.height }
-                    PathLine { x: Theme.chamferLarge; y: sidebarBackground.height }
-                    PathLine { x: 0; y: sidebarBackground.height - Theme.chamferLarge }
-                    PathLine { x: 0; y: Theme.chamferLarge }
-                    PathLine { x: Theme.chamferLarge; y: 0 }
-                }
+                backgroundColor: Theme.surface
+                color: Theme.passiveBorder
+                corners: ({
+                    topLeft: { chamfered: Theme.chamferLarge },
+                    topRight: { rounded: Theme.radiusMedium },
+                    bottomRight: { chamfered: Theme.chamferLarge },
+                    bottomLeft: { chamfered: Theme.chamferLarge }
+                })
             }
 
             Column {
