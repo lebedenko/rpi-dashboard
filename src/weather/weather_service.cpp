@@ -11,12 +11,19 @@
 #include <QStandardPaths>
 
 #include <algorithm>
+#include <array>
 #include <cmath>
+#include <limits>
 
 namespace dashboard::weather {
 // NOLINTBEGIN(readability-braces-around-statements,cppcoreguidelines-narrowing-conversions,performance-unnecessary-value-param)
 namespace {
 constexpr int kCacheStaleSeconds = 1200;
+
+bool isSupportedIconCode(const QString& code) {
+  static const QRegularExpression expression(QStringLiteral(R"(^(01|02|03|04|09|10|11|13|50)[dn]$)"));
+  return expression.match(code).hasMatch();
+}
 
 QString cachePath() {
   return QDir(QStandardPaths::writableLocation(QStandardPaths::CacheLocation)).filePath(QStringLiteral("weather.json"));
@@ -84,6 +91,10 @@ void WeatherService::initialize() {
   refreshTimer_->setSingleShot(true);
   refreshTimer_->setObjectName(QStringLiteral("weatherRefreshTimer"));
   connect(refreshTimer_, &QTimer::timeout, this, [this] { startOperation(false); });
+  solarEventTimer_ = new QTimer(this);
+  solarEventTimer_->setSingleShot(true);
+  solarEventTimer_->setObjectName(QStringLiteral("weatherSolarEventTimer"));
+  connect(solarEventTimer_, &QTimer::timeout, this, &WeatherService::updateNextSolarEvent);
   if (!config_) return;
   connectProviders();
   loadCache();
@@ -130,6 +141,7 @@ void WeatherService::setLocation(const Location& location) {
     hourlyModel_.replace({}, 0);
     dailyModel_.replace({}, 0);
     stale_ = false;
+    updateNextSolarEvent();
   }
   startOperation(false);
 }
@@ -164,6 +176,7 @@ void WeatherService::publish(Snapshot snapshot) {
   snapshot_ = std::move(snapshot);
   hourlyModel_.replace(snapshot_.hourly, snapshot_.timezoneOffsetSeconds);
   dailyModel_.replace(snapshot_.daily, snapshot_.timezoneOffsetSeconds);
+  updateNextSolarEvent();
   inFlight_ = false;
   operation_ = Operation::None;
   stale_ = false;
@@ -203,6 +216,43 @@ QString WeatherService::localSunset() const {
   return QLocale().toString(snapshot_.sunsetUtc.addSecs(snapshot_.timezoneOffsetSeconds).time(), QLocale::ShortFormat);
 }
 
+QString WeatherService::localNextSolarEventTime() const {
+  if (!nextSolarEventUtc_.isValid()) return {};
+  return QLocale().toString(nextSolarEventUtc_.addSecs(snapshot_.timezoneOffsetSeconds).time(), QLocale::ShortFormat);
+}
+
+void WeatherService::updateNextSolarEvent() {
+  const auto now = QDateTime::currentDateTimeUtc();
+  QDateTime selectedTimestamp;
+  QString selectedKind;
+  for (const auto& day : snapshot_.daily) {
+    const std::array events{std::pair{day.sunriseUtc, QStringLiteral("sunrise")},
+                            std::pair{day.sunsetUtc, QStringLiteral("sunset")}};
+    for (const auto& [timestampUtc, kind] : events) {
+      if (timestampUtc.isValid() && timestampUtc > now &&
+          (!selectedTimestamp.isValid() || timestampUtc < selectedTimestamp)) {
+        selectedTimestamp = timestampUtc;
+        selectedKind = kind;
+      }
+    }
+  }
+  if (!selectedTimestamp.isValid()) {
+    const QString iconCode =
+        isSupportedIconCode(snapshot_.current.iconCode) ? snapshot_.current.iconCode : QStringLiteral("03d");
+    selectedKind = iconCode.endsWith(QLatin1Char('n')) ? QStringLiteral("sunrise") : QStringLiteral("sunset");
+  }
+
+  const bool changed = selectedTimestamp != nextSolarEventUtc_ || selectedKind != nextSolarEventKind_;
+  nextSolarEventUtc_ = selectedTimestamp;
+  nextSolarEventKind_ = selectedKind;
+  solarEventTimer_->stop();
+  if (selectedTimestamp.isValid()) {
+    const qint64 delay = std::max<qint64>(1, now.msecsTo(selectedTimestamp) + 1);
+    solarEventTimer_->start(static_cast<int>(std::min<qint64>(delay, std::numeric_limits<int>::max())));
+  }
+  if (changed) emit solarEventChanged();
+}
+
 void WeatherService::saveCache() const {
   if (!snapshot_.fetchedUtc.isValid()) return;
   QJsonObject current{{QStringLiteral("condition"), snapshot_.current.condition},
@@ -223,6 +273,8 @@ void WeatherService::saveCache() const {
   QJsonArray daily;
   for (const auto& row : snapshot_.daily.mid(0, 5))
     daily.append(QJsonObject{{QStringLiteral("timestamp"), row.timestampUtc.toString(Qt::ISODate)},
+                             {QStringLiteral("sunrise"), row.sunriseUtc.toString(Qt::ISODate)},
+                             {QStringLiteral("sunset"), row.sunsetUtc.toString(Qt::ISODate)},
                              {QStringLiteral("icon"), row.iconCode},
                              {QStringLiteral("minimum"), row.minimumCelsius},
                              {QStringLiteral("maximum"), row.maximumCelsius},
@@ -285,6 +337,8 @@ void WeatherService::loadCache() {
     const auto row = value.toObject();
     cached.daily.push_back(
         {.timestampUtc = QDateTime::fromString(row.value(QStringLiteral("timestamp")).toString(), Qt::ISODate),
+         .sunriseUtc = QDateTime::fromString(row.value(QStringLiteral("sunrise")).toString(), Qt::ISODate),
+         .sunsetUtc = QDateTime::fromString(row.value(QStringLiteral("sunset")).toString(), Qt::ISODate),
          .iconCode = row.value(QStringLiteral("icon")).toString(),
          .minimumCelsius = row.value(QStringLiteral("minimum")).toDouble(),
          .maximumCelsius = row.value(QStringLiteral("maximum")).toDouble(),
@@ -299,6 +353,7 @@ void WeatherService::loadCache() {
   snapshot_ = cached;
   hourlyModel_.replace(cached.hourly, cached.timezoneOffsetSeconds);
   dailyModel_.replace(cached.daily, cached.timezoneOffsetSeconds);
+  updateNextSolarEvent();
   stale_ = cached.fetchedUtc.secsTo(QDateTime::currentDateTimeUtc()) > kCacheStaleSeconds;
   state_ = QStringLiteral("ready");
 }

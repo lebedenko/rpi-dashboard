@@ -784,9 +784,48 @@ Item {
             compare(findChild(view, "screensaverTemperature").text, "23°");
             compare(findChild(view, "screensaverCondition").text, "CLEAR SKY");
             compare(findChild(view, "screensaverLocation").text, "LVIV, UA");
-            compare(findChild(view, "screensaverFeelsLike").text, "FEELS 22°");
-            compare(findChild(view, "screensaverRange").text, "H 25°  ·  L 15°");
-            compare(findChild(view, "screensaverSunset").text, "SUNSET 20:12");
+            compare(findChild(view, "screensaverFeelsLabel").text, "FEELS");
+            compare(findChild(view, "screensaverFeelsValue").text, "22°");
+            compare(findChild(view, "screensaverHighValue").text, "25°");
+            compare(findChild(view, "screensaverLowValue").text, "15°");
+            compare(findChild(view, "screensaverSolarEventLabel").text, "SUNSET");
+            compare(findChild(view, "screensaverSolarEventTime").text, "20:12");
+
+            const hero = findChild(view, "screensaverConditionBlock");
+            const temperature = findChild(view, "screensaverTemperature");
+            const location = findChild(view, "screensaverLocation");
+            const condition = findChild(view, "screensaverCondition");
+            const status = findChild(view, "screensaverStatus");
+            fakeWeatherService.stale = true;
+            wait(0);
+            compare(findChild(view, "screensaverConditionIcon").width, 110);
+            compare(temperature.font.pixelSize, 152);
+            compare(temperature.mapToItem(view, 0, 0).x - findChild(view, "screensaverConditionIcon").mapToItem(view, 110, 0).x, 32);
+            compare(hero.mapToItem(view, 0, 0).x - temperature.mapToItem(view, temperature.width, 0).x, 32);
+            compare(location.mapToItem(view, 0, location.baselineOffset).y,
+                    temperature.mapToItem(view, 0, temperature.baselineOffset).y);
+            compare(location.mapToItem(hero, 0, 0).y
+                    - condition.mapToItem(hero, 0, condition.height).y, -6);
+            compare(status.mapToItem(view, 0, 0).x > location.mapToItem(view, 0, 0).x + location.width, true);
+            compare(status.mapToItem(view, 0, status.baselineOffset).y,
+                    location.mapToItem(view, 0, location.baselineOffset).y);
+
+            const details = findChild(view, "screensaverDetailsRow");
+            compare(details.mapToItem(view, details.width, details.height).x, view.width - 32);
+            compare(details.mapToItem(view, details.width, details.height).y, view.height - 14);
+            compare(findChild(view, "screensaverFeelsLabel").color, Theme.textMuted);
+            compare(findChild(view, "screensaverFeelsValue").color, Theme.focusAccent);
+            compare(findChild(view, "screensaverHighLabel").color, Theme.textMuted);
+            compare(findChild(view, "screensaverHighValue").color, Theme.focusAccent);
+            compare(findChild(view, "screensaverRangeSeparator").color, Theme.violetAccent);
+            compare(findChild(view, "screensaverLowLabel").color, Theme.textMuted);
+            compare(findChild(view, "screensaverLowValue").color, Theme.focusAccent);
+            compare(findChild(view, "screensaverSolarEventLabel").color, Theme.textMuted);
+            compare(findChild(view, "screensaverSolarEventTime").color, Theme.attentionStatus);
+            fuzzyCompare(findChild(view, "screensaverDetailsBacking").color.a, 0.78, 0.01);
+            compare(findChild(view, "screensaverLeftScrim").width, 1120);
+            fuzzyCompare(findChild(view, "screensaverScrimStart").color.a, 0.68, 0.01);
+            fuzzyCompare(findChild(view, "screensaverScrimMiddle").color.a, 0.58, 0.01);
 
             const codes = ["01d", "01n", "02d", "02n", "03d", "03n", "04d", "04n", "09d",
                            "09n", "10d", "10n", "11d", "11n", "13d", "13n", "50d", "50n"];
@@ -795,13 +834,21 @@ Item {
                 compare(view.iconCode, code);
                 verify(String(view.wallpaperSource).endsWith("/" + code + ".png"));
             }
+            fakeWeatherService.iconCode = "01n";
+            fakeWeatherService.nextSolarEventKind = "sunrise";
+            fakeWeatherService.localNextSolarEventTime = "06:41";
+            compare(findChild(view, "screensaverSolarEventLabel").text, "SUNRISE");
+            compare(findChild(view, "screensaverSolarEventTime").text, "06:41");
+            fuzzyCompare(findChild(view, "screensaverDetailsBacking").color.a, 0.62, 0.01);
+            fuzzyCompare(findChild(view, "screensaverScrimStart").color.a, 0.24, 0.01);
+            fuzzyCompare(findChild(view, "screensaverScrimMiddle").color.a, 0.18, 0.01);
             fakeWeatherService.iconCode = "invalid";
             compare(view.iconCode, "03d");
-            fakeWeatherService.stale = true;
             compare(findChild(view, "screensaverStatus").visible, true);
             fakeWeatherService.state = "error";
             compare(findChild(view, "screensaverTemperature").text, "—");
             compare(findChild(view, "screensaverCondition").text, "WEATHER UNAVAILABLE");
+            compare(findChild(view, "screensaverSolarEventTime").text, "—");
 
             fakeScreensaverController.active = false;
             wait(350);
@@ -912,6 +959,8 @@ Item {
             property int airQualityIndex: 2
             property string airQualityCategory: "Fair"
             property string localSunset: "20:12"
+            property string nextSolarEventKind: "sunset"
+            property string localNextSolarEventTime: "20:12"
             property real todayRainProbabilityPercent: 20
             property int refreshCount: 0
             property ListModel hourlyModel: ListModel {

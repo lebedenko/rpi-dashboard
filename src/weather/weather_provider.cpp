@@ -199,6 +199,8 @@ Snapshot OpenWeatherProvider::parseOneCall(const QJsonDocument& document, const 
     const auto weather = object.value(QStringLiteral("weather")).toArray().at(0).toObject();
     snapshot.daily.push_back(
         {.timestampUtc = timestamp(requiredNumber(object, "dt")),
+         .sunriseUtc = timestamp(requiredNumber(object, "sunrise")),
+         .sunsetUtc = timestamp(requiredNumber(object, "sunset")),
          .iconCode = weather.value(QStringLiteral("icon")).toString(),
          .minimumCelsius = requiredNumber(temperatures, "min"),
          .maximumCelsius = requiredNumber(temperatures, "max"),

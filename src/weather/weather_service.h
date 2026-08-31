@@ -34,6 +34,8 @@ class WeatherService final : public QObject {
   Q_PROPERTY(int airQualityIndex READ airQualityIndex NOTIFY changed)
   Q_PROPERTY(QString airQualityCategory READ airQualityCategory NOTIFY changed)
   Q_PROPERTY(QString localSunset READ localSunset NOTIFY changed)
+  Q_PROPERTY(QString nextSolarEventKind READ nextSolarEventKind NOTIFY solarEventChanged)
+  Q_PROPERTY(QString localNextSolarEventTime READ localNextSolarEventTime NOTIFY solarEventChanged)
   Q_PROPERTY(double todayRainProbabilityPercent READ todayRainProbabilityPercent NOTIFY changed)
 
  public:
@@ -65,12 +67,15 @@ class WeatherService final : public QObject {
     return snapshot_.airQuality ? snapshot_.airQuality->category : QString{};
   }
   [[nodiscard]] QString localSunset() const;
+  [[nodiscard]] QString nextSolarEventKind() const { return nextSolarEventKind_; }
+  [[nodiscard]] QString localNextSolarEventTime() const;
   [[nodiscard]] double todayRainProbabilityPercent() const { return snapshot_.todayRainProbabilityPercent; }
 
   Q_INVOKABLE void refresh();
 
  signals:
   void changed();
+  void solarEventChanged();
 
  private:
   enum class Operation : std::uint8_t { None, ResolveLocation, RequestForecast };
@@ -83,6 +88,7 @@ class WeatherService final : public QObject {
   void connectProviders();
   void loadCache();
   void saveCache() const;
+  void updateNextSolarEvent();
 
   std::optional<WeatherConfig> config_;
   std::unique_ptr<WeatherProvider> weather_;
@@ -93,6 +99,9 @@ class WeatherService final : public QObject {
   HourlyForecastModel hourlyModel_;
   DailyForecastModel dailyModel_;
   QTimer* refreshTimer_{};
+  QTimer* solarEventTimer_{};
+  QDateTime nextSolarEventUtc_;
+  QString nextSolarEventKind_;
   QString state_{QStringLiteral("unconfigured")};
   QString diagnostics_;
   bool stale_{};
