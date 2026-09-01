@@ -823,9 +823,22 @@ Item {
             for (const objectName of ["currentConditionsPanel", "hourlyForecastPanel", "dailyForecastPanel", "weatherRail", "weatherAqi", "weatherSunset", "weatherRain"])
                 verify(!!findChild(dashboardWindow.contentItem, objectName), objectName);
             const page = findChild(dashboardWindow.contentItem, "weatherPage");
-            compare(findChild(dashboardWindow.contentItem, "currentConditionsPanel").radius, Theme.radiusMedium);
-            compare(findChild(dashboardWindow.contentItem, "hourlyForecastPanel").radius, Theme.radiusMedium);
-            compare(findChild(dashboardWindow.contentItem, "dailyForecastPanel").radius, Theme.radiusMedium);
+            const pageFrame = findChild(dashboardWindow.contentItem, "weatherPageFrame");
+            const currentPanel = findChild(dashboardWindow.contentItem, "currentConditionsPanel");
+            const hourlyPanel = findChild(dashboardWindow.contentItem, "hourlyForecastPanel");
+            const dailyPanel = findChild(dashboardWindow.contentItem, "dailyForecastPanel");
+            verify(pageFrame instanceof Frame);
+            compare(pageFrame.backgroundColor, Theme.cardSurface);
+            compare(pageFrame.color, Theme.cardFrame);
+            compare(pageFrame.lineWidth, 1);
+            compare(pageFrame.corners.rounded, Theme.radiusMedium);
+            for (const panel of [currentPanel, hourlyPanel, dailyPanel]) {
+                verify(panel instanceof Frame);
+                compare(panel.backgroundColor, Theme.surface);
+                compare(panel.color, Theme.sectionDividerStrong);
+                compare(panel.lineWidth, 1);
+                compare(panel.corners.rounded, Theme.radiusMedium);
+            }
             verify(page.Accessible.name.includes("Lviv"));
             const refreshCount = fakeWeatherService.refreshCount;
             keyClick(Qt.Key_F5);
