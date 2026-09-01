@@ -4,7 +4,6 @@
 #include "protocol/system_metrics.h"
 
 #include <QAbstractListModel>
-#include <QPointer>
 
 namespace dashboard::sysinfo {
 class SysInfoService;
@@ -72,9 +71,9 @@ class DeviceModel final : public QAbstractListModel {
   void localMetricsChanged();
   void remoteChanged(const QUuid& device_id);
   void invalidateDependencies();
-  QPointer<sysinfo::SysInfoService> info_;
-  QPointer<sysmetrics::SysMetricsService> metrics_;
-  QPointer<telemetry::RemoteDeviceRegistry> registry_;
+  sysinfo::SysInfoService* info_;
+  sysmetrics::SysMetricsService* metrics_;
+  telemetry::RemoteDeviceRegistry* registry_;
   bool structured_registry_change_{false};
 };
 

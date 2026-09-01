@@ -10,6 +10,7 @@ namespace dashboard::telemetry {
 UdpTelemetryReceiver::UdpTelemetryReceiver(RemoteDeviceRegistry& registry, QObject* parent)
     : QObject(parent), registry_(&registry) {
   connect(&registry, &QObject::destroyed, this, [this] {
+    registry_ = nullptr;
     socket_.close();
     diagnostic_ = QStringLiteral("Telemetry receiver registry is unavailable");
     emit diagnosticChanged();
