@@ -118,7 +118,7 @@ class WeatherTest final : public QObject {
   void fallsBackWhenSolarEventsAreUnavailable();
   void formatsNextSolarEventAtForecastOffset();
   void switchesSolarEventAtBoundary();
-  void loadsLegacyCacheWithoutSolarEvents();
+  void rejectsIncompleteCache();
   void derivesRemainingDayPrecipitationAtLocationOffset();
   void returnsZeroWithoutRemainingHourlyForecasts();
   void recomputesPrecipitationAtLocalHourBoundary();
@@ -131,7 +131,18 @@ class WeatherTest final : public QObject {
   void forecastRetryDoesNotResolveLocationAgain();
   void operationsDoNotOverlapAndZeroCoordinatesAreResolved();
   void cachedDataSurvivesSanitizedRuntimeFailures();
+  void rejectsParentedInjectedProvider();
 };
+
+void WeatherTest::rejectsParentedInjectedProvider() {
+  QObject owner;
+  auto weather = std::make_unique<FakeWeatherProvider>();
+  weather->setParent(&owner);
+  QVERIFY_EXCEPTION_THROWN(
+      WeatherService(configuration(LocationMode::Coordinates), std::move(weather),
+                     std::make_unique<FakeGeocodingProvider>(), std::make_unique<FakeAutomaticLocationProvider>()),
+      std::invalid_argument);
+}
 
 void WeatherTest::init() {
   QStandardPaths::setTestModeEnabled(true);
@@ -315,7 +326,7 @@ void WeatherTest::switchesSolarEventAtBoundary() {
   QTRY_COMPARE_WITH_TIMEOUT(service.nextSolarEventKind(), QStringLiteral("sunset"), 2500);
 }
 
-void WeatherTest::loadsLegacyCacheWithoutSolarEvents() {
+void WeatherTest::rejectsIncompleteCache() {
   QTemporaryDir cacheRoot;
   QVERIFY(cacheRoot.isValid());
   const auto previousCacheHome = qgetenv("XDG_CACHE_HOME");
@@ -328,7 +339,8 @@ void WeatherTest::loadsLegacyCacheWithoutSolarEvents() {
   QFile file(cache);
   QVERIFY(file.open(QIODevice::WriteOnly));
   file.write(QJsonDocument(
-                 QJsonObject{{QStringLiteral("provider"), QStringLiteral("openweather")},
+                 QJsonObject{{QStringLiteral("schemaVersion"), 1},
+                             {QStringLiteral("provider"), QStringLiteral("openweather")},
                              {QStringLiteral("location"),
                               QJsonObject{{QStringLiteral("latitude"), 0.0}, {QStringLiteral("longitude"), 0.0}}},
                              {QStringLiteral("timezoneOffset"), 0},
@@ -344,7 +356,7 @@ void WeatherTest::loadsLegacyCacheWithoutSolarEvents() {
   auto reloadAutomatic = std::make_unique<FakeAutomaticLocationProvider>();
   WeatherService reloaded(config, std::move(reloadWeather), std::move(reloadGeocoding), std::move(reloadAutomatic));
   QCOMPARE(reloaded.state(), QStringLiteral("loading"));
-  QCOMPARE(reloaded.nextSolarEventKind(), QStringLiteral("sunset"));
+  QVERIFY(reloaded.nextSolarEventKind().isEmpty());
   QVERIFY(reloaded.localNextSolarEventTime().isEmpty());
   QCOMPARE(reloaded.todayPrecipitationProbabilityPercent(), 0.0);
   QCOMPARE(reloaded.todayRainProbabilityPercent(), 0.0);

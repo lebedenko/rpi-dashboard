@@ -43,7 +43,11 @@ credential-bearing URLs.
   transient failures use bounded exponential backoff and respect Retry-After.
 - Provider-neutral snapshots use Celsius, km/h, millimetres, percentages, hPa, and μg/m³.
 - Matching snapshots are atomically cached below `QStandardPaths::CacheLocation`. A loaded cache is
-  marked stale by age and is never used for another provider or location.
+  marked stale by age and is never used for another provider or location. Cache schema version 1
+  is validated completely before publication; legacy, truncated, wrongly typed, or out-of-range
+  cache data is ignored atomically.
+- Weather and geolocation response bodies are limited to 1 MiB. Oversized responses are reported
+  through the existing sanitized failure paths.
 - The service caches the provider's complete hourly forecast while its public hourly model exposes
   only the current observation and next seven hourly entries. The daily list contains the first
   five days.

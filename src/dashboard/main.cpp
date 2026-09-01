@@ -129,9 +129,9 @@ int main(int argc, char* argv[]) {
   dashboard::weather::WeatherService weather_service(config.weather, openweather_credential.value,
                                                      ipgeolocation_credential.value);
   dashboard::telemetry::RemoteDeviceRegistry remote_devices;
-  dashboard::DeviceModel device_model(&sys_info_service, &sys_metrics_service, &remote_devices);
+  dashboard::DeviceModel device_model(sys_info_service, sys_metrics_service, remote_devices);
   dashboard::ScreensaverController screensaver_controller(config.screensaver_timeout_seconds);
-  dashboard::telemetry::UdpTelemetryReceiver telemetry_receiver(&remote_devices);
+  dashboard::telemetry::UdpTelemetryReceiver telemetry_receiver(remote_devices);
   if (!telemetry_receiver.bind(telemetryAddress, static_cast<quint16>(telemetryPort))) {
     qWarning().noquote() << telemetry_receiver.diagnostic();
   }

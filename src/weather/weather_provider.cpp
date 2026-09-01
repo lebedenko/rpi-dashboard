@@ -1,5 +1,7 @@
 #include "weather/weather_provider.h"
 
+#include "network/bounded_reply.h"
+
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QNetworkReply>
@@ -13,6 +15,7 @@ namespace dashboard::weather {
 namespace {
 
 constexpr int kTransferTimeoutMilliseconds = 15000;
+constexpr qsizetype kMaximumResponseBytes = 1024 * 1024;
 
 double requiredNumber(const QJsonObject& object, const char* name) {
   const auto value = object.value(QLatin1String(name));
@@ -103,7 +106,14 @@ void OpenWeatherGeocodingProvider::resolve(const QString& city) {
   QNetworkRequest request(url);
   request.setTransferTimeout(kTransferTimeoutMilliseconds);
   auto* reply = network_.get(request);
-  connect(reply, &QNetworkReply::finished, this, [this, reply] {
+  const auto response = network::BoundedReply::collect(*reply, kMaximumResponseBytes);
+  connect(reply, &QNetworkReply::finished, this, [this, reply, response] {
+    response->finish();
+    if (response->exceededLimit()) {
+      emit failed(QStringLiteral("Geocoding response exceeded 1 MiB"), false, 0);
+      reply->deleteLater();
+      return;
+    }
     if (reply->error() != QNetworkReply::NoError) {
       const int status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
       emit failed(replyDiagnostic(reply, QStringLiteral("Geocoding")), status == 401 || status == 403, 0);
@@ -111,7 +121,7 @@ void OpenWeatherGeocodingProvider::resolve(const QString& city) {
       return;
     }
     try {
-      emit resolved(parseGeocoding(QJsonDocument::fromJson(reply->readAll())));
+      emit resolved(parseGeocoding(QJsonDocument::fromJson(response->body())));
     } catch (const std::exception&) {
       emit failed(QStringLiteral("Geocoding response was invalid"), false, 0);
     }
@@ -135,13 +145,20 @@ void OpenWeatherProvider::request(const Location& location) {
   };
 
   auto* forecast = network_.get(requestFor(makeUrl(QStringLiteral("https://api.openweathermap.org/data/3.0/onecall"))));
-  connect(forecast, &QNetworkReply::finished, this, [this, forecast, location] {
+  const auto forecastResponse = network::BoundedReply::collect(*forecast, kMaximumResponseBytes);
+  connect(forecast, &QNetworkReply::finished, this, [this, forecast, forecastResponse, location] {
+    forecastResponse->finish();
+    if (forecastResponse->exceededLimit()) {
+      emit failed(QStringLiteral("Weather response exceeded 1 MiB"), false, 0);
+      forecast->deleteLater();
+      return;
+    }
     if (forecast->error() != QNetworkReply::NoError) {
       handleNetworkFailure(forecast, QStringLiteral("Weather"));
       return;
     }
     try {
-      emit forecastReady(parseOneCall(QJsonDocument::fromJson(forecast->readAll()), location));
+      emit forecastReady(parseOneCall(QJsonDocument::fromJson(forecastResponse->body()), location));
     } catch (const std::exception&) {
       emit failed(QStringLiteral("Weather response was invalid"), false, 0);
     }
@@ -150,13 +167,20 @@ void OpenWeatherProvider::request(const Location& location) {
 
   auto* air =
       network_.get(requestFor(makeUrl(QStringLiteral("https://api.openweathermap.org/data/2.5/air_pollution"))));
-  connect(air, &QNetworkReply::finished, this, [this, air] {
+  const auto airResponse = network::BoundedReply::collect(*air, kMaximumResponseBytes);
+  connect(air, &QNetworkReply::finished, this, [this, air, airResponse] {
+    airResponse->finish();
+    if (airResponse->exceededLimit()) {
+      emit airQualityFailed(QStringLiteral("Air quality response exceeded 1 MiB"));
+      air->deleteLater();
+      return;
+    }
     if (air->error() != QNetworkReply::NoError) {
       handleNetworkFailure(air, QStringLiteral("Air quality"), true);
       return;
     }
     try {
-      emit airQualityReady(parseAirQuality(QJsonDocument::fromJson(air->readAll())));
+      emit airQualityReady(parseAirQuality(QJsonDocument::fromJson(airResponse->body())));
     } catch (const std::exception&) {
       emit airQualityFailed(QStringLiteral("Air quality response was invalid"));
     }
@@ -268,13 +292,20 @@ void IpGeolocationProvider::resolve() {
   QNetworkRequest request(url);
   request.setTransferTimeout(kTransferTimeoutMilliseconds);
   auto* reply = network_.get(request);
-  connect(reply, &QNetworkReply::finished, this, [this, reply] {
+  const auto response = network::BoundedReply::collect(*reply, kMaximumResponseBytes);
+  connect(reply, &QNetworkReply::finished, this, [this, reply, response] {
+    response->finish();
+    if (response->exceededLimit()) {
+      emit failed(QStringLiteral("Automatic location response exceeded 1 MiB"), false, 0);
+      reply->deleteLater();
+      return;
+    }
     if (reply->error() != QNetworkReply::NoError) {
       const int status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
       emit failed(QStringLiteral("Automatic location request failed"), status == 401 || status == 403, 0);
     } else {
       try {
-        emit resolved(parseLocation(QJsonDocument::fromJson(reply->readAll())));
+        emit resolved(parseLocation(QJsonDocument::fromJson(response->body())));
       } catch (const std::exception&) {
         emit failed(QStringLiteral("Automatic location response was invalid"), false, 0);
       }

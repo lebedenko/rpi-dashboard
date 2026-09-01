@@ -63,29 +63,41 @@ QVariant averageFrequency(const protocol::SystemMetrics& metrics) {
 }
 }  // namespace
 
-DeviceModel::DeviceModel(sysinfo::SysInfoService* info, sysmetrics::SysMetricsService* metrics,
-                         telemetry::RemoteDeviceRegistry* registry, QObject* parent)
-    : QAbstractListModel(parent), info_(info), metrics_(metrics), registry_(registry) {
-  connect(info_, &sysinfo::SysInfoService::currentInfoChanged, this, &DeviceModel::localChanged);
-  connect(metrics_, &sysmetrics::SysMetricsService::currentMetricsChanged, this, &DeviceModel::localChanged);
-  connect(registry_, &telemetry::RemoteDeviceRegistry::deviceChanged, this, &DeviceModel::remoteChanged);
-  connect(registry_, &telemetry::RemoteDeviceRegistry::deviceAboutToBeAdded, this, [this](int remote_index) {
+DeviceModel::DeviceModel(sysinfo::SysInfoService& info, sysmetrics::SysMetricsService& metrics,
+                         telemetry::RemoteDeviceRegistry& registry, QObject* parent)
+    : QAbstractListModel(parent), info_(&info), metrics_(&metrics), registry_(&registry) {
+  connect(&info, &sysinfo::SysInfoService::currentInfoChanged, this, &DeviceModel::localInfoChanged);
+  connect(&metrics, &sysmetrics::SysMetricsService::currentMetricsChanged, this, &DeviceModel::localMetricsChanged);
+  connect(&registry, &telemetry::RemoteDeviceRegistry::deviceChanged, this, &DeviceModel::remoteChanged);
+  connect(&info, &QObject::destroyed, this, [this] {
+    info_ = nullptr;
+    invalidateDependencies();
+  });
+  connect(&metrics, &QObject::destroyed, this, [this] {
+    metrics_ = nullptr;
+    invalidateDependencies();
+  });
+  connect(&registry, &QObject::destroyed, this, [this] {
+    registry_ = nullptr;
+    invalidateDependencies();
+  });
+  connect(&registry, &telemetry::RemoteDeviceRegistry::deviceAboutToBeAdded, this, [this](int remote_index) {
     structured_registry_change_ = true;
     beginInsertRows({}, remote_index + 1, remote_index + 1);
   });
-  connect(registry_, &telemetry::RemoteDeviceRegistry::deviceAdded, this, [this] {
+  connect(&registry, &telemetry::RemoteDeviceRegistry::deviceAdded, this, [this] {
     endInsertRows();
     emit countChanged();
   });
-  connect(registry_, &telemetry::RemoteDeviceRegistry::deviceAboutToBeRemoved, this, [this](int remote_index) {
+  connect(&registry, &telemetry::RemoteDeviceRegistry::deviceAboutToBeRemoved, this, [this](int remote_index) {
     structured_registry_change_ = true;
     beginRemoveRows({}, remote_index + 1, remote_index + 1);
   });
-  connect(registry_, &telemetry::RemoteDeviceRegistry::deviceRemoved, this, [this] {
+  connect(&registry, &telemetry::RemoteDeviceRegistry::deviceRemoved, this, [this] {
     endRemoveRows();
     emit countChanged();
   });
-  connect(registry_, &telemetry::RemoteDeviceRegistry::devicesChanged, this, [this] {
+  connect(&registry, &telemetry::RemoteDeviceRegistry::devicesChanged, this, [this] {
     if (structured_registry_change_) {
       structured_registry_change_ = false;
       return;
@@ -96,7 +108,7 @@ DeviceModel::DeviceModel(sysinfo::SysInfoService* info, sysmetrics::SysMetricsSe
   });
 }
 int DeviceModel::rowCount(const QModelIndex& parent) const {
-  return parent.isValid() ? 0 : 1 + registry_->devices().size();
+  return parent.isValid() || !info_ || !metrics_ || !registry_ ? 0 : 1 + registry_->devices().size();
 }
 
 QVariant DeviceModel::data(const QModelIndex& index, int role) const {
@@ -242,14 +254,33 @@ QVariantMap DeviceModel::get(int index) const {
     result.insert(QString::fromLatin1(it.value()), data(this->index(index), it.key()));
   return result;
 }
-void DeviceModel::localChanged() { emit dataChanged(index(0), index(0)); }
+void DeviceModel::localInfoChanged() {
+  if (rowCount() == 0) return;
+  emit dataChanged(index(0), index(0),
+                   {HostnameRole, OsDescriptionRole, KernelDescriptionRole, ArchitectureRole, HardwareDescriptionRole,
+                    CpuDescriptionRole, CoreDescriptionRole, TotalMemoryRole});
+}
+void DeviceModel::localMetricsChanged() {
+  if (rowCount() == 0) return;
+  emit dataChanged(index(0), index(0),
+                   {CpuMetricRole, MemoryMetricRole, CpuUsageRatioRole, MemoryUsageRatioRole, TemperatureMetricRole,
+                    UptimeMetricRole, UptimeSecondsRole, CpuFrequencyHzRole, MemoryUsedBytesRole, SwapUsedBytesRole,
+                    BoardTemperatureCelsiusRole, GpuUsageRatioRole, GpuCoreClockHzRole, GpuTemperatureCelsiusRole,
+                    NetworkReceiveRateRole, NetworkTransmitRateRole, NetworkInterfaceNameRole, BootTimeMsRole});
+}
 void DeviceModel::remoteChanged(const QUuid& device_id) {
   const auto devices = registry_->devices();
   for (qsizetype i = 0; i < devices.size(); ++i)
     if (devices[i].device_id == device_id) {
-      emit dataChanged(index(static_cast<int>(i + 1)), index(static_cast<int>(i + 1)));
+      const auto roles = roleNames().keys();
+      emit dataChanged(index(static_cast<int>(i + 1)), index(static_cast<int>(i + 1)), roles);
       return;
     }
+}
+void DeviceModel::invalidateDependencies() {
+  beginResetModel();
+  endResetModel();
+  emit countChanged();
 }
 // NOLINTEND(readability-braces-around-statements, cppcoreguidelines-narrowing-conversions,
 // readability-implicit-bool-conversion, readability-function-cognitive-complexity,

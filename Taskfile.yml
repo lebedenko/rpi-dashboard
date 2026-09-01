@@ -33,7 +33,8 @@ tasks:
   check:
     desc: Check formatting, build with clang-tidy, and run tests
     cmds:
-      - task: format:check
+      - find src tests daemon -type f \( -name '*.cpp' -o -name '*.h' \) -print0 | xargs -0 clang-format --dry-run --Werror
+      - scripts/run-quality-checks.sh tidy
       - cmake --preset tidy
       - cmake --build --preset tidy
       - ctest --preset tidy
@@ -41,6 +42,7 @@ tasks:
   ci:
     desc: Run the authoritative containerized CI preflight
     cmds:
+      - scripts/run-ci-container.sh quality
       - scripts/run-ci-container.sh dev
       - scripts/run-ci-container.sh release
       - scripts/run-ci-container.sh tidy
@@ -125,13 +127,13 @@ tasks:
   format:
     desc: Format C++ and QML sources
     cmds:
-      - find src tests -type f \( -name '*.cpp' -o -name '*.h' \) -print0 | xargs -0 clang-format -i
-      - find src tests -type f -name '*.qml' -print0 | xargs -0 '{{.QMLFORMAT}}' -i --sort-imports
+      - find src tests daemon -type f \( -name '*.cpp' -o -name '*.h' \) -print0 | xargs -0 clang-format -i
+      - find src tests -type f -name '*.qml' -print0 | xargs -0 '{{.QMLFORMAT}}' -i
 
   format:check:
     desc: Check C++ and QML source formatting
     cmds:
-      - find src tests -type f \( -name '*.cpp' -o -name '*.h' \) -print0 | xargs -0 clang-format --dry-run --Werror
+      - find src tests daemon -type f \( -name '*.cpp' -o -name '*.h' \) -print0 | xargs -0 clang-format --dry-run --Werror
       - |
         temporary_directory="$(mktemp -d)"
         trap 'rm -rf "$temporary_directory"' EXIT
@@ -140,7 +142,7 @@ tasks:
           shift
           for source_file do
             formatted_file="$temporary_directory/formatted.qml"
-            if ! '{{.QMLFORMAT}}' --sort-imports "$source_file" > "$formatted_file"; then
+            if ! '{{.QMLFORMAT}}' "$source_file" > "$formatted_file"; then
               echo "qmlformat failed for $source_file" >&2
               touch "$temporary_directory/failed"
               continue

@@ -28,6 +28,7 @@ jobs:
         env:
           CI_IMAGE_OVERRIDE: ghcr.io/lebedenko/rpi-dashboard-ci:${{ github.sha }}
         run: |
+          scripts/run-ci-container.sh quality
           scripts/run-ci-container.sh dev
           scripts/run-ci-container.sh release
           scripts/run-ci-container.sh tidy

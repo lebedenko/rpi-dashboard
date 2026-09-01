@@ -2,6 +2,7 @@
 
 #include <QtConcurrentRun>
 
+#include <stdexcept>
 #include <utility>
 
 namespace dashboard::sysinfo {
@@ -15,7 +16,9 @@ QVariant optionalVariant(const std::optional<T>& value) {
 
 SysInfoService::SysInfoService(std::shared_ptr<const SysInfoCollector> collector, QObject* parent)
     : QObject(parent), collector_(std::move(collector)) {
-  Q_ASSERT(collector_);
+  if (!collector_) {
+    throw std::invalid_argument("SysInfoService requires a collector");
+  }
   connect(&watcher_, &QFutureWatcherBase::finished, this, &SysInfoService::collectionFinished);
   QMetaObject::invokeMethod(this, "refresh", Qt::QueuedConnection);
 }
@@ -54,7 +57,20 @@ void SysInfoService::refresh() {
 }
 
 void SysInfoService::collectionFinished() {
-  SysInfoCollectionResult result = watcher_.result();
+  SysInfoCollectionResult result;
+  try {
+    result = watcher_.result();
+  } catch (const std::exception& exception) {
+    diagnostics_ = {QStringLiteral("System information collection failed: %1").arg(exception.what())};
+    emit diagnosticsChanged();
+    setState(State::Error);
+    return;
+  } catch (...) {
+    diagnostics_ = {QStringLiteral("System information collection failed with an unknown error")};
+    emit diagnosticsChanged();
+    setState(State::Error);
+    return;
+  }
   if (diagnostics_ != result.diagnostics) {
     diagnostics_ = std::move(result.diagnostics);
     emit diagnosticsChanged();

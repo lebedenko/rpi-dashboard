@@ -7,6 +7,8 @@ set_source_files_properties(qml/Theme.qml PROPERTIES
 qt_add_qml_module(rpi-dashboard-qml
     URI Rpi.Dashboard
     OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/Rpi/Dashboard
+    DEPENDENCIES
+        QtQuick
     SOURCES
         device_model.cpp
         device_model.h

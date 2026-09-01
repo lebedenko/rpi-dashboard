@@ -10,9 +10,36 @@ Item {
     required property var deviceModel
     required property int selectedIndex
     signal selectionRequested(int index)
-    readonly property var selectedDevice: root.selectedIndex >= 0 && root.selectedIndex < root.deviceModel.count ? root.deviceModel.get(root.selectedIndex) : null
+    property var selectedDevice: null
     property Item focusTarget: null
-    onSelectedIndexChanged: root.focusTarget = deviceTabs.itemAt(root.selectedIndex)
+    onSelectedIndexChanged: {
+        root.focusTarget = deviceTabs.itemAt(root.selectedIndex);
+        root.refreshSelectedDevice();
+    }
+
+    function refreshSelectedDevice(): void {
+        root.selectedDevice = root.selectedIndex >= 0 && root.selectedIndex < root.deviceModel.count ? root.deviceModel.get(root.selectedIndex) : null;
+    }
+
+    Connections {
+        target: root.deviceModel
+        ignoreUnknownSignals: true
+        function onDataChanged(topLeft, bottomRight): void {
+            if (root.selectedIndex >= topLeft.row && root.selectedIndex <= bottomRight.row)
+                root.refreshSelectedDevice();
+        }
+        function onModelReset(): void {
+            root.refreshSelectedDevice();
+        }
+        function onRowsInserted(): void {
+            root.refreshSelectedDevice();
+        }
+        function onRowsRemoved(): void {
+            root.refreshSelectedDevice();
+        }
+    }
+
+    Component.onCompleted: root.refreshSelectedDevice()
 
     function availableNumber(value): bool {
         return value !== undefined && value !== null && Number(value) >= 0;

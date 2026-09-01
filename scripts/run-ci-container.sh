@@ -3,14 +3,14 @@
 set -eu
 
 usage() {
-    echo "Usage: $0 {dev|release|tidy|asan|ubsan}" >&2
+    echo "Usage: $0 {quality|dev|release|tidy|asan|ubsan}" >&2
     exit 2
 }
 
 [ "$#" -eq 1 ] || usage
 preset=$1
 case "$preset" in
-    dev|release|tidy|asan|ubsan) ;;
+    quality|dev|release|tidy|asan|ubsan) ;;
     *) usage ;;
 esac
 
@@ -76,5 +76,5 @@ echo "CI image: $image"
     --mount "type=bind,src=$build_dir,dst=/workspace/build" \
     --workdir /workspace \
     "$image" \
-    sh -c 'verify-ci-toolchain && cmake --preset "$1" && cmake --build --preset "$1" && ctest --preset "$1"' \
+    sh -c 'verify-ci-toolchain; if [ "$1" = quality ]; then scripts/run-quality-checks.sh dev; else cmake --preset "$1" && cmake --build --preset "$1" && ctest --preset "$1"; fi' \
     sh "$preset"

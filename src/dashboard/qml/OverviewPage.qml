@@ -13,7 +13,7 @@ Item {
     property bool modelInitialized: false
     property int expandedIndexBeforeModelReset: 0
     readonly property Item currentCard: deviceList.currentItem
-    readonly property var focusTarget: root.currentCard ? root.currentCard.chevronButton : null
+    property Item focusTarget: null
     readonly property alias deviceList: deviceList
 
     function normalizedIndex(index: int): int {
@@ -105,6 +105,11 @@ Item {
             readonly property alias availableWidth: card.availableWidth
             readonly property alias cpuProgressFill: card.cpuProgressFill
             readonly property alias memoryProgressFill: card.memoryProgressFill
+            readonly property bool currentItem: ListView.isCurrentItem
+            onCurrentItemChanged: {
+                if (cardDelegate.currentItem)
+                    root.focusTarget = card.chevronButton;
+            }
 
             objectName: "deviceCard" + cardDelegate.index
             width: ListView.view.width

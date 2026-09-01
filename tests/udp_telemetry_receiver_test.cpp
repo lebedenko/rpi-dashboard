@@ -5,6 +5,8 @@
 #include <QUdpSocket>
 #include <QtTest>
 
+#include <memory>
+
 using namespace dashboard;
 // NOLINTBEGIN(modernize-use-designated-initializers, readability-convert-member-functions-to-static)
 
@@ -13,12 +15,13 @@ class UdpTelemetryReceiverTest : public QObject {
  private slots:
   void registrationAndSnapshotOverLoopback();
   void bindFailureIsNonfatal();
+  void closesWhenRegistryIsDestroyed();
 };
 
 void UdpTelemetryReceiverTest::registrationAndSnapshotOverLoopback() {
   QTemporaryDir directory;
   telemetry::RemoteDeviceRegistry registry(directory.filePath(QStringLiteral("registry.cbor")));
-  telemetry::UdpTelemetryReceiver receiver(&registry);
+  telemetry::UdpTelemetryReceiver receiver(registry);
   QVERIFY(receiver.bind(QHostAddress::LocalHost, 0));
   QUdpSocket sender;
   QVERIFY(sender.bind(QHostAddress::LocalHost, 0));
@@ -44,8 +47,22 @@ void UdpTelemetryReceiverTest::bindFailureIsNonfatal() {
   QUdpSocket occupied;
   QVERIFY(occupied.bind(QHostAddress::LocalHost, 0));
   telemetry::RemoteDeviceRegistry registry(directory.filePath(QStringLiteral("registry.cbor")));
-  telemetry::UdpTelemetryReceiver receiver(&registry);
+  telemetry::UdpTelemetryReceiver receiver(registry);
   QVERIFY(!receiver.bind(QHostAddress::LocalHost, occupied.localPort()));
+  QVERIFY(!receiver.diagnostic().isEmpty());
+}
+
+void UdpTelemetryReceiverTest::closesWhenRegistryIsDestroyed() {
+  QTemporaryDir directory;
+  auto registry =
+      std::make_unique<telemetry::RemoteDeviceRegistry>(directory.filePath(QStringLiteral("registry.cbor")));
+  telemetry::UdpTelemetryReceiver receiver(*registry);
+  QVERIFY(receiver.bind(QHostAddress::LocalHost, 0));
+  QVERIFY(receiver.localPort() != 0);
+
+  registry.reset();
+
+  QCOMPARE(receiver.localPort(), 0);
   QVERIFY(!receiver.diagnostic().isEmpty());
 }
 

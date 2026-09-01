@@ -374,7 +374,7 @@ FocusScope {
                                 }
                                 Text {
                                     id: hourLabel
-                                    objectName: "hourLabel" + index
+                                    objectName: "hourLabel" + hourlyDelegate.index
                                     width: parent.width
                                     horizontalAlignment: Text.AlignHCenter
                                     color: Theme.primaryAccent
@@ -382,7 +382,7 @@ FocusScope {
                                         family: Theme.fixedFontFamily
                                         pixelSize: Theme.bodyTextSize
                                     }
-                                    text: index === 0 ? qsTr("NOW") : localHour
+                                    text: hourlyDelegate.index === 0 ? qsTr("NOW") : hourlyDelegate.localHour
                                 }
                                 Image {
                                     id: hourlyIcon
@@ -394,7 +394,7 @@ FocusScope {
                                     width: 34
                                     height: 34
                                     sourceSize: Qt.size(34, 34)
-                                    source: root.iconUrl(iconCode)
+                                    source: root.iconUrl(hourlyDelegate.iconCode)
                                     Accessible.ignored: true
                                 }
                                 Text {
@@ -410,7 +410,7 @@ FocusScope {
                                         family: Theme.fixedFontFamily
                                         pixelSize: Theme.metricTextSize
                                     }
-                                    text: root.temperature(temperatureCelsius)
+                                    text: root.temperature(hourlyDelegate.temperatureCelsius)
                                 }
                                 Item {
                                     id: hourlyGraph
@@ -423,11 +423,11 @@ FocusScope {
                                     height: 42
                                     WeatherGraphSegment {
                                         anchors.fill: parent
-                                        segmentObjectName: "hourlyGraphSegment" + index
-                                        shapeObjectName: "hourlyGraphShape" + index
-                                        segmentVisible: index > 0
-                                        position: trendPosition
-                                        previousPosition: previousTrendPosition
+                                        segmentObjectName: "hourlyGraphSegment" + hourlyDelegate.index
+                                        shapeObjectName: "hourlyGraphShape" + hourlyDelegate.index
+                                        segmentVisible: hourlyDelegate.index > 0
+                                        position: hourlyDelegate.trendPosition
+                                        previousPosition: hourlyDelegate.previousTrendPosition
                                     }
                                 }
                                 Rectangle {
@@ -437,21 +437,21 @@ FocusScope {
                                         horizontalCenter: parent.horizontalCenter
                                     }
                                     width: 7
-                                    height: precipitationProbabilityPercent > 0 ? Math.max(2, precipitationProbabilityPercent * 0.25) : 0
+                                    height: hourlyDelegate.precipitationProbabilityPercent > 0 ? Math.max(2, hourlyDelegate.precipitationProbabilityPercent * 0.25) : 0
                                     color: Theme.violetAccent
                                     radius: 2
                                 }
                                 Text {
-                                    objectName: "hourlyPrecipitation" + index
+                                    objectName: "hourlyPrecipitation" + hourlyDelegate.index
                                     anchors.bottom: parent.bottom
                                     width: parent.width
                                     horizontalAlignment: Text.AlignHCenter
-                                    color: precipitationProbabilityPercent > 0 ? Theme.violetAccent : Theme.textPrimary
+                                    color: hourlyDelegate.precipitationProbabilityPercent > 0 ? Theme.violetAccent : Theme.textPrimary
                                     font {
                                         family: Theme.fixedFontFamily
                                         pixelSize: Theme.bodyTextSize
                                     }
-                                    text: qsTr("%1%").arg(Math.round(precipitationProbabilityPercent))
+                                    text: qsTr("%1%").arg(Math.round(hourlyDelegate.precipitationProbabilityPercent))
                                 }
                             }
                         }
@@ -494,6 +494,7 @@ FocusScope {
                     Repeater {
                         model: root.service ? root.service.dailyModel : null
                         delegate: Item {
+                            id: dailyDelegate
                             required property int index
                             required property string weekday
                             required property string iconCode
@@ -502,12 +503,12 @@ FocusScope {
                             required property var averageCelsius
                             required property real precipitationProbabilityPercent
                             x: 0
-                            y: dailyContent.boundary(index)
+                            y: dailyContent.boundary(dailyDelegate.index)
                             width: dailyContent.width
-                            height: dailyContent.boundary(index + 1) - y
+                            height: dailyContent.boundary(dailyDelegate.index + 1) - y
                             Separator {
-                                objectName: "dailySeparator" + index
-                                visible: index > 0
+                                objectName: "dailySeparator" + dailyDelegate.index
+                                visible: dailyDelegate.index > 0
                                 anchors {
                                     left: parent.left
                                     right: parent.right
@@ -520,7 +521,7 @@ FocusScope {
                                 color: Theme.sectionDividerStrong
                             }
                             RowLayout {
-                                objectName: "dailyRow" + index
+                                objectName: "dailyRow" + dailyDelegate.index
                                 anchors {
                                     fill: parent
                                     leftMargin: Theme.spacingSmall
@@ -529,60 +530,60 @@ FocusScope {
                                 spacing: 8
                                 Text {
                                     Layout.preferredWidth: 48
-                                    objectName: "dailyWeekday" + index
+                                    objectName: "dailyWeekday" + dailyDelegate.index
                                     color: Theme.primaryAccent
                                     font {
                                         family: Theme.sansFontFamily
                                         pixelSize: Theme.sectionTitleTextSize
                                     }
-                                    text: index === 0 ? qsTr("TODAY") : weekday.toUpperCase()
+                                    text: dailyDelegate.index === 0 ? qsTr("TODAY") : dailyDelegate.weekday.toUpperCase()
                                 }
                                 Image {
                                     Layout.preferredWidth: 28
                                     Layout.preferredHeight: 28
                                     sourceSize: Qt.size(28, 28)
-                                    source: root.iconUrl(iconCode)
+                                    source: root.iconUrl(dailyDelegate.iconCode)
                                     Accessible.ignored: true
                                 }
                                 Text {
                                     Layout.preferredWidth: 32
-                                    objectName: "dailyPrecipitation" + index
+                                    objectName: "dailyPrecipitation" + dailyDelegate.index
                                     color: Theme.violetAccent
                                     font {
                                         family: Theme.fixedFontFamily
                                         pixelSize: Theme.captionTextSize
                                     }
-                                    text: qsTr("%1%").arg(Math.round(precipitationProbabilityPercent))
+                                    text: qsTr("%1%").arg(Math.round(dailyDelegate.precipitationProbabilityPercent))
                                 }
                                 Text {
                                     Layout.preferredWidth: 30
-                                    objectName: "dailyMinimum" + index
+                                    objectName: "dailyMinimum" + dailyDelegate.index
                                     horizontalAlignment: Text.AlignRight
                                     color: Theme.primaryAccent
                                     font {
                                         family: Theme.fixedFontFamily
                                         pixelSize: Theme.captionTextSize
                                     }
-                                    text: root.temperature(minimumCelsius)
+                                    text: root.temperature(dailyDelegate.minimumCelsius)
                                 }
                                 TemperatureSegment {
                                     Layout.fillWidth: true
                                     Layout.preferredHeight: 10
-                                    knobVisible: averageCelsius !== undefined && averageCelsius !== null
-                                    position: maximumCelsius === minimumCelsius ? 0.5 : (Number(averageCelsius) - minimumCelsius) / (maximumCelsius - minimumCelsius)
+                                    knobVisible: dailyDelegate.averageCelsius !== undefined && dailyDelegate.averageCelsius !== null
+                                    position: dailyDelegate.maximumCelsius === dailyDelegate.minimumCelsius ? 0.5 : (Number(dailyDelegate.averageCelsius) - dailyDelegate.minimumCelsius) / (dailyDelegate.maximumCelsius - dailyDelegate.minimumCelsius)
                                 }
                                 Text {
                                     Layout.minimumWidth: implicitWidth
                                     Layout.preferredWidth: implicitWidth
                                     Layout.maximumWidth: implicitWidth
-                                    objectName: "dailyMaximum" + index
+                                    objectName: "dailyMaximum" + dailyDelegate.index
                                     horizontalAlignment: Text.AlignLeft
                                     color: Theme.attentionStatus
                                     font {
                                         family: Theme.fixedFontFamily
                                         pixelSize: Theme.captionTextSize
                                     }
-                                    text: root.temperature(maximumCelsius)
+                                    text: root.temperature(dailyDelegate.maximumCelsius)
                                 }
                             }
                         }
