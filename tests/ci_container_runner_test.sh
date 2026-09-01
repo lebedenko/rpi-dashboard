@@ -71,5 +71,9 @@ TEST_DOCKER_ARGUMENTS=$arguments CI_IMAGE_OVERRIDE=local-ci-image DOCKER_COMMAND
     "$runner" tidy >/dev/null
 grep -Fx 'local-ci-image' "$arguments" >/dev/null
 
+TEST_DOCKER_ARGUMENTS=$arguments CI_IMAGE_OVERRIDE=local-ci-image DOCKER_COMMAND=$fake_docker \
+    "$runner" quality >/dev/null
+grep -Fx 'quality' "$arguments" >/dev/null
+
 expect_status 23 env TEST_DOCKER_ARGUMENTS=$arguments TEST_DOCKER_STATUS=23 \
     CI_IMAGE_OVERRIDE=local-ci-image DOCKER_COMMAND=$fake_docker "$runner" asan

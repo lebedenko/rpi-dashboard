@@ -7,6 +7,7 @@
 #include <QtTest>
 
 #include <memory>
+#include <stdexcept>
 #include <utility>
 
 using dashboard::protocol::SystemInfo;
@@ -87,6 +88,11 @@ class SequenceCollector final : public SysInfoCollector {
   mutable qsizetype calls_{0};
 };
 
+class ThrowingCollector final : public SysInfoCollector {
+ public:
+  [[nodiscard]] SysInfoCollectionResult collect() const override { throw std::runtime_error("fixture failure"); }
+};
+
 SystemInfo completeInfo() { return LinuxSysInfoCollector(completeGenericAccess()).collect().info; }
 
 }  // namespace
@@ -104,7 +110,16 @@ class SystemInfoTest : public QObject {
   void serviceProjectsCompleteSnapshot();
   void serviceProjectsMissingFieldsAsInvalidVariants();
   void servicePreservesLastSuccessAfterFailure();
+  void serviceRejectsNullCollectorAndReportsExceptions();
 };
+
+void SystemInfoTest::
+    serviceRejectsNullCollectorAndReportsExceptions() {  // NOLINT(readability-convert-member-functions-to-static)
+  QVERIFY_EXCEPTION_THROWN(SysInfoService(nullptr), std::invalid_argument);
+  SysInfoService service(std::make_shared<ThrowingCollector>());
+  QTRY_COMPARE(service.state(), SysInfoService::State::Error);
+  QVERIFY(!service.diagnostics().isEmpty());
+}
 
 void SystemInfoTest::collectsNormalizedGenericLinuxRecord() {  // NOLINT(readability-convert-member-functions-to-static)
   const SysInfoCollectionResult result = LinuxSysInfoCollector(completeGenericAccess()).collect();

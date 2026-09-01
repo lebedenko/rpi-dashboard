@@ -7,9 +7,13 @@ namespace dashboard::telemetry {
 // NOLINTBEGIN(readability-braces-around-statements, readability-qualified-auto,
 // readability-implicit-bool-conversion, readability-inconsistent-ifelse-braces,
 // modernize-use-designated-initializers)
-UdpTelemetryReceiver::UdpTelemetryReceiver(RemoteDeviceRegistry* registry, QObject* parent)
-    : QObject(parent), registry_(registry) {
-  Q_ASSERT(registry_);
+UdpTelemetryReceiver::UdpTelemetryReceiver(RemoteDeviceRegistry& registry, QObject* parent)
+    : QObject(parent), registry_(&registry) {
+  connect(&registry, &QObject::destroyed, this, [this] {
+    socket_.close();
+    diagnostic_ = QStringLiteral("Telemetry receiver registry is unavailable");
+    emit diagnosticChanged();
+  });
   connect(&socket_, &QUdpSocket::readyRead, this, &UdpTelemetryReceiver::processPendingDatagrams);
 }
 bool UdpTelemetryReceiver::bind(const QHostAddress& address, quint16 port) {
@@ -23,6 +27,7 @@ quint16 UdpTelemetryReceiver::localPort() const { return socket_.localPort(); }
 quint64 UdpTelemetryReceiver::acceptedPackets() const { return accepted_; }
 quint64 UdpTelemetryReceiver::droppedPackets() const { return dropped_; }
 void UdpTelemetryReceiver::processPendingDatagrams() {
+  if (!registry_) return;
   constexpr int batchSize = 32;
   int processed = 0;
   while (socket_.hasPendingDatagrams() && processed++ < batchSize) {

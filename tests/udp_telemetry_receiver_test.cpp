@@ -18,7 +18,7 @@ class UdpTelemetryReceiverTest : public QObject {
 void UdpTelemetryReceiverTest::registrationAndSnapshotOverLoopback() {
   QTemporaryDir directory;
   telemetry::RemoteDeviceRegistry registry(directory.filePath(QStringLiteral("registry.cbor")));
-  telemetry::UdpTelemetryReceiver receiver(&registry);
+  telemetry::UdpTelemetryReceiver receiver(registry);
   QVERIFY(receiver.bind(QHostAddress::LocalHost, 0));
   QUdpSocket sender;
   QVERIFY(sender.bind(QHostAddress::LocalHost, 0));
@@ -44,7 +44,7 @@ void UdpTelemetryReceiverTest::bindFailureIsNonfatal() {
   QUdpSocket occupied;
   QVERIFY(occupied.bind(QHostAddress::LocalHost, 0));
   telemetry::RemoteDeviceRegistry registry(directory.filePath(QStringLiteral("registry.cbor")));
-  telemetry::UdpTelemetryReceiver receiver(&registry);
+  telemetry::UdpTelemetryReceiver receiver(registry);
   QVERIFY(!receiver.bind(QHostAddress::LocalHost, occupied.localPort()));
   QVERIFY(!receiver.diagnostic().isEmpty());
 }

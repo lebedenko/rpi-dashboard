@@ -56,13 +56,6 @@ FocusScope {
         event.accepted = true;
     }
 
-    Connections {
-        target: root.service
-        function onSelectedProjectIndexChanged(): void {
-            projectList.currentIndex = root.service ? root.service.selectedProjectIndex : -1;
-        }
-    }
-
     Dashboard.Frame {
         id: pageFrame
         objectName: "projectsPageFrame"
@@ -205,8 +198,7 @@ FocusScope {
             Accessible.name: qsTr("%1, %2, %3").arg(name).arg(branch).arg(root.statusLabel(health))
             Accessible.role: Accessible.ListItem
             onClicked: {
-                ListView.view.currentIndex = index;
-                root.service.selectProject(index);
+                root.service.selectProject(projectRow.index);
                 ListView.view.forceActiveFocus();
             }
             background: Dashboard.Frame {

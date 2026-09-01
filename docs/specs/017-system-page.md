@@ -16,6 +16,7 @@ Replace the Systems placeholder with a compact live view of the selected device.
 - Network rates are summed across non-loopback interfaces. The interface name is shown only when exactly one contributing interface is reported.
 - Uptime shows elapsed uptime and an inferred boot time based on the successful collection timestamp.
 - Live service changes update the local model and visible values without replacing the model entry or changing selection/focus state.
+- Remote snapshot changes update the selected remote device with the same selection and focus preservation.
 - All content and focus indicators remain inside the 1480×320 display safe area.
 
 ## Unavailable values
@@ -45,5 +46,6 @@ Replace the Systems placeholder with a compact live view of the selected device.
 
 - Service tests cover present and absent projections, memory calculations, average CPU frequency, first-GPU selection, non-loopback network aggregation/identity, and boot-time derivation/preservation.
 - QML tests cover shared selection, pointer and keyboard device tabs, F5 focus, six-panel containment, accessible summaries, live formatting updates, and unavailable states.
+- An integration test uses the production `DeviceModel` and verifies that role changes refresh the selected row rather than a detached map copy.
 - Focused tests, the full test suite, and static checks pass.
 - A 1480×320 software-backend render is inspected for hierarchy, spacing, contrast, and safe-area containment.

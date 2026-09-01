@@ -7,6 +7,8 @@
 #include <QTemporaryDir>
 #include <QtTest>
 
+#include <memory>
+
 namespace {
 class InfoCollector final : public dashboard::sysinfo::SysInfoCollector {
  public:
@@ -22,6 +24,7 @@ class DeviceModelTest : public QObject {
   Q_OBJECT
  private slots:
   void appendsAndUpdatesRemoteInPlace();
+  void invalidatesWhenDependencyIsDestroyed();
 };
 
 void DeviceModelTest::appendsAndUpdatesRemoteInPlace() {  // NOLINT(readability-convert-member-functions-to-static)
@@ -29,7 +32,7 @@ void DeviceModelTest::appendsAndUpdatesRemoteInPlace() {  // NOLINT(readability-
   dashboard::sysinfo::SysInfoService info(std::make_shared<InfoCollector>());
   dashboard::sysmetrics::SysMetricsService metrics(std::make_shared<MetricsCollector>(), 60'000);
   dashboard::telemetry::RemoteDeviceRegistry registry(directory.filePath(QStringLiteral("devices.cbor")));
-  dashboard::DeviceModel model(&info, &metrics, &registry);
+  dashboard::DeviceModel model(info, metrics, registry);
   QCOMPARE(model.rowCount(), 1);
   QCOMPARE(model.get(0).value(QStringLiteral("deviceNumber")).toString(), QStringLiteral("01"));
 
@@ -65,9 +68,22 @@ void DeviceModelTest::appendsAndUpdatesRemoteInPlace() {  // NOLINT(readability-
   QSignalSpy changed(&model, &QAbstractItemModel::dataChanged);
   QVERIFY(registry.acceptSnapshot(snapshot, QHostAddress::LocalHost, 12345, 1));
   QCOMPARE(changed.count(), 1);
+  QVERIFY(!changed.first().at(2).value<QList<int>>().isEmpty());
   QCOMPARE(model.get(1).value(QStringLiteral("statusKey")).toString(), QStringLiteral("online"));
   QCOMPARE(model.get(1).value(QStringLiteral("cpuUsageRatio")).toDouble(), 0.25);
   QCOMPARE(model.get(1).value(QStringLiteral("memoryUsageRatio")).toDouble(), 0.6);
+}
+
+void DeviceModelTest::
+    invalidatesWhenDependencyIsDestroyed() {  // NOLINT(readability-convert-member-functions-to-static)
+  QTemporaryDir directory;
+  auto info = std::make_unique<dashboard::sysinfo::SysInfoService>(std::make_shared<InfoCollector>());
+  dashboard::sysmetrics::SysMetricsService metrics(std::make_shared<MetricsCollector>(), 60'000);
+  dashboard::telemetry::RemoteDeviceRegistry registry(directory.filePath(QStringLiteral("devices.cbor")));
+  dashboard::DeviceModel model(*info, metrics, registry);
+  QCOMPARE(model.rowCount(), 1);
+  info.reset();
+  QCOMPARE(model.rowCount(), 0);
 }
 
 QTEST_GUILESS_MAIN(DeviceModelTest)

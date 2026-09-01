@@ -4,6 +4,7 @@
 
 #include <cmath>
 #include <limits>
+#include <stdexcept>
 #include <utility>
 
 namespace dashboard::sysmetrics {
@@ -17,7 +18,9 @@ QVariant optionalVariant(const std::optional<T>& value) {
 SysMetricsService::SysMetricsService(std::shared_ptr<SysMetricsCollector> collector, int sampling_interval_ms,
                                      QObject* parent)
     : QObject(parent), collector_(std::move(collector)) {
-  Q_ASSERT(collector_);
+  if (!collector_) {
+    throw std::invalid_argument("SysMetricsService requires a collector");
+  }
   elapsed_timer_.start();
   timer_.setInterval(qMax(1, sampling_interval_ms));
   connect(&timer_, &QTimer::timeout, this, &SysMetricsService::refresh);
@@ -158,7 +161,26 @@ void SysMetricsService::refresh() {
   watcher_.setFuture(QtConcurrent::run([collector] { return collector->collect(); }));
 }
 void SysMetricsService::collectionFinished() {
-  SysMetricsCollectionResult result = watcher_.result();
+  SysMetricsCollectionResult result;
+  try {
+    result = watcher_.result();
+  } catch (const std::exception& exception) {
+    diagnostics_ = {QStringLiteral("System metrics collection failed: %1").arg(exception.what())};
+    emit diagnosticsChanged();
+    setState(State::Error);
+    if (std::exchange(refresh_pending_, false)) {
+      QMetaObject::invokeMethod(this, "refresh", Qt::QueuedConnection);
+    }
+    return;
+  } catch (...) {
+    diagnostics_ = {QStringLiteral("System metrics collection failed with an unknown error")};
+    emit diagnosticsChanged();
+    setState(State::Error);
+    if (std::exchange(refresh_pending_, false)) {
+      QMetaObject::invokeMethod(this, "refresh", Qt::QueuedConnection);
+    }
+    return;
+  }
   const auto cpu_usage_ratio = result.metrics.cpu.usage_ratio;
   std::optional<double> memory_usage_ratio;
   if (result.metrics.memory.total_bytes && result.metrics.memory.available_bytes &&

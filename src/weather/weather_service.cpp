@@ -14,6 +14,7 @@
 #include <array>
 #include <cmath>
 #include <limits>
+#include <stdexcept>
 
 namespace dashboard::weather {
 // NOLINTBEGIN(readability-braces-around-statements,cppcoreguidelines-narrowing-conversions,performance-unnecessary-value-param)
@@ -89,6 +90,10 @@ WeatherService::WeatherService(WeatherConfig config, std::unique_ptr<WeatherProv
       hourlyModel_(this),
       dailyModel_(this),
       currentUtc_(std::move(currentUtc)) {
+  if ((weather_ && weather_->parent() != nullptr) || (geocoding_ && geocoding_->parent() != nullptr) ||
+      (automatic_ && automatic_->parent() != nullptr)) {
+    throw std::invalid_argument("WeatherService providers must be exclusively owned");
+  }
   initialize();
 }
 
@@ -327,7 +332,8 @@ void WeatherService::saveCache() const {
                     {QStringLiteral("average"), row.averageCelsius ? QJsonValue(*row.averageCelsius) : QJsonValue()},
                     {QStringLiteral("rain"), row.rainMillimetres ? QJsonValue(*row.rainMillimetres) : QJsonValue()},
                     {QStringLiteral("snow"), row.snowMillimetres ? QJsonValue(*row.snowMillimetres) : QJsonValue()}});
-  QJsonObject root{{QStringLiteral("provider"), snapshot_.provider},
+  QJsonObject root{{QStringLiteral("schemaVersion"), 1},
+                   {QStringLiteral("provider"), snapshot_.provider},
                    {QStringLiteral("location"), locationJson(snapshot_.location)},
                    {QStringLiteral("timezoneOffset"), snapshot_.timezoneOffsetSeconds},
                    {QStringLiteral("fetched"), snapshot_.fetchedUtc.toString(Qt::ISODate)},
@@ -348,15 +354,30 @@ void WeatherService::saveCache() const {
   }
 }
 
+// Cache validation intentionally rejects at the first malformed field so no partial snapshot can escape.
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 void WeatherService::loadCache() {
   QFile file(cachePath());
   if (!file.open(QIODevice::ReadOnly)) return;
-  const auto root = QJsonDocument::fromJson(file.readAll()).object();
+  QJsonParseError parseError;
+  const auto document = QJsonDocument::fromJson(file.readAll(), &parseError);
+  if (parseError.error != QJsonParseError::NoError || !document.isObject()) return;
+  const auto root = document.object();
+  if (root.value(QStringLiteral("schemaVersion")).toInt(-1) != 1 ||
+      !root.value(QStringLiteral("location")).isObject() || !root.value(QStringLiteral("current")).isObject() ||
+      !root.value(QStringLiteral("hourly")).isArray() || !root.value(QStringLiteral("daily")).isArray() ||
+      root.value(QStringLiteral("hourly")).toArray().size() > 64 ||
+      root.value(QStringLiteral("daily")).toArray().size() > 16)
+    return;
   if (root.value(QStringLiteral("provider")).toString() != config_->provider) return;
   Snapshot cached{.provider = config_->provider,
                   .location = jsonLocation(root.value(QStringLiteral("location")).toObject()),
                   .timezoneOffsetSeconds = root.value(QStringLiteral("timezoneOffset")).toInt(),
                   .fetchedUtc = QDateTime::fromString(root.value(QStringLiteral("fetched")).toString(), Qt::ISODate)};
+  if (!cached.fetchedUtc.isValid() || !std::isfinite(cached.location.latitude) || cached.location.latitude < -90.0 ||
+      cached.location.latitude > 90.0 || !std::isfinite(cached.location.longitude) ||
+      cached.location.longitude < -180.0 || cached.location.longitude > 180.0)
+    return;
   if (config_->locationMode == LocationMode::Coordinates &&
       cached.location.cacheKey() != Location{.latitude = config_->latitude, .longitude = config_->longitude}.cacheKey())
     return;
@@ -364,6 +385,16 @@ void WeatherService::loadCache() {
       cached.location.city.compare(config_->city.section(',', 0, 0), Qt::CaseInsensitive) != 0)
     return;
   const auto current = root.value(QStringLiteral("current")).toObject();
+  const auto validNumber = [](const QJsonObject& object, const char* key) {
+    const auto value = object.value(QLatin1String(key));
+    return value.isDouble() && std::isfinite(value.toDouble());
+  };
+  for (const auto* key : {"temperature", "feelsLike", "high", "low", "humidity", "windSpeed", "windDegrees"})
+    if (!validNumber(current, key)) return;
+  if (current.value(QStringLiteral("humidity")).toDouble() < 0.0 ||
+      current.value(QStringLiteral("humidity")).toDouble() > 100.0 ||
+      current.value(QStringLiteral("windSpeed")).toDouble() < 0.0)
+    return;
   cached.current = {.condition = current.value(QStringLiteral("condition")).toString(),
                     .iconCode = current.value(QStringLiteral("icon")).toString(),
                     .temperatureCelsius = current.value(QStringLiteral("temperature")).toDouble(),
@@ -374,17 +405,28 @@ void WeatherService::loadCache() {
                     .windSpeedKmh = current.value(QStringLiteral("windSpeed")).toDouble(),
                     .windDegrees = current.value(QStringLiteral("windDegrees")).toDouble()};
   for (const auto& value : root.value(QStringLiteral("hourly")).toArray()) {
+    if (!value.isObject()) return;
     const auto row = value.toObject();
-    cached.hourly.push_back(
-        {.timestampUtc = QDateTime::fromString(row.value(QStringLiteral("timestamp")).toString(), Qt::ISODate),
-         .iconCode = row.value(QStringLiteral("icon")).toString(),
-         .temperatureCelsius = row.value(QStringLiteral("temperature")).toDouble(),
-         .precipitationProbabilityPercent = row.value(QStringLiteral("precipitation")).toDouble()});
+    const auto rowTimestamp = QDateTime::fromString(row.value(QStringLiteral("timestamp")).toString(), Qt::ISODate);
+    if (!rowTimestamp.isValid() || !validNumber(row, "temperature") || !validNumber(row, "precipitation") ||
+        row.value(QStringLiteral("precipitation")).toDouble() < 0.0 ||
+        row.value(QStringLiteral("precipitation")).toDouble() > 100.0)
+      return;
+    cached.hourly.push_back({.timestampUtc = rowTimestamp,
+                             .iconCode = row.value(QStringLiteral("icon")).toString(),
+                             .temperatureCelsius = row.value(QStringLiteral("temperature")).toDouble(),
+                             .precipitationProbabilityPercent = row.value(QStringLiteral("precipitation")).toDouble()});
   }
   for (const auto& value : root.value(QStringLiteral("daily")).toArray()) {
+    if (!value.isObject()) return;
     const auto row = value.toObject();
+    const auto rowTimestamp = QDateTime::fromString(row.value(QStringLiteral("timestamp")).toString(), Qt::ISODate);
+    if (!rowTimestamp.isValid() || !validNumber(row, "minimum") || !validNumber(row, "maximum") ||
+        !validNumber(row, "precipitation") || row.value(QStringLiteral("precipitation")).toDouble() < 0.0 ||
+        row.value(QStringLiteral("precipitation")).toDouble() > 100.0)
+      return;
     cached.daily.push_back(
-        {.timestampUtc = QDateTime::fromString(row.value(QStringLiteral("timestamp")).toString(), Qt::ISODate),
+        {.timestampUtc = rowTimestamp,
          .sunriseUtc = QDateTime::fromString(row.value(QStringLiteral("sunrise")).toString(), Qt::ISODate),
          .sunsetUtc = QDateTime::fromString(row.value(QStringLiteral("sunset")).toString(), Qt::ISODate),
          .iconCode = row.value(QStringLiteral("icon")).toString(),

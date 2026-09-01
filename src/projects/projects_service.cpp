@@ -1,5 +1,7 @@
 #include "projects/projects_service.h"
 
+#include "network/bounded_reply.h"
+
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QNetworkReply>
@@ -19,8 +21,27 @@ constexpr int kMaximumConcurrentRequests = 4;
 constexpr int kAuthenticatedPollMs = 60 * 1000;
 constexpr int kAnonymousMinimumPollMs = 15 * 60 * 1000;
 constexpr int kAnonymousRequestBudgetPerHour = 50;
+constexpr qsizetype kMaximumResponseBytes = 4 * 1024 * 1024;
 
 QDateTime date(const QJsonValue& value) { return QDateTime::fromString(value.toString(), Qt::ISODate); }
+
+bool hasArray(const QJsonDocument& document, const char* name) {
+  return document.isObject() && document.object().value(QLatin1String(name)).isArray();
+}
+
+bool validRepository(const QJsonValue& value, bool require_owner) {
+  if (!value.isObject()) return false;
+  const auto object = value.toObject();
+  if (!object.value(QStringLiteral("full_name")).isString() ||
+      object.value(QStringLiteral("full_name")).toString().isEmpty() ||
+      !object.value(QStringLiteral("name")).isString() || object.value(QStringLiteral("name")).toString().isEmpty() ||
+      !object.value(QStringLiteral("default_branch")).isString() ||
+      object.value(QStringLiteral("default_branch")).toString().isEmpty() ||
+      !object.value(QStringLiteral("archived")).isBool())
+    return false;
+  return !require_owner || (object.value(QStringLiteral("owner")).isObject() &&
+                            object.value(QStringLiteral("owner")).toObject().value(QStringLiteral("login")).isString());
+}
 
 QString conclusionHealth(const QJsonObject& object) {
   return healthKey(healthForRun(object.value(QStringLiteral("status")).toString(),
@@ -260,6 +281,10 @@ void ProjectsService::discoverRepositories(int page, QList<Repository> repositor
                return;
              }
              const auto array = document.array();
+             if (std::ranges::any_of(array, [](const QJsonValue& value) { return !validRepository(value, false); })) {
+               failRefresh(QStringLiteral("GitHub returned invalid repository data"));
+               return;
+             }
              for (const auto& value : array) {
                const auto object = value.toObject();
                if (object.value(QStringLiteral("archived")).toBool()) {
@@ -297,6 +322,10 @@ void ProjectsService::discoverPrivateRepositories(int page, QList<Repository> re
              QSet<QString> keys;
              for (const auto& repository : *accumulated) keys.insert(repository.key);
              const auto array = document.array();
+             if (std::ranges::any_of(array, [](const QJsonValue& value) { return !validRepository(value, true); })) {
+               failRefresh(QStringLiteral("GitHub returned invalid private repository data"));
+               return;
+             }
              for (const auto& value : array) {
                const auto object = value.toObject();
                if (object.value(QStringLiteral("archived")).toBool() ||
@@ -330,6 +359,7 @@ void ProjectsService::loadRuns(QList<Repository> repositories) {
   }
   pending_run_requests_ = repositories.size();
   auto rows = std::make_shared<QList<ProjectsListModel::Row>>();
+  auto failed = std::make_shared<bool>(false);
   for (const auto& repository : repositories) {
     QUrl url(QStringLiteral("https://api.github.com/repos/%1/actions/runs").arg(repository.key));
     QUrlQuery query;
@@ -337,8 +367,14 @@ void ProjectsService::loadRuns(QList<Repository> repositories) {
     query.addQueryItem(QStringLiteral("per_page"), QStringLiteral("20"));
     url.setQuery(query);
     request({url,
-             [this, repository, rows](const QJsonDocument& document, const QNetworkReply*) {
+             [this, repository, rows, failed](const QJsonDocument& document, const QNetworkReply*) {
+               if (!hasArray(document, "workflow_runs")) *failed = true;
                const auto runs = document.object().value(QStringLiteral("workflow_runs")).toArray();
+               for (const auto& value : runs)
+                 if (!value.isObject() || !value.toObject().value(QStringLiteral("id")).isDouble() ||
+                     !value.toObject().value(QStringLiteral("run_number")).isDouble() ||
+                     !date(value.toObject().value(QStringLiteral("updated_at"))).isValid())
+                   *failed = true;
                if (!runs.isEmpty()) {
                  const auto latest = runs.first().toObject();
                  QVariantList history;
@@ -369,6 +405,10 @@ void ProjectsService::loadRuns(QList<Repository> repositories) {
                                    {QStringLiteral("history"), history}}});
                }
                if (--pending_run_requests_ == 0) {
+                 if (*failed) {
+                   failRefresh(QStringLiteral("GitHub returned invalid workflow run data"));
+                   return;
+                 }
                  sortProjectsByLatestExecution(*rows);
                  retainLoadedProjectDetails(*rows, projects_.rows());
                  projects_.replace(std::move(*rows));
@@ -384,7 +424,8 @@ void ProjectsService::loadRuns(QList<Repository> repositories) {
                  loadSelectedDetails();
                }
              },
-             [this](QString error) {
+             [this, failed](QString error) {
+               *failed = true;
                if (--pending_run_requests_ == 0) {
                  failRefresh(std::move(error));
                }
@@ -406,7 +447,13 @@ void ProjectsService::loadRunners() {
   for (const auto& row : projects_.rows()) {
     request({QUrl(QStringLiteral("https://api.github.com/repos/%1/actions/runners?per_page=100").arg(row.key)),
              [this, failed](const QJsonDocument& document, const QNetworkReply*) {
+               if (!hasArray(document, "runners")) *failed = true;
                for (const auto& value : document.object().value(QStringLiteral("runners")).toArray()) {
+                 if (!value.isObject() || !value.toObject().value(QStringLiteral("id")).isDouble() ||
+                     !value.toObject().value(QStringLiteral("status")).isString()) {
+                   *failed = true;
+                   continue;
+                 }
                  const auto runner = value.toObject();
                  const auto id = runner.value(QStringLiteral("id")).toInteger();
                  runner_ids_.insert(id);
@@ -467,7 +514,18 @@ void ProjectsService::loadSelectedDetails() {
                 .arg(repository)
                 .arg(run_id)),
        [this, repository, run_id](const QJsonDocument& document, const QNetworkReply*) {
+         if (!hasArray(document, "jobs")) {
+           if (selected_key_ == repository) stages_.replace({});
+           return;
+         }
          const auto jobs = document.object().value(QStringLiteral("jobs")).toArray();
+         if (std::ranges::any_of(jobs, [](const QJsonValue& value) {
+               return !value.isObject() || !value.toObject().value(QStringLiteral("name")).isString() ||
+                      !value.toObject().value(QStringLiteral("status")).isString();
+             })) {
+           if (selected_key_ == repository) stages_.replace({});
+           return;
+         }
          QList<ProjectsListModel::Row> cards;
          int successful = 0;
          QString deploy = QStringLiteral("—");
@@ -532,8 +590,12 @@ void ProjectsService::loadSelectedDetails() {
                     .arg(repository)
                     .arg(run_id)),
            [this, repository, run_id](const QJsonDocument& document, const QNetworkReply*) {
+             if (!hasArray(document, "artifacts")) return;
              qint64 bytes = 0;
              for (const auto& value : document.object().value(QStringLiteral("artifacts")).toArray()) {
+               if (!value.isObject() || !value.toObject().value(QStringLiteral("expired")).isBool() ||
+                   !value.toObject().value(QStringLiteral("size_in_bytes")).isDouble())
+                 return;
                const auto artifact = value.toObject();
                if (!artifact.value(QStringLiteral("expired")).toBool())
                  bytes += artifact.value(QStringLiteral("size_in_bytes")).toInteger();
@@ -569,9 +631,11 @@ void ProjectsService::startRequests() {
     const auto cache_key = pending.url.toString();
     if (etags_.contains(cache_key)) request.setRawHeader("If-None-Match", etags_.value(cache_key));
     auto* reply = network_.get(request);
+    const auto response = network::BoundedReply::collect(*reply, kMaximumResponseBytes);
     if (counting_refresh_requests_) ++refresh_request_count_;
     ++active_requests_;
-    connect(reply, &QNetworkReply::finished, this, [this, reply, pending = std::move(pending)] {
+    connect(reply, &QNetworkReply::finished, this, [this, reply, response, pending = std::move(pending)] {
+      response->finish();
       --active_requests_;
       const auto status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
       const auto cache_key = reply->request().url().toString();
@@ -580,7 +644,13 @@ void ProjectsService::startRequests() {
       if (status == 304 && has_cached_body)
         body = cached_bodies_.value(cache_key);
       else if (shouldReadReplyBody(reply->error(), status, has_cached_body))
-        body = reply->readAll();
+        body = response->body();
+      if (response->exceededLimit()) {
+        pending.failure(QStringLiteral("GitHub response exceeded 4 MiB"));
+        reply->deleteLater();
+        startRequests();
+        return;
+      }
       if (reply->error() == QNetworkReply::NoError && ((status >= 200 && status < 300) || status == 304)) {
         QJsonParseError parse_error;
         const auto document = QJsonDocument::fromJson(body, &parse_error);

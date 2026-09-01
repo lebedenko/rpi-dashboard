@@ -6,6 +6,7 @@
 #include <QtTest>
 
 #include <memory>
+#include <stdexcept>
 
 using dashboard::protocol::SystemMetrics;
 using dashboard::sysmetrics::LinuxStorageVolume;
@@ -60,6 +61,10 @@ class SequenceCollector final : public SysMetricsCollector {
   qsizetype index{0};
   SysMetricsCollectionResult collect() override { return values.at(qMin(index++, values.size() - 1)); }
 };
+class ThrowingCollector final : public SysMetricsCollector {
+ public:
+  SysMetricsCollectionResult collect() override { throw std::runtime_error("fixture failure"); }
+};
 
 SystemMetrics readyMetrics() {
   SystemMetrics value;
@@ -82,7 +87,16 @@ class SystemMetricsTest : public QObject {
   void serviceProjectsDetailedMetrics();
   void serviceKeepsMissingDetailedMetricsInvalid();
   void historyRecordsOptionalValuesAndPrunesOldSamples();
+  void serviceRejectsNullCollectorAndReportsExceptions();
 };
+
+void SystemMetricsTest::
+    serviceRejectsNullCollectorAndReportsExceptions() {  // NOLINT(readability-convert-member-functions-to-static)
+  QVERIFY_EXCEPTION_THROWN(SysMetricsService(nullptr), std::invalid_argument);
+  SysMetricsService service(std::make_shared<ThrowingCollector>(), 60'000);
+  QTRY_COMPARE(service.state(), SysMetricsService::State::Error);
+  QVERIFY(!service.diagnostics().isEmpty());
+}
 
 void SystemMetricsTest::classifiesSnapshots() {  // NOLINT(readability-convert-member-functions-to-static)
   SystemMetrics metrics;

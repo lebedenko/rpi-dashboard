@@ -4,6 +4,7 @@
 #include "protocol/system_metrics.h"
 
 #include <QAbstractListModel>
+#include <QPointer>
 
 namespace dashboard::sysinfo {
 class SysInfoService;
@@ -56,8 +57,8 @@ class DeviceModel final : public QAbstractListModel {
     TotalMemoryRole
   };
 
-  DeviceModel(sysinfo::SysInfoService* info, sysmetrics::SysMetricsService* metrics,
-              telemetry::RemoteDeviceRegistry* registry, QObject* parent = nullptr);
+  DeviceModel(sysinfo::SysInfoService& info, sysmetrics::SysMetricsService& metrics,
+              telemetry::RemoteDeviceRegistry& registry, QObject* parent = nullptr);
   [[nodiscard]] int rowCount(const QModelIndex& parent = {}) const override;
   [[nodiscard]] QVariant data(const QModelIndex& index, int role) const override;
   [[nodiscard]] QHash<int, QByteArray> roleNames() const override;
@@ -67,11 +68,13 @@ class DeviceModel final : public QAbstractListModel {
   void countChanged();
 
  private:
-  void localChanged();
+  void localInfoChanged();
+  void localMetricsChanged();
   void remoteChanged(const QUuid& device_id);
-  sysinfo::SysInfoService* info_;
-  sysmetrics::SysMetricsService* metrics_;
-  telemetry::RemoteDeviceRegistry* registry_;
+  void invalidateDependencies();
+  QPointer<sysinfo::SysInfoService> info_;
+  QPointer<sysmetrics::SysMetricsService> metrics_;
+  QPointer<telemetry::RemoteDeviceRegistry> registry_;
   bool structured_registry_change_{false};
 };
 

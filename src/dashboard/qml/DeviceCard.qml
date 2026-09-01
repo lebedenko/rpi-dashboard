@@ -42,6 +42,7 @@ Control {
     padding: Theme.cardFrameInset
 
     component UtilizationMetricCell: Item {
+        id: metricCell
         required property string metricLabel
         required property string metricValue
         required property real usageRatio
@@ -92,11 +93,11 @@ Control {
             Accessible.ignored: true
             Rectangle {
                 id: fill
-                objectName: parent.parent.objectName + "ProgressFill"
-                width: parent.width * Math.min(1, Math.max(0, parent.parent.usageRatio))
-                height: parent.height
-                color: parent.parent.seriesColor
-                visible: parent.parent.ratioAvailable
+                objectName: metricCell.objectName + "ProgressFill"
+                width: rail.width * Math.min(1, Math.max(0, metricCell.usageRatio))
+                height: rail.height
+                color: metricCell.seriesColor
+                visible: metricCell.ratioAvailable
                 Accessible.ignored: true
             }
         }

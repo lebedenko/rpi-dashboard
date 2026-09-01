@@ -4,6 +4,7 @@
 
 #include <QHostAddress>
 #include <QObject>
+#include <QPointer>
 #include <QUdpSocket>
 
 namespace dashboard::telemetry {
@@ -11,7 +12,7 @@ namespace dashboard::telemetry {
 class UdpTelemetryReceiver final : public QObject {
   Q_OBJECT
  public:
-  explicit UdpTelemetryReceiver(RemoteDeviceRegistry* registry, QObject* parent = nullptr);
+  explicit UdpTelemetryReceiver(RemoteDeviceRegistry& registry, QObject* parent = nullptr);
   [[nodiscard]] bool bind(const QHostAddress& address = QHostAddress::AnyIPv4, quint16 port = 51337);
   [[nodiscard]] QString diagnostic() const;
   [[nodiscard]] quint16 localPort() const;
@@ -25,7 +26,7 @@ class UdpTelemetryReceiver final : public QObject {
   void processPendingDatagrams();
 
  private:
-  RemoteDeviceRegistry* registry_;
+  QPointer<RemoteDeviceRegistry> registry_;
   QUdpSocket socket_;
   QString diagnostic_;
   quint64 accepted_{0};

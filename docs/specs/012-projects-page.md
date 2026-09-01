@@ -71,6 +71,8 @@ configured GitHub user or organization.
   restored after every successful refresh. Conditional responses are used where available. A
   failed refresh retains the last successful snapshot, marks it stale, and exposes the last-success
   UTC time and a concise diagnostic.
+- Each response is limited to 4 MiB and validated against its endpoint schema before any model
+  mutation. Oversized or malformed successful responses follow the normal retained-stale-data path.
 - All custom controls expose accessible roles/names, touch targets are at least 48 logical pixels,
   and visible strings are translatable.
 
