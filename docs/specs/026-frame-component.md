@@ -38,6 +38,8 @@ and mixed corners without allowing an opaque background to extend outside the fr
   Qt Quick Tests.
 - The Overview shell's navigation sidebar, clock/status sidebar, sidebar button backgrounds, and
   every framed visual in `DeviceCard.qml` use this component without local `ShapePath` geometry.
+- The System page's device-tab backgrounds and metric-panel shells use this component without
+  local `ShapePath` geometry.
 - Those migrated surfaces preserve their existing geometry, colors, focus and selection states,
   sizing, accessibility, expansion, pointer, touch, and keyboard interaction.
 - The device status badge uses square left corners and two 12 px right-side chamfers, forming a
@@ -48,7 +50,7 @@ and mixed corners without allowing an opaque background to extend outside the fr
 - Clipping or masking child content.
 - Adding C++ geometry, networking, parsing, collection, or state.
 - Supporting corner shapes other than square, circular rounded, and straight chamfered corners.
-- Migrating Projects, System, Weather, dashboard placeholder, or Screensaver surfaces.
+- Migrating Projects, Weather, dashboard placeholder, or Screensaver surfaces.
 
 ## Verification
 

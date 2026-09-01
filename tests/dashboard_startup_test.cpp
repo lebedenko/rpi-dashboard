@@ -16,7 +16,7 @@ class DashboardStartupTest : public QObject {
   void declaresAndUsesTypographyRoles();
   void bundledFontsArePackaged();
   void deviceCardSourcesAndChevronArePackaged();
-  void overviewSurfacesUseReusableFrame();
+  void migratedSurfacesUseReusableFrame();
   void initializesQmlAndKeepsRunning();
   void reportsWeatherCredentialFailuresWithoutSecrets();
 };
@@ -240,10 +240,11 @@ void DashboardStartupTest::
 }
 
 void DashboardStartupTest::
-    overviewSurfacesUseReusableFrame() {  // NOLINT(readability-convert-member-functions-to-static)
+    migratedSurfacesUseReusableFrame() {  // NOLINT(readability-convert-member-functions-to-static)
   const QStringList migratedSources = {
       QStringLiteral(DASHBOARD_MAIN_QML), QStringLiteral(DASHBOARD_CLOCK_SIDEBAR_QML),
-      QStringLiteral(DASHBOARD_SIDEBAR_BUTTON_QML), QStringLiteral(DASHBOARD_DEVICE_CARD_QML)};
+      QStringLiteral(DASHBOARD_SIDEBAR_BUTTON_QML), QStringLiteral(DASHBOARD_DEVICE_CARD_QML),
+      QStringLiteral(DASHBOARD_SYSTEM_PAGE_QML), QStringLiteral(DASHBOARD_SYSTEM_METRIC_PANEL_QML)};
   for (const auto& path : migratedSources) {
     QFile source(path);
     QVERIFY2(source.open(QIODevice::ReadOnly | QIODevice::Text), qPrintable(source.errorString()));

@@ -377,6 +377,36 @@ Item {
             verify(firstTab.Accessible.name.includes("PI-DASH"));
         }
 
+        function test_systemPageUsesReusableFrames() {
+            dashboardWindow.localDeviceModel.append(deviceEntry("02", "REMOTE"));
+            mouseClick(findChild(dashboardWindow.contentItem, "systemsButton"));
+
+            const selectedTab = findChild(dashboardWindow.contentItem, "systemDeviceTab0");
+            const passiveTab = findChild(dashboardWindow.contentItem, "systemDeviceTab1");
+            verify(selectedTab.background instanceof Frame);
+            compare(selectedTab.background.backgroundColor, Theme.selectedSurface);
+            compare(selectedTab.background.lineWidth, 1);
+            compare(selectedTab.background.color, Theme.primaryAccent);
+            compare(selectedTab.background.corners.rounded, Theme.radiusMedium);
+            verify(passiveTab.background instanceof Frame);
+            compare(passiveTab.background.backgroundColor, Theme.surface);
+            compare(passiveTab.background.lineWidth, 1);
+            compare(passiveTab.background.color, Theme.passiveBorder);
+            compare(passiveTab.background.corners.rounded, Theme.radiusMedium);
+
+            passiveTab.forceActiveFocus();
+            tryCompare(passiveTab, "activeFocus", true);
+            compare(passiveTab.background.lineWidth, 2);
+            compare(passiveTab.background.color, Theme.focusAccent);
+
+            const panel = findChild(dashboardWindow.contentItem, "cpuPanel");
+            verify(panel.background instanceof Frame);
+            compare(panel.background.backgroundColor, Theme.cardSurface);
+            compare(panel.background.lineWidth, 1);
+            compare(panel.background.color, Theme.cardFrame);
+            compare(panel.background.corners.rounded, Theme.radiusMedium);
+        }
+
         function test_systemPageSixPanelsFitAndExposeAccessibleSummaries() {
             mouseClick(findChild(dashboardWindow.contentItem, "systemsButton"));
             const panels = findChild(dashboardWindow.contentItem, "systemPanels");
