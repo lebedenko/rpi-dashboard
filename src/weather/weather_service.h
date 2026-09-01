@@ -46,8 +46,7 @@ class WeatherService final : public QObject {
                           QByteArray ipGeolocationKey = {}, QObject* parent = nullptr);
   WeatherService(WeatherConfig config, std::unique_ptr<WeatherProvider> weather,
                  std::unique_ptr<GeocodingProvider> geocoding, std::unique_ptr<AutomaticLocationProvider> automatic,
-                 QObject* parent = nullptr,
-                 std::function<QDateTime()> currentUtc = QDateTime::currentDateTimeUtc);
+                 QObject* parent = nullptr, std::function<QDateTime()> currentUtc = QDateTime::currentDateTimeUtc);
 
   [[nodiscard]] QString state() const { return state_; }
   [[nodiscard]] bool stale() const { return stale_; }

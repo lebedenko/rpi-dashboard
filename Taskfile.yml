@@ -1,5 +1,17 @@
 version: '3'
 
+vars:
+  QMLFORMAT:
+    sh: |
+      if command -v qmake6 >/dev/null 2>&1; then
+        qt_qmlformat="$(qmake6 -query QT_INSTALL_BINS)/qmlformat"
+        if test -x "$qt_qmlformat"; then
+          echo "$qt_qmlformat"
+          exit 0
+        fi
+      fi
+      command -v qmlformat
+
 tasks:
   configure:
     desc: Configure the development build
@@ -19,8 +31,9 @@ tasks:
       - ctest --preset dev
 
   check:
-    desc: Build with clang-tidy and run tests
+    desc: Check formatting, build with clang-tidy, and run tests
     cmds:
+      - task: format:check
       - cmake --preset tidy
       - cmake --build --preset tidy
       - ctest --preset tidy
@@ -110,9 +123,34 @@ tasks:
       - ssh '{{.PI_HOST}}' 'cd {{.PI_PATH}} && task test'
 
   format:
-    desc: Format C++ sources
+    desc: Format C++ and QML sources
     cmds:
       - find src tests -type f \( -name '*.cpp' -o -name '*.h' \) -print0 | xargs -0 clang-format -i
+      - find src tests -type f -name '*.qml' -print0 | xargs -0 '{{.QMLFORMAT}}' -i --sort-imports
+
+  format:check:
+    desc: Check C++ and QML source formatting
+    cmds:
+      - find src tests -type f \( -name '*.cpp' -o -name '*.h' \) -print0 | xargs -0 clang-format --dry-run --Werror
+      - |
+        temporary_directory="$(mktemp -d)"
+        trap 'rm -rf "$temporary_directory"' EXIT
+        find src tests -type f -name '*.qml' -exec sh -c '
+          temporary_directory="$1"
+          shift
+          for source_file do
+            formatted_file="$temporary_directory/formatted.qml"
+            if ! '{{.QMLFORMAT}}' --sort-imports "$source_file" > "$formatted_file"; then
+              echo "qmlformat failed for $source_file" >&2
+              touch "$temporary_directory/failed"
+              continue
+            fi
+            if ! diff -u "$source_file" "$formatted_file"; then
+              touch "$temporary_directory/failed"
+            fi
+          done
+        ' sh "$temporary_directory" {} +
+        test ! -e "$temporary_directory/failed"
 
   clean:
     desc: Remove local build outputs

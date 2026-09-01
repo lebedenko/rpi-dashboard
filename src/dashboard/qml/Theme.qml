@@ -1,24 +1,16 @@
-import QtQuick
 pragma Singleton
+import QtQuick
 
 QtObject {
     id: root
 
     // Font families and weights
     readonly property list<string> installedFontFamilies: Qt.fontFamilies()
-    readonly property bool bundledFontsReady: root.rajdhaniLight.status === FontLoader.Ready
-                                               && root.rajdhaniRegular.status === FontLoader.Ready
-                                               && root.rajdhaniMedium.status === FontLoader.Ready
-                                               && root.rajdhaniSemiBold.status === FontLoader.Ready
-                                               && root.jetBrainsLight.status === FontLoader.Ready
-                                               && root.jetBrainsRegular.status === FontLoader.Ready
-                                               && root.jetBrainsMedium.status === FontLoader.Ready
+    readonly property bool bundledFontsReady: root.rajdhaniLight.status === FontLoader.Ready && root.rajdhaniRegular.status === FontLoader.Ready && root.rajdhaniMedium.status === FontLoader.Ready && root.rajdhaniSemiBold.status === FontLoader.Ready && root.jetBrainsLight.status === FontLoader.Ready && root.jetBrainsRegular.status === FontLoader.Ready && root.jetBrainsMedium.status === FontLoader.Ready
     readonly property string bundledSansFontFamily: root.rajdhaniRegular.status === FontLoader.Ready ? root.rajdhaniRegular.name : ""
     readonly property string bundledFixedFontFamily: root.jetBrainsRegular.status === FontLoader.Ready ? root.jetBrainsRegular.name : ""
-    readonly property string sansFontFamily: root.bundledSansFontFamily.length > 0 ? root.bundledSansFontFamily
-                                                                                   : root.installedFontFamilies.includes("Rajdhani") ? "Rajdhani" : "sans-serif"
-    readonly property string fixedFontFamily: root.bundledFixedFontFamily.length > 0 ? root.bundledFixedFontFamily
-                                                                                      : root.preferredFixedFontFamily()
+    readonly property string sansFontFamily: root.bundledSansFontFamily.length > 0 ? root.bundledSansFontFamily : root.installedFontFamilies.includes("Rajdhani") ? "Rajdhani" : "sans-serif"
+    readonly property string fixedFontFamily: root.bundledFixedFontFamily.length > 0 ? root.bundledFixedFontFamily : root.preferredFixedFontFamily()
     readonly property int headingFontWeight: Font.DemiBold
     readonly property int labelFontWeight: Font.Normal
     readonly property int informationFontWeight: Font.Medium
@@ -107,7 +99,7 @@ QtObject {
     readonly property int captionTextSize: 10
     readonly property int axisTextSize: 9
 
-    function preferredFixedFontFamily() : string {
+    function preferredFixedFontFamily(): string {
         if (root.installedFontFamilies.includes("JetBrains Mono"))
             return "JetBrains Mono";
 
@@ -121,29 +113,42 @@ QtObject {
         switch (status) {
         case "online":
         case "healthy":
-            return root.onlineStatus
+            return root.onlineStatus;
         case "registered":
         case "running":
-            return root.primaryAccent
+            return root.primaryAccent;
         case "attention":
-            return root.attentionStatus
+            return root.attentionStatus;
         case "failed":
-            return root.failureStatus
+            return root.failureStatus;
         case "stale":
-            return root.staleStatus
+            return root.staleStatus;
         case "offline":
         case "unknown":
         default:
-            return root.unknownStatus
+            return root.unknownStatus;
         }
     }
 
-    readonly property FontLoader rajdhaniLight: FontLoader { source: "fonts/Rajdhani-Light.ttf" }
-    readonly property FontLoader rajdhaniRegular: FontLoader { source: "fonts/Rajdhani-Regular.ttf" }
-    readonly property FontLoader rajdhaniMedium: FontLoader { source: "fonts/Rajdhani-Medium.ttf" }
-    readonly property FontLoader rajdhaniSemiBold: FontLoader { source: "fonts/Rajdhani-SemiBold.ttf" }
-    readonly property FontLoader jetBrainsLight: FontLoader { source: "fonts/JetBrainsMono-Light.ttf" }
-    readonly property FontLoader jetBrainsRegular: FontLoader { source: "fonts/JetBrainsMono-Regular.ttf" }
-    readonly property FontLoader jetBrainsMedium: FontLoader { source: "fonts/JetBrainsMono-Medium.ttf" }
-
+    readonly property FontLoader rajdhaniLight: FontLoader {
+        source: "fonts/Rajdhani-Light.ttf"
+    }
+    readonly property FontLoader rajdhaniRegular: FontLoader {
+        source: "fonts/Rajdhani-Regular.ttf"
+    }
+    readonly property FontLoader rajdhaniMedium: FontLoader {
+        source: "fonts/Rajdhani-Medium.ttf"
+    }
+    readonly property FontLoader rajdhaniSemiBold: FontLoader {
+        source: "fonts/Rajdhani-SemiBold.ttf"
+    }
+    readonly property FontLoader jetBrainsLight: FontLoader {
+        source: "fonts/JetBrainsMono-Light.ttf"
+    }
+    readonly property FontLoader jetBrainsRegular: FontLoader {
+        source: "fonts/JetBrainsMono-Regular.ttf"
+    }
+    readonly property FontLoader jetBrainsMedium: FontLoader {
+        source: "fonts/JetBrainsMono-Medium.ttf"
+    }
 }

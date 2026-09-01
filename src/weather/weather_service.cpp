@@ -186,8 +186,7 @@ void WeatherService::startOperation(bool manual) {
 }
 
 void WeatherService::publish(Snapshot snapshot) {
-  if (snapshot.todayPrecipitationKind.isEmpty())
-    snapshot.todayPrecipitationKind = QStringLiteral("none");
+  if (snapshot.todayPrecipitationKind.isEmpty()) snapshot.todayPrecipitationKind = QStringLiteral("none");
   if (snapshot.airQuality == std::nullopt && snapshot_.location.cacheKey() == snapshot.location.cacheKey())
     snapshot.airQuality = snapshot_.airQuality;
   snapshot_ = std::move(snapshot);
@@ -404,8 +403,7 @@ void WeatherService::loadCache() {
   }
   cached.sunsetUtc = QDateTime::fromString(root.value(QStringLiteral("sunset")).toString(), Qt::ISODate);
   cached.todayPrecipitationKind = root.value(QStringLiteral("precipitationKind")).toString();
-  if (cached.todayPrecipitationKind.isEmpty())
-    cached.todayPrecipitationKind = QStringLiteral("none");
+  if (cached.todayPrecipitationKind.isEmpty()) cached.todayPrecipitationKind = QStringLiteral("none");
   const auto air = root.value(QStringLiteral("airQuality")).toObject();
   if (!air.isEmpty())
     cached.airQuality = AirQuality{.index = air.value(QStringLiteral("index")).toInt(),

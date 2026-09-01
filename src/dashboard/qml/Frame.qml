@@ -19,15 +19,13 @@ Item {
         ShapePath {
             id: path
 
-            readonly property real effectiveStrokeWidth: Number.isFinite(frame.lineWidth) && frame.lineWidth > 0
-                                                        ? frame.lineWidth : 0
+            readonly property real effectiveStrokeWidth: Number.isFinite(frame.lineWidth) && frame.lineWidth > 0 ? frame.lineWidth : 0
             readonly property real inset: path.effectiveStrokeWidth / 2
             readonly property real left: path.inset
             readonly property real top: path.inset
             readonly property real right: Math.max(path.left, frame.width - path.inset)
             readonly property real bottom: Math.max(path.top, frame.height - path.inset)
-            readonly property real maximumCornerSize: Math.max(0, Math.min(path.right - path.left,
-                                                                           path.bottom - path.top) / 2)
+            readonly property real maximumCornerSize: Math.max(0, Math.min(path.right - path.left, path.bottom - path.top) / 2)
             readonly property int topLeftType: path.cornerType("topLeft")
             readonly property int topRightType: path.cornerType("topRight")
             readonly property int bottomRightType: path.cornerType("bottomRight")

@@ -11,8 +11,8 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QLocale>
-#include <QStandardPaths>
 #include <QSignalSpy>
+#include <QStandardPaths>
 #include <QTemporaryDir>
 #include <QTest>
 #include <QTimeZone>
@@ -436,20 +436,19 @@ void WeatherTest::cachesCompleteHourlyForecast() {
   {
     WeatherService service(config, std::move(weather), std::move(geocoding), std::move(automatic), nullptr,
                            [&now] { return now; });
-    Snapshot snapshot{.provider = QStringLiteral("openweather"),
-                      .location = weatherFake->lastLocation,
-                      .fetchedUtc = now};
+    Snapshot snapshot{
+        .provider = QStringLiteral("openweather"), .location = weatherFake->lastLocation, .fetchedUtc = now};
     for (int hour = 0; hour < 12; ++hour) {
-      snapshot.hourly.push_back({.timestampUtc = now.addSecs(hour * 3600),
-                                 .precipitationProbabilityPercent = hour == 10 ? 85.0 : 5.0});
+      snapshot.hourly.push_back(
+          {.timestampUtc = now.addSecs(hour * 3600), .precipitationProbabilityPercent = hour == 10 ? 85.0 : 5.0});
     }
     weatherFake->succeed(snapshot);
   }
   auto reloadWeather = std::make_unique<FakeWeatherProvider>();
   auto reloadGeocoding = std::make_unique<FakeGeocodingProvider>();
   auto reloadAutomatic = std::make_unique<FakeAutomaticLocationProvider>();
-  WeatherService reloaded(config, std::move(reloadWeather), std::move(reloadGeocoding),
-                          std::move(reloadAutomatic), nullptr, [&now] { return now; });
+  WeatherService reloaded(config, std::move(reloadWeather), std::move(reloadGeocoding), std::move(reloadAutomatic),
+                          nullptr, [&now] { return now; });
   QCOMPARE(reloaded.hourlyModel()->rowCount(), 8);
   QCOMPARE(reloaded.todayPrecipitationProbabilityPercent(), 85.0);
   QStandardPaths::setTestModeEnabled(true);
@@ -468,15 +467,12 @@ void WeatherTest::truncatesForecastModels() {
   QCOMPARE(hourlyModel.rowCount(), 8);
   hourly[0].timestampUtc = QDateTime(QDate(2026, 9, 1), QTime(5, 0), QTimeZone::UTC);
   hourlyModel.replace(hourly, 2 * 3600);
-  QCOMPARE(hourlyModel.data(hourlyModel.index(0), HourlyForecastModel::LocalHourRole).toString(),
-           QStringLiteral("07"));
+  QCOMPARE(hourlyModel.data(hourlyModel.index(0), HourlyForecastModel::LocalHourRole).toString(), QStringLiteral("07"));
   hourly[0].timestampUtc = QDateTime(QDate(2026, 9, 1), QTime(0, 0), QTimeZone::UTC);
   hourly[1].timestampUtc = QDateTime(QDate(2026, 9, 1), QTime(23, 0), QTimeZone::UTC);
   hourlyModel.replace(hourly, 0);
-  QCOMPARE(hourlyModel.data(hourlyModel.index(0), HourlyForecastModel::LocalHourRole).toString(),
-           QStringLiteral("00"));
-  QCOMPARE(hourlyModel.data(hourlyModel.index(1), HourlyForecastModel::LocalHourRole).toString(),
-           QStringLiteral("23"));
+  QCOMPARE(hourlyModel.data(hourlyModel.index(0), HourlyForecastModel::LocalHourRole).toString(), QStringLiteral("00"));
+  QCOMPARE(hourlyModel.data(hourlyModel.index(1), HourlyForecastModel::LocalHourRole).toString(), QStringLiteral("23"));
   QCOMPARE(hourlyModel.data(hourlyModel.index(0), HourlyForecastModel::TrendPositionRole).toDouble(), 0.0);
   QCOMPARE(hourlyModel.data(hourlyModel.index(1), HourlyForecastModel::TrendPositionRole).toDouble(), 1.0);
   QVector<HourlyForecast> equal(2);

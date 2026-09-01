@@ -24,9 +24,7 @@ Item {
                 position: 1
                 color: Theme.textPrimary
             }
-
         }
-
     }
 
     Rectangle {
@@ -47,9 +45,7 @@ Item {
                 position: 1
                 color: Theme.attentionStatus
             }
-
         }
-
     }
 
     Rectangle {
@@ -64,5 +60,4 @@ Item {
         color: Theme.textPrimary
         visible: root.knobVisible
     }
-
 }

@@ -4,7 +4,10 @@ import QtQuick.Shapes
 Item {
     id: root
 
-    enum LineStyle { Solid, Dotted }
+    enum LineStyle {
+        Solid,
+        Dotted
+    }
 
     property int lineWidth: 1
     property int orientation: Qt.Horizontal
@@ -25,15 +28,14 @@ Item {
         const sceneOrigin = vertical ? sceneOriginPoint.x : sceneOriginPoint.y;
         const extent = vertical ? root.width : root.height;
         const physicalCenter = (sceneOrigin + extent / 2) * root.devicePixelRatio;
-        const alignedPhysicalCenter = Math.round(physicalCenter - root.lineWidth / 2)
-                + root.lineWidth / 2;
+        const alignedPhysicalCenter = Math.round(physicalCenter - root.lineWidth / 2) + root.lineWidth / 2;
         return alignedPhysicalCenter / root.devicePixelRatio - sceneOrigin;
     }
 
     property real alignedStrokeCenter: 0
 
     function updateAlignment(): void {
-        Qt.callLater(function() {
+        Qt.callLater(function () {
             root.alignedStrokeCenter = root.alignedCenter();
         });
     }
@@ -50,10 +52,18 @@ Item {
     Connections {
         target: root.parent
 
-        function onXChanged(): void { root.updateAlignment(); }
-        function onYChanged(): void { root.updateAlignment(); }
-        function onWidthChanged(): void { root.updateAlignment(); }
-        function onHeightChanged(): void { root.updateAlignment(); }
+        function onXChanged(): void {
+            root.updateAlignment();
+        }
+        function onYChanged(): void {
+            root.updateAlignment();
+        }
+        function onWidthChanged(): void {
+            root.updateAlignment();
+        }
+        function onHeightChanged(): void {
+            root.updateAlignment();
+        }
     }
 
     Shape {

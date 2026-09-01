@@ -16,7 +16,7 @@ Item {
     readonly property string precipitationValue: root.precipitationProbability > 0 ? qsTr("%1%").arg(Math.round(root.precipitationProbability)) : qsTr("NONE")
     readonly property string accessibleText: root.pageContext === "projects" ? qsTr("%1, %2, %3, %4").arg(root.timeText).arg(root.dateText).arg(root.ciText).arg(root.runnerText) : root.pageContext === "weather" ? qsTr("%1, %2, air %3, index %4, %5 %6, %7 %8").arg(root.timeText).arg(root.dateText).arg(root.weatherService ? root.weatherService.airQualityCategory : qsTr("unavailable")).arg(root.weatherService ? root.weatherService.airQualityIndex : 0).arg(root.weatherService && root.weatherService.nextSolarEventKind === "sunrise" ? qsTr("sunrise") : qsTr("sunset")).arg(root.weatherService ? root.weatherService.localNextSolarEventTime : "—").arg(root.precipitationLabel).arg(root.precipitationValue) : qsTr("%1, %2").arg(root.timeText).arg(root.dateText)
 
-    function statusLabel(health) : string {
+    function statusLabel(health): string {
         const labels = {
             "failed": qsTr("FAILED"),
             "attention": qsTr("ATTENTION"),
@@ -28,7 +28,7 @@ Item {
         return labels[health] || labels.unknown;
     }
 
-    function precipitationName(kind) : string {
+    function precipitationName(kind): string {
         const labels = {
             "rain": qsTr("RAIN"),
             "snow": qsTr("SNOW"),
@@ -39,7 +39,7 @@ Item {
         return labels[kind] || labels.other;
     }
 
-    function airQualityColor(index) : color {
+    function airQualityColor(index): color {
         if (index >= 1 && index <= 2)
             return Theme.onlineStatus;
 
@@ -61,19 +61,19 @@ Item {
         backgroundColor: Theme.surface
         color: Theme.passiveBorder
         corners: ({
-            "topLeft": {
-                "rounded": Theme.radiusMedium
-            },
-            "topRight": {
-                "chamfered": Theme.chamferLarge
-            },
-            "bottomRight": {
-                "chamfered": Theme.chamferLarge
-            },
-            "bottomLeft": {
-                "chamfered": Theme.chamferLarge
-            }
-        })
+                "topLeft": {
+                    "rounded": Theme.radiusMedium
+                },
+                "topRight": {
+                    "chamfered": Theme.chamferLarge
+                },
+                "bottomRight": {
+                    "chamfered": Theme.chamferLarge
+                },
+                "bottomLeft": {
+                    "chamfered": Theme.chamferLarge
+                }
+            })
     }
 
     Column {
@@ -101,7 +101,6 @@ Item {
                 pixelSize: Theme.clockTimeTextSize
                 weight: Theme.metricFontWeight
             }
-
         }
 
         Text {
@@ -120,7 +119,6 @@ Item {
                 pixelSize: Theme.clockDateTextSize
                 weight: Theme.informationFontWeight
             }
-
         }
 
         Separator {
@@ -150,7 +148,6 @@ Item {
                     pixelSize: Theme.sectionTitleTextSize
                     weight: Theme.technicalFontWeight
                 }
-
             }
 
             Text {
@@ -165,9 +162,7 @@ Item {
                     family: Theme.fixedFontFamily
                     pixelSize: Theme.captionTextSize
                 }
-
             }
-
         }
 
         Column {
@@ -191,7 +186,6 @@ Item {
                         family: Theme.sansFontFamily
                         pixelSize: Theme.bodyTextSize
                     }
-
                 }
 
                 Row {
@@ -207,7 +201,6 @@ Item {
                             family: Theme.sansFontFamily
                             pixelSize: Theme.bodyTextSize
                         }
-
                     }
 
                     Text {
@@ -219,11 +212,8 @@ Item {
                             family: Theme.sansFontFamily
                             pixelSize: Theme.bodyTextSize
                         }
-
                     }
-
                 }
-
             }
 
             Separator {
@@ -249,7 +239,6 @@ Item {
                         family: Theme.sansFontFamily
                         pixelSize: Theme.bodyTextSize
                     }
-
                 }
 
                 Text {
@@ -262,9 +251,7 @@ Item {
                         family: Theme.sansFontFamily
                         pixelSize: Theme.bodyTextSize
                     }
-
                 }
-
             }
 
             Separator {
@@ -291,7 +278,6 @@ Item {
                         family: Theme.sansFontFamily
                         pixelSize: Theme.bodyTextSize
                     }
-
                 }
 
                 Text {
@@ -304,13 +290,9 @@ Item {
                         family: Theme.sansFontFamily
                         pixelSize: Theme.bodyTextSize
                     }
-
                 }
-
             }
-
         }
-
     }
 
     Timer {
@@ -319,5 +301,4 @@ Item {
         running: true
         onTriggered: root.currentTimestamp = new Date()
     }
-
 }

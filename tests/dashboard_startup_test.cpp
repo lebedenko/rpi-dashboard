@@ -93,10 +93,12 @@ void DashboardStartupTest::sidebarDrawsInsetClosedBorder() {  // NOLINT(readabil
   QVERIFY(sidebarSurface.contains(QStringLiteral("Frame {")));
   QVERIFY(sidebarSurface.contains(QStringLiteral("backgroundColor: Theme.surface")));
   QVERIFY(sidebarSurface.contains(QStringLiteral("color: Theme.passiveBorder")));
-  QVERIFY(sidebarSurface.contains(QStringLiteral("topLeft: { chamfered: Theme.chamferLarge }")));
-  QVERIFY(sidebarSurface.contains(QStringLiteral("topRight: { rounded: Theme.radiusMedium }")));
-  QVERIFY(sidebarSurface.contains(QStringLiteral("bottomRight: { chamfered: Theme.chamferLarge }")));
-  QVERIFY(sidebarSurface.contains(QStringLiteral("bottomLeft: { chamfered: Theme.chamferLarge }")));
+  QVERIFY(sidebarSurface.contains(QStringLiteral("topLeft: {")));
+  QVERIFY(sidebarSurface.contains(QStringLiteral("topRight: {")));
+  QVERIFY(sidebarSurface.contains(QStringLiteral("bottomRight: {")));
+  QVERIFY(sidebarSurface.contains(QStringLiteral("bottomLeft: {")));
+  QCOMPARE(sidebarSurface.count(QStringLiteral("chamfered: Theme.chamferLarge")), 3);
+  QVERIFY(sidebarSurface.contains(QStringLiteral("rounded: Theme.radiusMedium")));
   QVERIFY(!source.contains(QStringLiteral("id: sidebarSeparator")));
   QCOMPARE(sidebarSurface.count(QStringLiteral("ShapePath {")), 0);
 }
@@ -121,10 +123,8 @@ void DashboardStartupTest::
   QVERIFY(source.contains(QStringLiteral("visible: pointerHover.hovered")));
   QVERIFY(!source.contains(QStringLiteral("ToolTip.visible: root.hovered || root.activeFocus")));
   QVERIFY(source.contains(QStringLiteral("lineWidth: root.activeFocus ? 2 : root.selected ? 1 : 0")));
-  QVERIFY(source.contains(QStringLiteral("topLeft: { chamfered: Theme.chamferMedium }")));
-  QVERIFY(source.contains(QStringLiteral("topRight: { rounded: Theme.radiusSmall }")));
-  QVERIFY(source.contains(QStringLiteral("bottomRight: { chamfered: Theme.chamferMedium }")));
-  QVERIFY(source.contains(QStringLiteral("bottomLeft: { rounded: Theme.radiusSmall }")));
+  QCOMPARE(source.count(QStringLiteral("\"chamfered\": Theme.chamferMedium")), 2);
+  QCOMPARE(source.count(QStringLiteral("\"rounded\": Theme.radiusSmall")), 2);
   QVERIFY(!source.contains(QStringLiteral("ShapePath {")));
 }
 
@@ -296,9 +296,12 @@ void DashboardStartupTest::
   QFile device(QStringLiteral(DASHBOARD_DEVICE_CARD_QML));
   QVERIFY(device.open(QIODevice::ReadOnly | QIODevice::Text));
   const auto deviceSource = QString::fromUtf8(device.readAll());
-  QVERIFY(deviceSource.contains(
-      QStringLiteral("corners: ({ topRight: { chamfered: Theme.chamferLarge }, bottomRight: { chamfered: "
-                     "Theme.chamferLarge } })")));
+  const auto outerFrameStart = deviceSource.indexOf(QStringLiteral("id: outerFrame"));
+  const auto activityBarStart = deviceSource.indexOf(QStringLiteral("Rectangle {"), outerFrameStart);
+  QVERIFY(outerFrameStart >= 0);
+  QVERIFY(activityBarStart > outerFrameStart);
+  const auto outerFrame = deviceSource.sliced(outerFrameStart, activityBarStart - outerFrameStart);
+  QCOMPARE(outerFrame.count(QStringLiteral("chamfered: Theme.chamferLarge")), 2);
   QVERIFY(deviceSource.contains(QStringLiteral("lineWidth: chevron.activeFocus ? 2 : 1")));
 }
 

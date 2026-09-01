@@ -1,11 +1,12 @@
-import Rpi.Dashboard
 import QtQuick
 import QtQuick.Shapes
 import QtQuick.Window
 import QtTest
+import Rpi.Dashboard
 
 Item {
     id: root
+
     width: 1500
     height: 340
 
@@ -19,21 +20,25 @@ Item {
 
     Component {
         id: separatorComponent
+
         Separator {}
     }
 
     Component {
         id: weatherPageComponent
+
         WeatherPage {}
     }
 
     Component {
         id: clockSidebarComponent
+
         ClockSidebar {}
     }
 
     Component {
         id: weatherServiceComponent
+
         QtObject {
             property string state: "ready"
             property string diagnostics: ""
@@ -56,31 +61,136 @@ Item {
             property string localNextSolarEventTime: "20:30"
             property real todayPrecipitationProbabilityPercent: 20
             property string todayPrecipitationKind: "rain"
-            property ListModel hourlyModel: ListModel {
-                ListElement { localHour: "12"; iconCode: "01d"; temperatureCelsius: 20; precipitationProbabilityPercent: 0; trendPosition: 0.5; previousTrendPosition: 0.5 }
-                ListElement { localHour: "13"; iconCode: "01d"; temperatureCelsius: 21; precipitationProbabilityPercent: 0; trendPosition: 0.4; previousTrendPosition: 0.5 }
-                ListElement { localHour: "14"; iconCode: "01d"; temperatureCelsius: 22; precipitationProbabilityPercent: 0; trendPosition: 0.3; previousTrendPosition: 0.4 }
-                ListElement { localHour: "15"; iconCode: "01d"; temperatureCelsius: 23; precipitationProbabilityPercent: 0; trendPosition: 0.2; previousTrendPosition: 0.3 }
-                ListElement { localHour: "16"; iconCode: "01d"; temperatureCelsius: 22; precipitationProbabilityPercent: 0; trendPosition: 0.3; previousTrendPosition: 0.2 }
-                ListElement { localHour: "17"; iconCode: "01d"; temperatureCelsius: 21; precipitationProbabilityPercent: 0; trendPosition: 0.4; previousTrendPosition: 0.3 }
-                ListElement { localHour: "18"; iconCode: "01d"; temperatureCelsius: 20; precipitationProbabilityPercent: 0; trendPosition: 0.5; previousTrendPosition: 0.4 }
-                ListElement { localHour: "19"; iconCode: "01d"; temperatureCelsius: 19; precipitationProbabilityPercent: 0; trendPosition: 0.6; previousTrendPosition: 0.5 }
+            property ListModel hourlyModel
+            property ListModel dailyModel
+
+            function refresh() {
             }
-            property ListModel dailyModel: ListModel {
-                ListElement { weekday: "Mon"; iconCode: "01d"; minimumCelsius: 10; maximumCelsius: 20; averageCelsius: 15; precipitationProbabilityPercent: 0 }
-                ListElement { weekday: "Tue"; iconCode: "01d"; minimumCelsius: 10; maximumCelsius: 20; averageCelsius: 15; precipitationProbabilityPercent: 0 }
-                ListElement { weekday: "Wed"; iconCode: "01d"; minimumCelsius: 10; maximumCelsius: 20; averageCelsius: 15; precipitationProbabilityPercent: 0 }
-                ListElement { weekday: "Thu"; iconCode: "01d"; minimumCelsius: 10; maximumCelsius: 20; averageCelsius: 15; precipitationProbabilityPercent: 0 }
-                ListElement { weekday: "Fri"; iconCode: "01d"; minimumCelsius: 10; maximumCelsius: 20; averageCelsius: 15; precipitationProbabilityPercent: 0 }
+
+            hourlyModel: ListModel {
+                ListElement {
+                    localHour: "12"
+                    iconCode: "01d"
+                    temperatureCelsius: 20
+                    precipitationProbabilityPercent: 0
+                    trendPosition: 0.5
+                    previousTrendPosition: 0.5
+                }
+
+                ListElement {
+                    localHour: "13"
+                    iconCode: "01d"
+                    temperatureCelsius: 21
+                    precipitationProbabilityPercent: 0
+                    trendPosition: 0.4
+                    previousTrendPosition: 0.5
+                }
+
+                ListElement {
+                    localHour: "14"
+                    iconCode: "01d"
+                    temperatureCelsius: 22
+                    precipitationProbabilityPercent: 0
+                    trendPosition: 0.3
+                    previousTrendPosition: 0.4
+                }
+
+                ListElement {
+                    localHour: "15"
+                    iconCode: "01d"
+                    temperatureCelsius: 23
+                    precipitationProbabilityPercent: 0
+                    trendPosition: 0.2
+                    previousTrendPosition: 0.3
+                }
+
+                ListElement {
+                    localHour: "16"
+                    iconCode: "01d"
+                    temperatureCelsius: 22
+                    precipitationProbabilityPercent: 0
+                    trendPosition: 0.3
+                    previousTrendPosition: 0.2
+                }
+
+                ListElement {
+                    localHour: "17"
+                    iconCode: "01d"
+                    temperatureCelsius: 21
+                    precipitationProbabilityPercent: 0
+                    trendPosition: 0.4
+                    previousTrendPosition: 0.3
+                }
+
+                ListElement {
+                    localHour: "18"
+                    iconCode: "01d"
+                    temperatureCelsius: 20
+                    precipitationProbabilityPercent: 0
+                    trendPosition: 0.5
+                    previousTrendPosition: 0.4
+                }
+
+                ListElement {
+                    localHour: "19"
+                    iconCode: "01d"
+                    temperatureCelsius: 19
+                    precipitationProbabilityPercent: 0
+                    trendPosition: 0.6
+                    previousTrendPosition: 0.5
+                }
             }
-            function refresh() {}
+
+            dailyModel: ListModel {
+                ListElement {
+                    weekday: "Mon"
+                    iconCode: "01d"
+                    minimumCelsius: 10
+                    maximumCelsius: 20
+                    averageCelsius: 15
+                    precipitationProbabilityPercent: 0
+                }
+
+                ListElement {
+                    weekday: "Tue"
+                    iconCode: "01d"
+                    minimumCelsius: 10
+                    maximumCelsius: 20
+                    averageCelsius: 15
+                    precipitationProbabilityPercent: 0
+                }
+
+                ListElement {
+                    weekday: "Wed"
+                    iconCode: "01d"
+                    minimumCelsius: 10
+                    maximumCelsius: 20
+                    averageCelsius: 15
+                    precipitationProbabilityPercent: 0
+                }
+
+                ListElement {
+                    weekday: "Thu"
+                    iconCode: "01d"
+                    minimumCelsius: 10
+                    maximumCelsius: 20
+                    averageCelsius: 15
+                    precipitationProbabilityPercent: 0
+                }
+
+                ListElement {
+                    weekday: "Fri"
+                    iconCode: "01d"
+                    minimumCelsius: 10
+                    maximumCelsius: 20
+                    averageCelsius: 15
+                    precipitationProbabilityPercent: 0
+                }
+            }
         }
     }
 
     TestCase {
-        name: "Separator"
-        when: windowShown
-
         function createSeparator(properties = {}) {
             const separator = separatorComponent.createObject(testWindow.contentItem, properties);
             verify(separator !== null);
@@ -99,7 +209,6 @@ Item {
             compare(separator.color, Theme.sectionDividerStrong);
             compare(separator.lineWidth, 1);
             compare(separator.opacity, 0.5);
-
             const path = findChild(separator, "separatorPath");
             const dpr = separator.devicePixelRatio;
             const origin = separator.mapToItem(testWindow.contentItem, 0, 0);
@@ -150,7 +259,13 @@ Item {
         }
 
         function test_physicalPixelWidthAndAlignment() {
-            const separator = createSeparator({ "x": 0.25, "y": 0.5, "width": 101, "height": 17, "lineWidth": 1 });
+            const separator = createSeparator({
+                "x": 0.25,
+                "y": 0.5,
+                "width": 101,
+                "height": 17,
+                "lineWidth": 1
+            });
             wait(0);
             const path = findChild(separator, "separatorPath");
             const dpr = separator.devicePixelRatio;
@@ -191,31 +306,21 @@ Item {
             verify(page !== null);
             verify(sidebar !== null);
             wait(0);
-
             const currentContent = findChild(page, "currentContent");
-            verifySeparator(findChild(page, "currentSeparator"), Qt.Horizontal,
-                            Separator.Solid, currentContent.width);
-
+            verifySeparator(findChild(page, "currentSeparator"), Qt.Horizontal, Separator.Solid, currentContent.width);
             const currentMetrics = findChild(page, "currentMetrics");
             for (let index = 1; index < 4; ++index)
-                verifySeparator(findChild(page, "currentMetricSeparator" + index), Qt.Vertical,
-                                Separator.Dotted, currentMetrics.height);
-
+                verifySeparator(findChild(page, "currentMetricSeparator" + index), Qt.Vertical, Separator.Dotted, currentMetrics.height);
             const hourlyPanel = findChild(page, "hourlyForecastPanel");
             for (let index = 1; index < 8; ++index) {
                 const separator = findChild(page, "hourlySeparator" + index);
                 verifySeparator(separator, Qt.Vertical, Separator.Dotted, separator.parent.height);
             }
-
             const dateSeparator = findChild(sidebar, "clockDateSeparator");
-            verifySeparator(dateSeparator, Qt.Horizontal, Separator.Dotted,
-                            dateSeparator.parent.width - Theme.spacingMedium);
+            verifySeparator(dateSeparator, Qt.Horizontal, Separator.Dotted, dateSeparator.parent.width - Theme.spacingMedium);
             const weatherRail = findChild(sidebar, "weatherRail");
-            verifySeparator(findChild(sidebar, "weatherRailSeparator1"), Qt.Horizontal,
-                            Separator.Dotted, weatherRail.width);
-            verifySeparator(findChild(sidebar, "weatherRailSeparator2"), Qt.Horizontal,
-                            Separator.Dotted, weatherRail.width);
-
+            verifySeparator(findChild(sidebar, "weatherRailSeparator1"), Qt.Horizontal, Separator.Dotted, weatherRail.width);
+            verifySeparator(findChild(sidebar, "weatherRailSeparator2"), Qt.Horizontal, Separator.Dotted, weatherRail.width);
             page.destroy();
             sidebar.destroy();
             service.destroy();
@@ -240,8 +345,10 @@ Item {
                 const row = findChild(page, "dailyRow" + index).parent;
                 if (firstRow === null)
                     firstRow = row;
+
                 if (previousRow !== null)
                     compare(row.y, previousRow.y + previousRow.height);
+
                 previousRow = row;
                 heights.push(row.height * dpr);
                 totalHeight += row.height;
@@ -265,9 +372,12 @@ Item {
             }
             compare(totalHeight, previousRow.y + previousRow.height - firstRow.y);
             verify(Math.abs(panel.height - (previousRow.y + previousRow.height)) * dpr < 1);
-            compare(Math.max(...heights) - Math.min(...heights) <= 1.0001, true);
+            verify(Math.max(...heights) - Math.min(...heights) <= 1.0001, "row heights: " + heights.join(", "));
             page.destroy();
             service.destroy();
         }
+
+        name: "Separator"
+        when: windowShown
     }
 }

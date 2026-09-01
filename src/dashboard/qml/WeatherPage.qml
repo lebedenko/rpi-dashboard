@@ -15,98 +15,134 @@ FocusScope {
     Accessible.role: Accessible.Pane
     Accessible.name: root.accessibleSummary
 
-    function colorHex(color): string { return color.toString().substring(1) }
-    function iconUrl(code): string { return "image://weather/%1/%2/%3/%4".arg(code || "03d").arg(root.colorHex(Theme.textPrimary)).arg(root.colorHex(Theme.attentionStatus)).arg(root.colorHex(Theme.primaryAccent)) }
-    function temperature(value): string { return qsTr("%1°").arg(Math.round(Number(value))) }
+    function colorHex(color): string {
+        return color.toString().substring(1);
+    }
+    function iconUrl(code): string {
+        return "image://weather/%1/%2/%3/%4".arg(code || "03d").arg(root.colorHex(Theme.textPrimary)).arg(root.colorHex(Theme.attentionStatus)).arg(root.colorHex(Theme.primaryAccent));
+    }
+    function temperature(value): string {
+        return qsTr("%1°").arg(Math.round(Number(value)));
+    }
     function relativeAge(timestamp, now): string {
-        if (!timestamp) return root.stateText
-        const minutes = Math.max(0, Math.floor((now.getTime() - timestamp.getTime()) / 60000))
-        if (minutes < 1) return qsTr("NOW")
-        if (minutes < 60) return qsTr("%1m AGO").arg(minutes)
-        const hours = Math.floor(minutes / 60)
-        if (hours < 24) return qsTr("%1h AGO").arg(hours)
-        return qsTr("%1d AGO").arg(Math.floor(hours / 24))
+        if (!timestamp)
+            return root.stateText;
+        const minutes = Math.max(0, Math.floor((now.getTime() - timestamp.getTime()) / 60000));
+        if (minutes < 1)
+            return qsTr("NOW");
+        if (minutes < 60)
+            return qsTr("%1m AGO").arg(minutes);
+        const hours = Math.floor(minutes / 60);
+        if (hours < 24)
+            return qsTr("%1h AGO").arg(hours);
+        return qsTr("%1d AGO").arg(Math.floor(hours / 24));
     }
 
     Dashboard.Frame {
         objectName: "weatherPageFrame"
-        anchors { fill: parent
-leftMargin: Theme.spacingSmall
-rightMargin: Theme.spacingSmall
-topMargin: Theme.displaySafeInset
-bottomMargin: Theme.displaySafeInset }
+        anchors {
+            fill: parent
+            leftMargin: Theme.spacingSmall
+            rightMargin: Theme.spacingSmall
+            topMargin: Theme.displaySafeInset
+            bottomMargin: Theme.displaySafeInset
+        }
         backgroundColor: Theme.cardSurface
-color: Theme.cardFrame
-lineWidth: 1
-        corners: ({ chamfered: Theme.chamferLarge })
+        color: Theme.cardFrame
+        lineWidth: 1
+        corners: ({
+                chamfered: Theme.chamferLarge
+            })
         Accessible.ignored: true
     }
     ColumnLayout {
-        anchors { fill: parent
-leftMargin: Theme.spacingMedium
-rightMargin: Theme.spacingMedium
-topMargin: Theme.displaySafeInset + 6
-bottomMargin: Theme.displaySafeInset + 6 }
+        anchors {
+            fill: parent
+            leftMargin: Theme.spacingMedium
+            rightMargin: Theme.spacingMedium
+            topMargin: Theme.displaySafeInset + 6
+            bottomMargin: Theme.displaySafeInset + 6
+        }
         spacing: 6
         Item {
             objectName: "weatherHeader"
             implicitWidth: root.width - 2 * Theme.spacingMedium
             Layout.fillWidth: true
-Layout.preferredWidth: root.width - 2 * Theme.spacingMedium
-Layout.preferredHeight: 27
+            Layout.preferredWidth: root.width - 2 * Theme.spacingMedium
+            Layout.preferredHeight: 27
             Row {
                 anchors.left: parent.left
                 spacing: Theme.spacingSmall
-                Text { objectName: "weatherTitle"
-color: Theme.primaryAccent
-font { family: Theme.sansFontFamily
-pixelSize: Theme.secondaryHeadingTextSize
-weight: Theme.headingFontWeight }
-text: qsTr("WEATHER") }
-                Text { objectName: "weatherLocation"
-color: Theme.textPrimary
-elide: Text.ElideRight
-font { family: Theme.sansFontFamily
-pixelSize: Theme.secondaryHeadingTextSize
-weight: Theme.headingFontWeight }
-text: root.locationText.toUpperCase() }
+                Text {
+                    objectName: "weatherTitle"
+                    color: Theme.primaryAccent
+                    font {
+                        family: Theme.sansFontFamily
+                        pixelSize: Theme.secondaryHeadingTextSize
+                        weight: Theme.headingFontWeight
+                    }
+                    text: qsTr("WEATHER")
+                }
+                Text {
+                    objectName: "weatherLocation"
+                    color: Theme.textPrimary
+                    elide: Text.ElideRight
+                    font {
+                        family: Theme.sansFontFamily
+                        pixelSize: Theme.secondaryHeadingTextSize
+                        weight: Theme.headingFontWeight
+                    }
+                    text: root.locationText.toUpperCase()
+                }
             }
             Row {
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: Theme.spacingSmall
-                Rectangle { objectName: "weatherStatusMarker"
-width: 6
-height: 6
-anchors.verticalCenter: parent.verticalCenter
-radius: 3
-color: root.service && (root.service.stale || root.service.state === "error") ? Theme.attentionStatus : Theme.primaryAccent }
-                Text { objectName: "weatherUpdatedLabel"
-color: Theme.primaryAccent
-font { family: Theme.sansFontFamily
-pixelSize: Theme.secondaryHeadingTextSize
-weight: Theme.headingFontWeight }
-text: qsTr("UPDATED") }
-                Text { objectName: "weatherAgeLabel"
-color: Theme.textPrimary
-font { family: Theme.sansFontFamily
-pixelSize: Theme.secondaryHeadingTextSize
-weight: Theme.headingFontWeight }
-text: root.relativeAge(root.service ? root.service.lastSuccessUtc : null, root.ageClock) }
+                Rectangle {
+                    objectName: "weatherStatusMarker"
+                    width: 6
+                    height: 6
+                    anchors.verticalCenter: parent.verticalCenter
+                    radius: 3
+                    color: root.service && (root.service.stale || root.service.state === "error") ? Theme.attentionStatus : Theme.primaryAccent
+                }
+                Text {
+                    objectName: "weatherUpdatedLabel"
+                    color: Theme.primaryAccent
+                    font {
+                        family: Theme.sansFontFamily
+                        pixelSize: Theme.secondaryHeadingTextSize
+                        weight: Theme.headingFontWeight
+                    }
+                    text: qsTr("UPDATED")
+                }
+                Text {
+                    objectName: "weatherAgeLabel"
+                    color: Theme.textPrimary
+                    font {
+                        family: Theme.sansFontFamily
+                        pixelSize: Theme.secondaryHeadingTextSize
+                        weight: Theme.headingFontWeight
+                    }
+                    text: root.relativeAge(root.service ? root.service.lastSuccessUtc : null, root.ageClock)
+                }
             }
         }
         RowLayout {
             Layout.fillWidth: true
-Layout.fillHeight: true
-spacing: Theme.spacingSmall
+            Layout.fillHeight: true
+            spacing: Theme.spacingSmall
             Dashboard.Frame {
                 objectName: "currentConditionsPanel"
                 Layout.preferredWidth: 340
-Layout.fillHeight: true
+                Layout.fillHeight: true
                 backgroundColor: Theme.surface
-color: Theme.sectionDividerStrong
-lineWidth: 1
-corners: ({ chamfered: Theme.chamferLarge })
+                color: Theme.sectionDividerStrong
+                lineWidth: 1
+                corners: ({
+                        chamfered: Theme.chamferLarge
+                    })
                 Item {
                     id: currentContent
                     objectName: "currentContent"
@@ -124,53 +160,70 @@ corners: ({ chamfered: Theme.chamferLarge })
                         anchors.top: parent.top
                         anchors.horizontalCenter: parent.horizontalCenter
                         width: childrenRect.width
-height: 100
-spacing: 20
-                        Image { width: 96
-height: 96
-sourceSize: Qt.size(96, 96)
-source: root.iconUrl(root.service ? root.service.iconCode : "03d")
-Accessible.ignored: true }
-                        Text { anchors.verticalCenter: parent.verticalCenter
-color: Theme.textPrimary
-font { family: Theme.fixedFontFamily
-pixelSize: Theme.clockTimeTextSize
-weight: Theme.metricFontWeight }
-text: root.service ? root.temperature(root.service.temperatureCelsius) : "—" }
+                        height: 100
+                        spacing: 20
+                        Image {
+                            width: 96
+                            height: 96
+                            sourceSize: Qt.size(96, 96)
+                            source: root.iconUrl(root.service ? root.service.iconCode : "03d")
+                            Accessible.ignored: true
+                        }
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            color: Theme.textPrimary
+                            font {
+                                family: Theme.fixedFontFamily
+                                pixelSize: Theme.clockTimeTextSize
+                                weight: Theme.metricFontWeight
+                            }
+                            text: root.service ? root.temperature(root.service.temperatureCelsius) : "—"
+                        }
                     }
-                    Text { id: currentCondition
-objectName: "currentCondition"
-anchors.top: currentHero.bottom
-anchors.topMargin: 2
-width: parent.width
-horizontalAlignment: Text.AlignHCenter
-color: Theme.primaryAccent
-elide: Text.ElideRight
-font { family: Theme.sansFontFamily
-pixelSize: Theme.headingTextSize
-weight: Theme.headingFontWeight }
-text: root.service && root.service.condition ? root.service.condition.toUpperCase() : qsTr("UNAVAILABLE") }
-                    Text { objectName: "currentFeelsLike"
-anchors.top: currentCondition.bottom
-anchors.topMargin: 2
-width: parent.width
-horizontalAlignment: Text.AlignHCenter
-color: Theme.textPrimary
-font { family: Theme.sansFontFamily
-pixelSize: Theme.secondaryHeadingTextSize }
-text: root.service ? qsTr("FEELS LIKE %1").arg(root.temperature(root.service.feelsLikeCelsius)) : "—" }
-                    Item { objectName: "currentSeparatorArea"
-anchors.left: parent.left
-anchors.right: parent.right
-anchors.bottom: currentMetrics.top
-width: parent.width
-height: 17
-                        Separator { objectName: "currentSeparator"
-width: parent.width
-anchors.centerIn: parent
-orientation: Qt.Horizontal
-lineStyle: Separator.Solid
-color: Theme.sectionDividerStrong }
+                    Text {
+                        id: currentCondition
+                        objectName: "currentCondition"
+                        anchors.top: currentHero.bottom
+                        anchors.topMargin: 2
+                        width: parent.width
+                        horizontalAlignment: Text.AlignHCenter
+                        color: Theme.primaryAccent
+                        elide: Text.ElideRight
+                        font {
+                            family: Theme.sansFontFamily
+                            pixelSize: Theme.headingTextSize
+                            weight: Theme.headingFontWeight
+                        }
+                        text: root.service && root.service.condition ? root.service.condition.toUpperCase() : qsTr("UNAVAILABLE")
+                    }
+                    Text {
+                        objectName: "currentFeelsLike"
+                        anchors.top: currentCondition.bottom
+                        anchors.topMargin: 2
+                        width: parent.width
+                        horizontalAlignment: Text.AlignHCenter
+                        color: Theme.textPrimary
+                        font {
+                            family: Theme.sansFontFamily
+                            pixelSize: Theme.secondaryHeadingTextSize
+                        }
+                        text: root.service ? qsTr("FEELS LIKE %1").arg(root.temperature(root.service.feelsLikeCelsius)) : "—"
+                    }
+                    Item {
+                        objectName: "currentSeparatorArea"
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.bottom: currentMetrics.top
+                        width: parent.width
+                        height: 17
+                        Separator {
+                            objectName: "currentSeparator"
+                            width: parent.width
+                            anchors.centerIn: parent
+                            orientation: Qt.Horizontal
+                            lineStyle: Separator.Solid
+                            color: Theme.sectionDividerStrong
+                        }
                     }
                     Row {
                         id: currentMetrics
@@ -179,23 +232,27 @@ color: Theme.sectionDividerStrong }
                         anchors.right: parent.right
                         anchors.bottom: parent.bottom
                         width: parent.width
-height: 44
+                        height: 44
                         Repeater {
                             model: [qsTr("H"), qsTr("L"), qsTr("HUMIDITY"), qsTr("WIND")]
                             delegate: Item {
                                 id: metricDelegate
                                 required property string modelData
-required property int index
+                                required property int index
                                 width: parent.width / 4
-height: parent.height
-                                Separator { objectName: "currentMetricSeparator" + metricDelegate.index
-visible: metricDelegate.index > 0
-anchors { left: parent.left
-top: parent.top
-bottom: parent.bottom }
-orientation: Qt.Vertical
-lineStyle: Separator.Dotted
-color: Theme.sectionDividerStrong }
+                                height: parent.height
+                                Separator {
+                                    objectName: "currentMetricSeparator" + metricDelegate.index
+                                    visible: metricDelegate.index > 0
+                                    anchors {
+                                        left: parent.left
+                                        top: parent.top
+                                        bottom: parent.bottom
+                                    }
+                                    orientation: Qt.Vertical
+                                    lineStyle: Separator.Dotted
+                                    color: Theme.sectionDividerStrong
+                                }
                                 Row {
                                     objectName: "currentMetricInline" + metricDelegate.index
                                     anchors.centerIn: parent
@@ -231,21 +288,28 @@ color: Theme.sectionDividerStrong }
                                     spacing: 2
                                     visible: metricDelegate.index >= 2
 
-                                Text { width: parent.width
-objectName: metricDelegate.index >= 2 ? "currentMetricLabel" + metricDelegate.index : ""
-horizontalAlignment: Text.AlignHCenter
-color: Theme.primaryAccent
-font { family: Theme.sansFontFamily
-pixelSize: Theme.metricTextSize }
-text: metricDelegate.modelData }
-                                Text {
-width: parent.width
-objectName: metricDelegate.index >= 2 ? "currentMetricValue" + metricDelegate.index : ""
-horizontalAlignment: Text.AlignHCenter
-color: Theme.textPrimary
-font { family: Theme.fixedFontFamily
-pixelSize: Theme.metricTextSize }
-text: !root.service ? "—" : metricDelegate.index === 2 ? qsTr("%1%").arg(Math.round(root.service.humidityPercent)) : qsTr("%1 %2").arg(root.service.windDirection).arg(Math.round(root.service.windSpeedKmh)) }
+                                    Text {
+                                        width: parent.width
+                                        objectName: metricDelegate.index >= 2 ? "currentMetricLabel" + metricDelegate.index : ""
+                                        horizontalAlignment: Text.AlignHCenter
+                                        color: Theme.primaryAccent
+                                        font {
+                                            family: Theme.sansFontFamily
+                                            pixelSize: Theme.metricTextSize
+                                        }
+                                        text: metricDelegate.modelData
+                                    }
+                                    Text {
+                                        width: parent.width
+                                        objectName: metricDelegate.index >= 2 ? "currentMetricValue" + metricDelegate.index : ""
+                                        horizontalAlignment: Text.AlignHCenter
+                                        color: Theme.textPrimary
+                                        font {
+                                            family: Theme.fixedFontFamily
+                                            pixelSize: Theme.metricTextSize
+                                        }
+                                        text: !root.service ? "—" : metricDelegate.index === 2 ? qsTr("%1%").arg(Math.round(root.service.humidityPercent)) : qsTr("%1 %2").arg(root.service.windDirection).arg(Math.round(root.service.windSpeedKmh))
+                                    }
                                 }
                             }
                         }
@@ -255,80 +319,108 @@ text: !root.service ? "—" : metricDelegate.index === 2 ? qsTr("%1%").arg(Math.
             Dashboard.Frame {
                 objectName: "hourlyForecastPanel"
                 Layout.preferredWidth: 500
-Layout.fillHeight: true
+                Layout.fillHeight: true
                 backgroundColor: Theme.surface
-color: Theme.sectionDividerStrong
-lineWidth: 1
-corners: ({ chamfered: Theme.chamferLarge })
+                color: Theme.sectionDividerStrong
+                lineWidth: 1
+                corners: ({
+                        chamfered: Theme.chamferLarge
+                    })
                 Column {
-                    anchors { fill: parent
-margins: 8 }
+                    anchors {
+                        fill: parent
+                        margins: 8
+                    }
                     spacing: 8
-                    Text { objectName: "hourlyForecastTitle"
-x: Theme.spacingSmall
-height: implicitHeight
-color: Theme.primaryAccent
-font { family: Theme.sansFontFamily
-pixelSize: Theme.secondaryHeadingTextSize
-weight: Theme.headingFontWeight }
-text: qsTr("NEXT 8 HOURS") }
+                    Text {
+                        objectName: "hourlyForecastTitle"
+                        x: Theme.spacingSmall
+                        height: implicitHeight
+                        color: Theme.primaryAccent
+                        font {
+                            family: Theme.sansFontFamily
+                            pixelSize: Theme.secondaryHeadingTextSize
+                            weight: Theme.headingFontWeight
+                        }
+                        text: qsTr("NEXT 8 HOURS")
+                    }
                     Row {
                         width: parent.width
-height: parent.height - parent.spacing - parent.children[0].height
+                        height: parent.height - parent.spacing - parent.children[0].height
                         Repeater {
                             model: root.service ? root.service.hourlyModel : null
                             delegate: Item {
                                 id: hourlyDelegate
                                 required property int index
-required property string localHour
-required property string iconCode
+                                required property string localHour
+                                required property string iconCode
                                 required property real temperatureCelsius
-required property real precipitationProbabilityPercent
+                                required property real precipitationProbabilityPercent
                                 required property real trendPosition
-required property real previousTrendPosition
+                                required property real previousTrendPosition
                                 width: parent.width / 8
-height: parent.height
-                                Separator { objectName: "hourlySeparator" + hourlyDelegate.index
-visible: hourlyDelegate.index > 0
-anchors { left: parent.left
-top: parent.top
-bottom: parent.bottom }
-orientation: Qt.Vertical
-lineStyle: Separator.Dotted
-color: Theme.sectionDividerStrong }
-                                Text { id: hourLabel
-objectName: "hourLabel" + index
-width: parent.width
-horizontalAlignment: Text.AlignHCenter
-color: Theme.primaryAccent
-font { family: Theme.fixedFontFamily
-pixelSize: Theme.bodyTextSize }
-text: index === 0 ? qsTr("NOW") : localHour }
-                                Image { id: hourlyIcon
-anchors { top: hourLabel.bottom
-topMargin: 8
-horizontalCenter: parent.horizontalCenter }
-width: 34
-height: 34
-sourceSize: Qt.size(34, 34)
-source: root.iconUrl(iconCode)
-Accessible.ignored: true }
-                                Text { id: hourlyTemperature
-anchors { top: hourlyIcon.bottom
-topMargin: 8 }
-width: parent.width
-horizontalAlignment: Text.AlignHCenter
-color: Theme.textPrimary
-font { family: Theme.fixedFontFamily
-pixelSize: Theme.metricTextSize }
-text: root.temperature(temperatureCelsius) }
+                                height: parent.height
+                                Separator {
+                                    objectName: "hourlySeparator" + hourlyDelegate.index
+                                    visible: hourlyDelegate.index > 0
+                                    anchors {
+                                        left: parent.left
+                                        top: parent.top
+                                        bottom: parent.bottom
+                                    }
+                                    orientation: Qt.Vertical
+                                    lineStyle: Separator.Dotted
+                                    color: Theme.sectionDividerStrong
+                                }
+                                Text {
+                                    id: hourLabel
+                                    objectName: "hourLabel" + index
+                                    width: parent.width
+                                    horizontalAlignment: Text.AlignHCenter
+                                    color: Theme.primaryAccent
+                                    font {
+                                        family: Theme.fixedFontFamily
+                                        pixelSize: Theme.bodyTextSize
+                                    }
+                                    text: index === 0 ? qsTr("NOW") : localHour
+                                }
+                                Image {
+                                    id: hourlyIcon
+                                    anchors {
+                                        top: hourLabel.bottom
+                                        topMargin: 8
+                                        horizontalCenter: parent.horizontalCenter
+                                    }
+                                    width: 34
+                                    height: 34
+                                    sourceSize: Qt.size(34, 34)
+                                    source: root.iconUrl(iconCode)
+                                    Accessible.ignored: true
+                                }
+                                Text {
+                                    id: hourlyTemperature
+                                    anchors {
+                                        top: hourlyIcon.bottom
+                                        topMargin: 8
+                                    }
+                                    width: parent.width
+                                    horizontalAlignment: Text.AlignHCenter
+                                    color: Theme.textPrimary
+                                    font {
+                                        family: Theme.fixedFontFamily
+                                        pixelSize: Theme.metricTextSize
+                                    }
+                                    text: root.temperature(temperatureCelsius)
+                                }
                                 Item {
                                     id: hourlyGraph
-                                    anchors { left: parent.left
-right: parent.right
-top: hourlyTemperature.bottom
-topMargin: 8 }
-height: 42
+                                    anchors {
+                                        left: parent.left
+                                        right: parent.right
+                                        top: hourlyTemperature.bottom
+                                        topMargin: 8
+                                    }
+                                    height: 42
                                     WeatherGraphSegment {
                                         anchors.fill: parent
                                         segmentObjectName: "hourlyGraphSegment" + index
@@ -338,21 +430,29 @@ height: 42
                                         previousPosition: previousTrendPosition
                                     }
                                 }
-                                Rectangle { anchors { top: hourlyGraph.bottom
-topMargin: 8
-horizontalCenter: parent.horizontalCenter }
-width: 7
-height: precipitationProbabilityPercent > 0 ? Math.max(2, precipitationProbabilityPercent * 0.25) : 0
-color: Theme.violetAccent
-radius: 2 }
-                                Text { objectName: "hourlyPrecipitation" + index
-anchors.bottom: parent.bottom
-width: parent.width
-horizontalAlignment: Text.AlignHCenter
-color: precipitationProbabilityPercent > 0 ? Theme.violetAccent : Theme.textPrimary
-font { family: Theme.fixedFontFamily
-pixelSize: Theme.bodyTextSize }
-text: qsTr("%1%").arg(Math.round(precipitationProbabilityPercent)) }
+                                Rectangle {
+                                    anchors {
+                                        top: hourlyGraph.bottom
+                                        topMargin: 8
+                                        horizontalCenter: parent.horizontalCenter
+                                    }
+                                    width: 7
+                                    height: precipitationProbabilityPercent > 0 ? Math.max(2, precipitationProbabilityPercent * 0.25) : 0
+                                    color: Theme.violetAccent
+                                    radius: 2
+                                }
+                                Text {
+                                    objectName: "hourlyPrecipitation" + index
+                                    anchors.bottom: parent.bottom
+                                    width: parent.width
+                                    horizontalAlignment: Text.AlignHCenter
+                                    color: precipitationProbabilityPercent > 0 ? Theme.violetAccent : Theme.textPrimary
+                                    font {
+                                        family: Theme.fixedFontFamily
+                                        pixelSize: Theme.bodyTextSize
+                                    }
+                                    text: qsTr("%1%").arg(Math.round(precipitationProbabilityPercent))
+                                }
                             }
                         }
                     }
@@ -361,11 +461,13 @@ text: qsTr("%1%").arg(Math.round(precipitationProbabilityPercent)) }
             Dashboard.Frame {
                 objectName: "dailyForecastPanel"
                 Layout.fillWidth: true
-Layout.fillHeight: true
+                Layout.fillHeight: true
                 backgroundColor: Theme.surface
-color: Theme.sectionDividerStrong
-lineWidth: 1
-corners: ({ chamfered: Theme.chamferLarge })
+                color: Theme.sectionDividerStrong
+                lineWidth: 1
+                corners: ({
+                        chamfered: Theme.chamferLarge
+                    })
                 Item {
                     id: dailyContent
                     anchors.fill: parent
@@ -373,43 +475,50 @@ corners: ({ chamfered: Theme.chamferLarge })
 
                     function boundary(rowIndex: int): real {
                         const titleHeight = 24;
-                        const physicalPosition = (titleHeight + rowIndex * (dailyContent.height - titleHeight) / 5)
-                                * dailyContent.devicePixelRatio;
+                        const physicalPosition = (titleHeight + rowIndex * (dailyContent.height - titleHeight) / 5) * dailyContent.devicePixelRatio;
                         return Math.round(physicalPosition) / dailyContent.devicePixelRatio;
                     }
 
-                    Text { objectName: "dailyForecastTitle"
-x: Theme.spacingMedium
-height: 24
-color: Theme.primaryAccent
-font { family: Theme.sansFontFamily
-pixelSize: Theme.secondaryHeadingTextSize
-weight: Theme.headingFontWeight }
-text: qsTr("5 DAYS FORECAST") }
+                    Text {
+                        objectName: "dailyForecastTitle"
+                        x: Theme.spacingMedium
+                        height: 24
+                        color: Theme.primaryAccent
+                        font {
+                            family: Theme.sansFontFamily
+                            pixelSize: Theme.secondaryHeadingTextSize
+                            weight: Theme.headingFontWeight
+                        }
+                        text: qsTr("5 DAYS FORECAST")
+                    }
                     Repeater {
                         model: root.service ? root.service.dailyModel : null
                         delegate: Item {
                             required property int index
-required property string weekday
-required property string iconCode
+                            required property string weekday
+                            required property string iconCode
                             required property real minimumCelsius
-required property real maximumCelsius
-required property var averageCelsius
-required property real precipitationProbabilityPercent
+                            required property real maximumCelsius
+                            required property var averageCelsius
+                            required property real precipitationProbabilityPercent
                             x: 0
                             y: dailyContent.boundary(index)
                             width: dailyContent.width
                             height: dailyContent.boundary(index + 1) - y
-                            Separator { objectName: "dailySeparator" + index
-visible: index > 0
-anchors { left: parent.left
-right: parent.right
-top: parent.top
-leftMargin: Theme.spacingSmall
-rightMargin: Theme.spacingSmall }
-orientation: Qt.Horizontal
-lineStyle: Separator.Solid
-color: Theme.sectionDividerStrong }
+                            Separator {
+                                objectName: "dailySeparator" + index
+                                visible: index > 0
+                                anchors {
+                                    left: parent.left
+                                    right: parent.right
+                                    top: parent.top
+                                    leftMargin: Theme.spacingSmall
+                                    rightMargin: Theme.spacingSmall
+                                }
+                                orientation: Qt.Horizontal
+                                lineStyle: Separator.Solid
+                                color: Theme.sectionDividerStrong
+                            }
                             RowLayout {
                                 objectName: "dailyRow" + index
                                 anchors {
@@ -417,44 +526,64 @@ color: Theme.sectionDividerStrong }
                                     leftMargin: Theme.spacingSmall
                                     rightMargin: Theme.spacingSmall
                                 }
-spacing: 8
-                                Text { Layout.preferredWidth: 48
-objectName: "dailyWeekday" + index
-color: Theme.primaryAccent
-font { family: Theme.sansFontFamily
-pixelSize: Theme.sectionTitleTextSize }
-text: index === 0 ? qsTr("TODAY") : weekday.toUpperCase() }
-                                Image { Layout.preferredWidth: 28
-Layout.preferredHeight: 28
-sourceSize: Qt.size(28, 28)
-source: root.iconUrl(iconCode)
-Accessible.ignored: true }
-                                Text { Layout.preferredWidth: 32
-objectName: "dailyPrecipitation" + index
-color: Theme.violetAccent
-font { family: Theme.fixedFontFamily
-pixelSize: Theme.captionTextSize }
-text: qsTr("%1%").arg(Math.round(precipitationProbabilityPercent)) }
-                                Text { Layout.preferredWidth: 30
-objectName: "dailyMinimum" + index
-horizontalAlignment: Text.AlignRight
-color: Theme.primaryAccent
-font { family: Theme.fixedFontFamily
-pixelSize: Theme.captionTextSize }
-text: root.temperature(minimumCelsius) }
-                                TemperatureSegment { Layout.fillWidth: true
-Layout.preferredHeight: 10
-knobVisible: averageCelsius !== undefined && averageCelsius !== null
-position: maximumCelsius === minimumCelsius ? 0.5 : (Number(averageCelsius) - minimumCelsius) / (maximumCelsius - minimumCelsius) }
-                                Text { Layout.minimumWidth: implicitWidth
-Layout.preferredWidth: implicitWidth
-Layout.maximumWidth: implicitWidth
-objectName: "dailyMaximum" + index
-horizontalAlignment: Text.AlignLeft
-color: Theme.attentionStatus
-font { family: Theme.fixedFontFamily
-pixelSize: Theme.captionTextSize }
-text: root.temperature(maximumCelsius) }
+                                spacing: 8
+                                Text {
+                                    Layout.preferredWidth: 48
+                                    objectName: "dailyWeekday" + index
+                                    color: Theme.primaryAccent
+                                    font {
+                                        family: Theme.sansFontFamily
+                                        pixelSize: Theme.sectionTitleTextSize
+                                    }
+                                    text: index === 0 ? qsTr("TODAY") : weekday.toUpperCase()
+                                }
+                                Image {
+                                    Layout.preferredWidth: 28
+                                    Layout.preferredHeight: 28
+                                    sourceSize: Qt.size(28, 28)
+                                    source: root.iconUrl(iconCode)
+                                    Accessible.ignored: true
+                                }
+                                Text {
+                                    Layout.preferredWidth: 32
+                                    objectName: "dailyPrecipitation" + index
+                                    color: Theme.violetAccent
+                                    font {
+                                        family: Theme.fixedFontFamily
+                                        pixelSize: Theme.captionTextSize
+                                    }
+                                    text: qsTr("%1%").arg(Math.round(precipitationProbabilityPercent))
+                                }
+                                Text {
+                                    Layout.preferredWidth: 30
+                                    objectName: "dailyMinimum" + index
+                                    horizontalAlignment: Text.AlignRight
+                                    color: Theme.primaryAccent
+                                    font {
+                                        family: Theme.fixedFontFamily
+                                        pixelSize: Theme.captionTextSize
+                                    }
+                                    text: root.temperature(minimumCelsius)
+                                }
+                                TemperatureSegment {
+                                    Layout.fillWidth: true
+                                    Layout.preferredHeight: 10
+                                    knobVisible: averageCelsius !== undefined && averageCelsius !== null
+                                    position: maximumCelsius === minimumCelsius ? 0.5 : (Number(averageCelsius) - minimumCelsius) / (maximumCelsius - minimumCelsius)
+                                }
+                                Text {
+                                    Layout.minimumWidth: implicitWidth
+                                    Layout.preferredWidth: implicitWidth
+                                    Layout.maximumWidth: implicitWidth
+                                    objectName: "dailyMaximum" + index
+                                    horizontalAlignment: Text.AlignLeft
+                                    color: Theme.attentionStatus
+                                    font {
+                                        family: Theme.fixedFontFamily
+                                        pixelSize: Theme.captionTextSize
+                                    }
+                                    text: root.temperature(maximumCelsius)
+                                }
                             }
                         }
                     }
@@ -464,16 +593,20 @@ text: root.temperature(maximumCelsius) }
     }
     Item {
         id: refreshArea
-objectName: "weatherRefreshTarget"
-anchors.fill: parent
-activeFocusOnTab: true
+        objectName: "weatherRefreshTarget"
+        anchors.fill: parent
+        activeFocusOnTab: true
         Accessible.role: Accessible.Button
-Accessible.name: qsTr("Refresh weather")
-        Keys.onReturnPressed: if (root.service) root.service.refresh()
-        Keys.onSpacePressed: if (root.service) root.service.refresh()
+        Accessible.name: qsTr("Refresh weather")
+        Keys.onReturnPressed: if (root.service)
+            root.service.refresh()
+        Keys.onSpacePressed: if (root.service)
+            root.service.refresh()
     }
-    Timer { interval: 60000
-repeat: true
-running: root.visible
-onTriggered: root.ageClock = new Date() }
+    Timer {
+        interval: 60000
+        repeat: true
+        running: root.visible
+        onTriggered: root.ageClock = new Date()
+    }
 }
