@@ -27,8 +27,11 @@ qt_add_qml_module(rpi-dashboard-qml
         qml/OverviewPage.qml
         qml/ProjectsPage.qml
         qml/ScreensaverView.qml
+        qml/Separator.qml
         qml/SystemMetricPanel.qml
         qml/SystemPage.qml
+        qml/TemperatureSegment.qml
+        qml/WeatherGraphSegment.qml
         qml/WeatherPage.qml
         qml/Theme.qml
         qml/SidebarButton.qml

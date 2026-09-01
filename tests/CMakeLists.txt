@@ -139,12 +139,14 @@ target_compile_definitions(dashboard_startup_test
         DASHBOARD_FRAME_QML="${CMAKE_SOURCE_DIR}/src/dashboard/qml/Frame.qml"
         DASHBOARD_OVERVIEW_PAGE_QML="${CMAKE_SOURCE_DIR}/src/dashboard/qml/OverviewPage.qml"
         DASHBOARD_PROJECTS_PAGE_QML="${CMAKE_SOURCE_DIR}/src/dashboard/qml/ProjectsPage.qml"
+        DASHBOARD_SEPARATOR_QML="${CMAKE_SOURCE_DIR}/src/dashboard/qml/Separator.qml"
         DASHBOARD_SYSTEM_PAGE_QML="${CMAKE_SOURCE_DIR}/src/dashboard/qml/SystemPage.qml"
         DASHBOARD_SYSTEM_METRIC_PANEL_QML="${CMAKE_SOURCE_DIR}/src/dashboard/qml/SystemMetricPanel.qml"
         DASHBOARD_PAGE_QML="${CMAKE_SOURCE_DIR}/src/dashboard/qml/DashboardPage.qml"
         DASHBOARD_SIDEBAR_BUTTON_QML="${CMAKE_SOURCE_DIR}/src/dashboard/qml/SidebarButton.qml"
         DASHBOARD_THEME_QML="${CMAKE_SOURCE_DIR}/src/dashboard/qml/Theme.qml"
         DASHBOARD_WEATHER_PAGE_QML="${CMAKE_SOURCE_DIR}/src/dashboard/qml/WeatherPage.qml"
+        DASHBOARD_WEATHER_GRAPH_SEGMENT_QML="${CMAKE_SOURCE_DIR}/src/dashboard/qml/WeatherGraphSegment.qml"
         DASHBOARD_ICON_DIRECTORY="${CMAKE_SOURCE_DIR}/src/dashboard/qml/icons"
         DASHBOARD_FONT_DIRECTORY="${CMAKE_SOURCE_DIR}/src/dashboard/qml/fonts"
 )
@@ -188,6 +190,50 @@ qt_finalize_executable(dashboard_qml_test)
 add_test(NAME dashboard_qml_test COMMAND dashboard_qml_test -platform offscreen)
 set_tests_properties(dashboard_qml_test PROPERTIES
     ENVIRONMENT "QT_SCALE_FACTOR=1;QT_QUICK_BACKEND=software"
+)
+
+qt_add_executable(separator_qml_test
+    MANUAL_FINALIZATION
+    dashboard_qml_test.cpp
+)
+
+target_sources(separator_qml_test
+    PRIVATE
+        separator/SeparatorTest.qml
+)
+
+target_compile_definitions(separator_qml_test
+    PRIVATE
+        QUICK_TEST_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/separator"
+)
+
+set_property(TARGET separator_qml_test PROPERTY
+    QT_QML_IMPORT_PATH ${CMAKE_BINARY_DIR}/src/dashboard
+)
+
+target_link_libraries(separator_qml_test
+    PRIVATE
+        rpi-dashboard-qml
+        Qt6::QuickTest
+)
+
+qt_import_qml_plugins(separator_qml_test)
+qt_finalize_executable(separator_qml_test)
+
+add_test(
+    NAME separator_qml_test_1x
+    COMMAND separator_qml_test -input ${CMAKE_CURRENT_SOURCE_DIR}/separator/SeparatorTest.qml -platform offscreen
+)
+set_tests_properties(separator_qml_test_1x PROPERTIES
+    ENVIRONMENT "QT_SCALE_FACTOR=1;QT_QUICK_BACKEND=software"
+)
+
+add_test(
+    NAME separator_qml_test_1_25x
+    COMMAND separator_qml_test -input ${CMAKE_CURRENT_SOURCE_DIR}/separator/SeparatorTest.qml -platform offscreen
+)
+set_tests_properties(separator_qml_test_1_25x PROPERTIES
+    ENVIRONMENT "QT_SCALE_FACTOR=1.25;QT_QUICK_BACKEND=software"
 )
 
 add_test(

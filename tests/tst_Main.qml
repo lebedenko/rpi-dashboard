@@ -1,5 +1,6 @@
 import Rpi.Dashboard
 import QtQuick
+import QtQuick.Shapes
 import QtTest
 
 Item {
@@ -831,15 +832,94 @@ Item {
             compare(pageFrame.backgroundColor, Theme.cardSurface);
             compare(pageFrame.color, Theme.cardFrame);
             compare(pageFrame.lineWidth, 1);
-            compare(pageFrame.corners.rounded, Theme.radiusMedium);
+            compare(pageFrame.y, Theme.displaySafeInset);
+            compare(pageFrame.height, page.height - 2 * Theme.displaySafeInset);
+            compare(pageFrame.corners.chamfered, Theme.chamferLarge);
             for (const panel of [currentPanel, hourlyPanel, dailyPanel]) {
                 verify(panel instanceof Frame);
                 compare(panel.backgroundColor, Theme.surface);
                 compare(panel.color, Theme.sectionDividerStrong);
                 compare(panel.lineWidth, 1);
-                compare(panel.corners.rounded, Theme.radiusMedium);
+                compare(panel.corners.chamfered, Theme.chamferLarge);
             }
             verify(page.Accessible.name.includes("Lviv"));
+            compare(findChild(page, "weatherLocation").text, "LVIV, UA");
+            compare(findChild(page, "weatherTitle").text, "WEATHER");
+            const age = findChild(page, "weatherAgeLabel");
+            compare(findChild(page, "weatherTitle").mapToItem(page, 0, 0).x, Theme.spacingMedium);
+            compare(page.width - age.mapToItem(page, age.width, 0).x, Theme.spacingMedium);
+            const hero = findChild(page, "currentHero");
+            const currentContent = findChild(page, "currentContent");
+            compare(currentContent.x, 16);
+            compare(currentPanel.width - currentContent.x - currentContent.width, 16);
+            compare(hero.spacing, 20);
+            verify(Math.abs(hero.x - (hero.parent.width - hero.width) / 2) < 0.5);
+            compare(findChild(page, "currentCondition").horizontalAlignment, Text.AlignHCenter);
+            compare(findChild(page, "currentFeelsLike").horizontalAlignment, Text.AlignHCenter);
+            const currentSeparator = findChild(page, "currentSeparator");
+            compare(currentSeparator.width, currentContent.width);
+            const currentMetrics = findChild(page, "currentMetrics");
+            compare(currentPanel.height - currentMetrics.mapToItem(currentPanel, 0, currentMetrics.height).y, 8);
+            for (let index = 0; index < 4; ++index) {
+                compare(findChild(page, "currentMetricLabel" + index).color, Theme.primaryAccent);
+                compare(findChild(page, "currentMetricLabel" + index).horizontalAlignment, Text.AlignHCenter);
+                compare(findChild(page, "currentMetricValue" + index).horizontalAlignment, Text.AlignHCenter);
+                compare(findChild(page, "currentMetricValue" + index).color, Theme.textPrimary);
+            }
+            for (let index = 0; index < 2; ++index) {
+                const inlineMetric = findChild(page, "currentMetricInline" + index);
+                verify(Math.abs(inlineMetric.y - (inlineMetric.parent.height - inlineMetric.height) / 2) < 1);
+                verify(Math.abs(inlineMetric.x - (inlineMetric.parent.width - inlineMetric.width) / 2) < 1);
+            }
+            compare(findChild(page, "hourlyForecastTitle").parent.spacing, 8);
+            compare(findChild(page, "hourlyForecastTitle").mapToItem(hourlyPanel, 0, 0).x, 16);
+            compare(findChild(page, "hourLabel0").text, "NOW");
+            compare(findChild(page, "hourLabel1").text, "13");
+            compare(findChild(page, "hourLabel0").color, Theme.primaryAccent);
+            compare(findChild(page, "hourLabel0").font.pixelSize, Theme.bodyTextSize);
+            compare(findChild(page, "hourlyPrecipitation0").font.pixelSize, Theme.bodyTextSize);
+            compare(findChild(page, "hourlyPrecipitation1").color, Theme.textPrimary);
+            const graphSegment = findChild(page, "hourlyGraphSegment1");
+            verify(!!graphSegment);
+            compare(graphSegment.previousPosition, 0.5);
+            compare(graphSegment.position, 0.7);
+            compare(findChild(page, "hourlyGraphShape1").preferredRendererType, Shape.CurveRenderer);
+            compare(findChild(page, "dailyForecastTitle").mapToItem(dailyPanel, 0, 0).x, 16);
+            compare(findChild(page, "dailyWeekday0").color, Theme.primaryAccent);
+            compare(findChild(page, "dailyPrecipitation0").color, Theme.violetAccent);
+            const dailyRow = findChild(page, "dailyRow0");
+            compare(dailyRow.spacing, 8);
+            compare(dailyRow.anchors.leftMargin, 8);
+            compare(dailyRow.anchors.rightMargin, 8);
+            const dailySeparator = findChild(page, "dailySeparator1");
+            compare(dailySeparator.anchors.leftMargin, 8);
+            compare(dailySeparator.anchors.rightMargin, 8);
+            compare(findChild(page, "dailyMinimum0").horizontalAlignment, Text.AlignRight);
+            compare(findChild(page, "dailyMaximum0").horizontalAlignment, Text.AlignLeft);
+            const weatherRail = findChild(dashboardWindow.contentItem, "weatherRail");
+            for (const section of ["weatherAirSection", "weatherSolarSection", "weatherPrecipitationSection"])
+                verify(!!findChild(weatherRail, section));
+            compare(findChild(weatherRail, "weatherAirSection").spacing, 2);
+            compare(findChild(weatherRail, "weatherSolarSection").spacing, 2);
+            compare(findChild(weatherRail, "weatherPrecipitationSection").spacing, 2);
+            compare(findChild(weatherRail, "weatherRain").text, "20%");
+            compare(findChild(weatherRail, "weatherAqiIndex").color, Theme.primaryAccent);
+            compare(findChild(weatherRail, "weatherAqiCategory").color, Theme.onlineStatus);
+            fakeWeatherService.airQualityIndex = 3;
+            compare(findChild(weatherRail, "weatherAqiCategory").color, Theme.attentionStatus);
+            fakeWeatherService.airQualityIndex = 5;
+            compare(findChild(weatherRail, "weatherAqiCategory").color, Theme.failureStatus);
+            compare(findChild(weatherRail, "weatherSunset").color, Theme.textPrimary);
+            fakeWeatherService.todayPrecipitationProbabilityPercent = 0;
+            compare(findChild(weatherRail, "weatherPrecipitationLabel").text, "PRECIPITATION");
+            compare(findChild(weatherRail, "weatherRain").text, "NONE");
+            verify(findChild(dashboardWindow.contentItem, "clockSidebar").Accessible.name.includes("PRECIPITATION NONE"));
+            fakeWeatherService.todayPrecipitationProbabilityPercent = 35;
+            for (const scenario of [{ kind: "rain", label: "RAIN" }, { kind: "snow", label: "SNOW" }, { kind: "mixed", label: "MIXED" }, { kind: "other", label: "PRECIPITATION" }]) {
+                fakeWeatherService.todayPrecipitationKind = scenario.kind;
+                compare(findChild(weatherRail, "weatherPrecipitationLabel").text, scenario.label);
+                compare(findChild(weatherRail, "weatherRain").text, "35%");
+            }
             const refreshCount = fakeWeatherService.refreshCount;
             keyClick(Qt.Key_F5);
             tryCompare(fakeWeatherService, "refreshCount", refreshCount + 1);
@@ -1036,12 +1116,16 @@ Item {
             property string nextSolarEventKind: "sunset"
             property string localNextSolarEventTime: "20:12"
             property real todayRainProbabilityPercent: 20
+            property string todayPrecipitationKind: "rain"
+            property real todayPrecipitationProbabilityPercent: 20
             property int refreshCount: 0
             property ListModel hourlyModel: ListModel {
-                ListElement { localTime: "12:00"; iconCode: "01d"; temperatureCelsius: 23; precipitationProbabilityPercent: 10 }
+                ListElement { localHour: "12"; iconCode: "01d"; temperatureCelsius: 23; precipitationProbabilityPercent: 10; trendPosition: 0.5; previousTrendPosition: 0.5 }
+                ListElement { localHour: "13"; iconCode: "01d"; temperatureCelsius: 24; precipitationProbabilityPercent: 0; trendPosition: 0.7; previousTrendPosition: 0.5 }
             }
             property ListModel dailyModel: ListModel {
-                ListElement { weekday: "Fri"; iconCode: "01d"; minimumCelsius: 15; maximumCelsius: 25; precipitationProbabilityPercent: 20 }
+                ListElement { weekday: "Fri"; iconCode: "01d"; minimumCelsius: 15; maximumCelsius: 25; averageCelsius: 21; precipitationProbabilityPercent: 20 }
+                ListElement { weekday: "Sat"; iconCode: "02d"; minimumCelsius: 14; maximumCelsius: 26; averageCelsius: 20; precipitationProbabilityPercent: 0 }
             }
             function refresh() { ++refreshCount }
         }

@@ -337,7 +337,7 @@ ApplicationWindow {
         ClockSidebar {
             projectsService: root.projectsService
             weatherService: root.weatherService
-            weatherMode: pageStack.currentIndex === 3
+            pageContext: ["overview", "system", "projects", "weather"][pageStack.currentIndex]
             Layout.preferredWidth: Theme.statusSidebarWidth
             Layout.fillHeight: true
             Layout.topMargin: Theme.displaySafeInset

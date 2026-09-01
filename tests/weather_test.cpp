@@ -12,6 +12,7 @@
 #include <QJsonObject>
 #include <QLocale>
 #include <QStandardPaths>
+#include <QSignalSpy>
 #include <QTemporaryDir>
 #include <QTest>
 #include <QTimeZone>
@@ -118,6 +119,10 @@ class WeatherTest final : public QObject {
   void formatsNextSolarEventAtForecastOffset();
   void switchesSolarEventAtBoundary();
   void loadsLegacyCacheWithoutSolarEvents();
+  void derivesRemainingDayPrecipitationAtLocationOffset();
+  void returnsZeroWithoutRemainingHourlyForecasts();
+  void recomputesPrecipitationAtLocalHourBoundary();
+  void cachesCompleteHourlyForecast();
   void truncatesForecastModels();
   void validatesAndRecolorsIcons();
   void automaticLocationRecoversOnTimedRetry();
@@ -202,11 +207,18 @@ void WeatherTest::parsesProviderFixtures() {
                    "wind_speed":2,"wind_deg":180,"weather":[{"description":"clear","icon":"01d"}]},
         "hourly":[],
         "daily":[{"dt":1700000000,"sunrise":1700001000,"sunset":1700040000,"pop":0.1,
-                  "temp":{"min":12,"max":22},"weather":[{"icon":"01d"}]}]
+                  "rain":1.25,"snow":0.5,
+                  "temp":{"min":12,"max":22,"morn":12,"day":22,"eve":18,"night":16},
+                  "weather":[{"icon":"01d"}]}]
       })"),
                                                           location);
   QCOMPARE(forecast.daily.first().sunriseUtc, QDateTime::fromSecsSinceEpoch(1700001000, QTimeZone::UTC));
   QCOMPARE(forecast.daily.first().sunsetUtc, QDateTime::fromSecsSinceEpoch(1700040000, QTimeZone::UTC));
+  QCOMPARE(forecast.daily.first().averageCelsius, std::optional<double>{17.0});
+  QCOMPARE(forecast.daily.first().rainMillimetres, std::optional<double>{1.25});
+  QCOMPARE(forecast.daily.first().snowMillimetres, std::optional<double>{0.5});
+  QCOMPARE(forecast.todayPrecipitationKind, QStringLiteral("mixed"));
+  QCOMPARE(forecast.todayPrecipitationProbabilityPercent, 0.0);
 }
 
 void WeatherTest::selectsNextSolarEventAcrossDayBoundary() {
@@ -321,6 +333,7 @@ void WeatherTest::loadsLegacyCacheWithoutSolarEvents() {
                               QJsonObject{{QStringLiteral("latitude"), 0.0}, {QStringLiteral("longitude"), 0.0}}},
                              {QStringLiteral("timezoneOffset"), 0},
                              {QStringLiteral("fetched"), QDateTime::currentDateTimeUtc().toString(Qt::ISODate)},
+                             {QStringLiteral("rainProbability"), 88.0},
                              {QStringLiteral("current"), QJsonObject{{QStringLiteral("icon"), QStringLiteral("01d")}}},
                              {QStringLiteral("hourly"), QJsonArray{}},
                              {QStringLiteral("daily"), QJsonArray{}}})
@@ -333,19 +346,150 @@ void WeatherTest::loadsLegacyCacheWithoutSolarEvents() {
   QCOMPARE(reloaded.state(), QStringLiteral("loading"));
   QCOMPARE(reloaded.nextSolarEventKind(), QStringLiteral("sunset"));
   QVERIFY(reloaded.localNextSolarEventTime().isEmpty());
+  QCOMPARE(reloaded.todayPrecipitationProbabilityPercent(), 0.0);
+  QCOMPARE(reloaded.todayRainProbabilityPercent(), 0.0);
+  QStandardPaths::setTestModeEnabled(true);
+  qputenv("XDG_CACHE_HOME", previousCacheHome);
+}
+
+void WeatherTest::derivesRemainingDayPrecipitationAtLocationOffset() {
+  QDateTime now(QDate(2026, 8, 31), QTime(22, 35), QTimeZone::UTC);
+  auto weather = std::make_unique<FakeWeatherProvider>();
+  auto* weatherFake = weather.get();
+  auto geocoding = std::make_unique<FakeGeocodingProvider>();
+  auto automatic = std::make_unique<FakeAutomaticLocationProvider>();
+  WeatherService service(configuration(LocationMode::Coordinates), std::move(weather), std::move(geocoding),
+                         std::move(automatic), nullptr, [&now] { return now; });
+  Snapshot snapshot{.provider = QStringLiteral("openweather"),
+                    .location = weatherFake->lastLocation,
+                    .timezoneOffsetSeconds = 2 * 3600,
+                    .fetchedUtc = now,
+                    .hourly = {{.timestampUtc = QDateTime(QDate(2026, 8, 31), QTime(21, 0), QTimeZone::UTC),
+                                .precipitationProbabilityPercent = 99.0},
+                               {.timestampUtc = QDateTime(QDate(2026, 8, 31), QTime(22, 0), QTimeZone::UTC),
+                                .precipitationProbabilityPercent = 25.0},
+                               {.timestampUtc = QDateTime(QDate(2026, 9, 1), QTime(21, 0), QTimeZone::UTC),
+                                .precipitationProbabilityPercent = 70.0},
+                               {.timestampUtc = QDateTime(QDate(2026, 9, 1), QTime(22, 0), QTimeZone::UTC),
+                                .precipitationProbabilityPercent = 95.0},
+                               {.precipitationProbabilityPercent = 100.0}}};
+  weatherFake->succeed(snapshot);
+  QCOMPARE(service.todayPrecipitationProbabilityPercent(), 70.0);
+  QCOMPARE(service.todayRainProbabilityPercent(), 70.0);
+}
+
+void WeatherTest::returnsZeroWithoutRemainingHourlyForecasts() {
+  QDateTime now(QDate(2026, 9, 1), QTime(12, 30), QTimeZone::UTC);
+  auto weather = std::make_unique<FakeWeatherProvider>();
+  auto* weatherFake = weather.get();
+  auto geocoding = std::make_unique<FakeGeocodingProvider>();
+  auto automatic = std::make_unique<FakeAutomaticLocationProvider>();
+  WeatherService service(configuration(LocationMode::Coordinates), std::move(weather), std::move(geocoding),
+                         std::move(automatic), nullptr, [&now] { return now; });
+  Snapshot snapshot{.provider = QStringLiteral("openweather"),
+                    .location = weatherFake->lastLocation,
+                    .fetchedUtc = now,
+                    .hourly = {{.timestampUtc = now.addSecs(-3600), .precipitationProbabilityPercent = 80.0},
+                               {.timestampUtc = now.addDays(1), .precipitationProbabilityPercent = 90.0}},
+                    .todayRainProbabilityPercent = 88.0};
+  weatherFake->succeed(snapshot);
+  QCOMPARE(service.todayPrecipitationProbabilityPercent(), 0.0);
+  QCOMPARE(service.todayRainProbabilityPercent(), 0.0);
+}
+
+void WeatherTest::recomputesPrecipitationAtLocalHourBoundary() {
+  QDateTime now(QDate(2026, 9, 1), QTime(12, 30), QTimeZone::UTC);
+  auto weather = std::make_unique<FakeWeatherProvider>();
+  auto* weatherFake = weather.get();
+  auto geocoding = std::make_unique<FakeGeocodingProvider>();
+  auto automatic = std::make_unique<FakeAutomaticLocationProvider>();
+  WeatherService service(configuration(LocationMode::Coordinates), std::move(weather), std::move(geocoding),
+                         std::move(automatic), nullptr, [&now] { return now; });
+  Snapshot snapshot{.provider = QStringLiteral("openweather"),
+                    .location = weatherFake->lastLocation,
+                    .fetchedUtc = now,
+                    .hourly = {{.timestampUtc = now.addSecs(-30 * 60), .precipitationProbabilityPercent = 90.0},
+                               {.timestampUtc = now.addSecs(30 * 60), .precipitationProbabilityPercent = 20.0}}};
+  weatherFake->succeed(snapshot);
+  QCOMPARE(service.todayPrecipitationProbabilityPercent(), 90.0);
+  QSignalSpy changed(&service, &WeatherService::changed);
+  now = now.addSecs(3600);
+  auto* timer = service.findChild<QTimer*>(QStringLiteral("weatherLocalHourTimer"));
+  QVERIFY(timer);
+  QVERIFY(QMetaObject::invokeMethod(timer, "timeout", Qt::DirectConnection));
+  QCOMPARE(service.todayPrecipitationProbabilityPercent(), 20.0);
+  QCOMPARE(changed.count(), 1);
+}
+
+void WeatherTest::cachesCompleteHourlyForecast() {
+  QTemporaryDir cacheRoot;
+  QVERIFY(cacheRoot.isValid());
+  const auto previousCacheHome = qgetenv("XDG_CACHE_HOME");
+  qputenv("XDG_CACHE_HOME", QFile::encodeName(cacheRoot.path()));
+  QStandardPaths::setTestModeEnabled(false);
+  QDateTime now(QDate(2026, 9, 1), QTime(10, 15), QTimeZone::UTC);
+  auto weather = std::make_unique<FakeWeatherProvider>();
+  auto* weatherFake = weather.get();
+  auto geocoding = std::make_unique<FakeGeocodingProvider>();
+  auto automatic = std::make_unique<FakeAutomaticLocationProvider>();
+  const auto config = configuration(LocationMode::Coordinates);
+  {
+    WeatherService service(config, std::move(weather), std::move(geocoding), std::move(automatic), nullptr,
+                           [&now] { return now; });
+    Snapshot snapshot{.provider = QStringLiteral("openweather"),
+                      .location = weatherFake->lastLocation,
+                      .fetchedUtc = now};
+    for (int hour = 0; hour < 12; ++hour) {
+      snapshot.hourly.push_back({.timestampUtc = now.addSecs(hour * 3600),
+                                 .precipitationProbabilityPercent = hour == 10 ? 85.0 : 5.0});
+    }
+    weatherFake->succeed(snapshot);
+  }
+  auto reloadWeather = std::make_unique<FakeWeatherProvider>();
+  auto reloadGeocoding = std::make_unique<FakeGeocodingProvider>();
+  auto reloadAutomatic = std::make_unique<FakeAutomaticLocationProvider>();
+  WeatherService reloaded(config, std::move(reloadWeather), std::move(reloadGeocoding),
+                          std::move(reloadAutomatic), nullptr, [&now] { return now; });
+  QCOMPARE(reloaded.hourlyModel()->rowCount(), 8);
+  QCOMPARE(reloaded.todayPrecipitationProbabilityPercent(), 85.0);
   QStandardPaths::setTestModeEnabled(true);
   qputenv("XDG_CACHE_HOME", previousCacheHome);
 }
 
 void WeatherTest::truncatesForecastModels() {
   QVector<HourlyForecast> hourly(12);
+  for (auto& row : hourly) {
+    row.temperatureCelsius = 10.0;
+  }
+  hourly[0].temperatureCelsius = 10.0;
+  hourly[1].temperatureCelsius = 20.0;
   HourlyForecastModel hourlyModel;
   hourlyModel.replace(hourly, 0);
   QCOMPARE(hourlyModel.rowCount(), 8);
+  hourly[0].timestampUtc = QDateTime(QDate(2026, 9, 1), QTime(5, 0), QTimeZone::UTC);
+  hourlyModel.replace(hourly, 2 * 3600);
+  QCOMPARE(hourlyModel.data(hourlyModel.index(0), HourlyForecastModel::LocalHourRole).toString(),
+           QStringLiteral("07"));
+  hourly[0].timestampUtc = QDateTime(QDate(2026, 9, 1), QTime(0, 0), QTimeZone::UTC);
+  hourly[1].timestampUtc = QDateTime(QDate(2026, 9, 1), QTime(23, 0), QTimeZone::UTC);
+  hourlyModel.replace(hourly, 0);
+  QCOMPARE(hourlyModel.data(hourlyModel.index(0), HourlyForecastModel::LocalHourRole).toString(),
+           QStringLiteral("00"));
+  QCOMPARE(hourlyModel.data(hourlyModel.index(1), HourlyForecastModel::LocalHourRole).toString(),
+           QStringLiteral("23"));
+  QCOMPARE(hourlyModel.data(hourlyModel.index(0), HourlyForecastModel::TrendPositionRole).toDouble(), 0.0);
+  QCOMPARE(hourlyModel.data(hourlyModel.index(1), HourlyForecastModel::TrendPositionRole).toDouble(), 1.0);
+  QVector<HourlyForecast> equal(2);
+  equal[0].temperatureCelsius = equal[1].temperatureCelsius = 7.0;
+  hourlyModel.replace(equal, 0);
+  QCOMPARE(hourlyModel.data(hourlyModel.index(0), HourlyForecastModel::TrendPositionRole).toDouble(), 0.5);
   QVector<DailyForecast> daily(8);
+  daily[0].averageCelsius = 17.5;
   DailyForecastModel dailyModel;
   dailyModel.replace(daily, 0);
   QCOMPARE(dailyModel.rowCount(), 5);
+  QCOMPARE(dailyModel.data(dailyModel.index(0), DailyForecastModel::AverageRole).toDouble(), 17.5);
+  QVERIFY(!dailyModel.data(dailyModel.index(1), DailyForecastModel::AverageRole).isValid());
 }
 
 void WeatherTest::validatesAndRecolorsIcons() {

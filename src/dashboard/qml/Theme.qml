@@ -97,6 +97,7 @@ QtObject {
 
     // Typography sizes
     readonly property int headingTextSize: 22
+    readonly property int secondaryHeadingTextSize: 20
     readonly property int clockTimeTextSize: 48
     readonly property int clockDateTextSize: 14
     readonly property int metricTextSize: 18

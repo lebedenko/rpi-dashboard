@@ -48,7 +48,10 @@ struct DailyForecast {
   QString iconCode;
   double minimumCelsius{};
   double maximumCelsius{};
+  std::optional<double> averageCelsius;
   double precipitationProbabilityPercent{};
+  std::optional<double> rainMillimetres;
+  std::optional<double> snowMillimetres;
 };
 
 struct AirQuality {
@@ -69,6 +72,8 @@ struct Snapshot {
   std::optional<AirQuality> airQuality;
   QDateTime sunsetUtc;
   double todayRainProbabilityPercent{};
+  QString todayPrecipitationKind{QStringLiteral("none")};
+  double todayPrecipitationProbabilityPercent{};
 };
 
 // NOLINTEND(readability-identifier-naming)

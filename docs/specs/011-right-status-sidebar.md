@@ -12,7 +12,18 @@ Add a dedicated status rail to the right side of the 1480×320 dashboard while p
 - Time uses the system locale with the `hh:mm` format, date uses the system locale with the `ddd dd MMM` format, and both use the system timezone.
 - The displayed timestamp refreshes every second so minute, date, timezone, and system-clock changes appear promptly.
 - The combined time and date are exposed as non-interactive accessible static text. The individual visual labels are not separate accessibility stops.
-- The status sidebar does not accept keyboard focus or change existing Left, Right, Home, F5, pointer, or touch navigation behavior.
+- An explicit page context controls contextual content: Overview and System are empty, Projects
+  shows CI and runner state, and Weather shows exactly three dotted-separated sections: air,
+  next-solar-event, and precipitation. Time and date remain visible everywhere.
+- Weather context content is left-aligned within equal side margins. Its labels and values use the
+  sans font and body text size; section labels and the AQI number use the primary accent. AQI
+  category colors map native indices 1–2 to online, 3 to attention, and 4–5 to failure. Solar time
+  uses primary text. A positive remaining-day precipitation probability retains its classified
+  `RAIN`, `SNOW`, `MIXED`, or `PRECIPITATION` label and numeric percentage. Zero probability is
+  presented as `PRECIPITATION` with `NONE`. The label/value lines within each Weather section use
+  a compact 2 px vertical gap.
+- The status sidebar itself does not accept keyboard focus or change existing Left, Right, Home,
+  F5, pointer, or touch navigation behavior.
 - Sidebar width and clock typography are semantic theme tokens. Both clock labels use the existing sans-serif font role, and existing surface, border, spacing, and text-color roles are reused.
 
 ## Acceptance criteria
@@ -28,7 +39,8 @@ Add a dedicated status rail to the right side of the 1480×320 dashboard while p
 
 ## Non-goals
 
-- Weather, connectivity, health indicators, settings, or interactions in the status sidebar.
+- Connectivity, settings, or additional interactions in the status sidebar.
+- Visible weather-provider attribution or links.
 - A seconds-specific display.
 - Changes to page content, navigation order, keyboard shortcuts, telemetry, or protocol types.
 - A HoloNight runtime dependency or use of private Qt APIs.

@@ -32,6 +32,38 @@ QString aqiCategory(int index) {
   return index >= 1 && index <= categories.size() ? categories.at(index - 1) : QStringLiteral("Unavailable");
 }
 
+std::optional<double> optionalNumber(const QJsonObject& object, const char* name) {
+  const auto value = object.value(QLatin1String(name));
+  return value.isDouble() ? std::optional<double>{value.toDouble()} : std::nullopt;
+}
+
+std::optional<double> daypartAverage(const QJsonObject& temperatures) {
+  double total = 0.0;
+  int count = 0;
+  for (const char* name : {"morn", "day", "eve", "night"}) {
+    if (const auto value = optionalNumber(temperatures, name)) {
+      total += *value;
+      ++count;
+    }
+  }
+  return count > 0 ? std::optional<double>{total / count} : std::nullopt;
+}
+
+QString precipitationKind(const QJsonObject& day, double dailyProbability) {
+  const bool rain = optionalNumber(day, "rain").value_or(0.0) > 0.0;
+  const bool snow = optionalNumber(day, "snow").value_or(0.0) > 0.0;
+  if (rain && snow) {
+    return QStringLiteral("mixed");
+  }
+  if (rain) {
+    return QStringLiteral("rain");
+  }
+  if (snow) {
+    return QStringLiteral("snow");
+  }
+  return dailyProbability > 0.0 ? QStringLiteral("other") : QStringLiteral("none");
+}
+
 QString replyDiagnostic(QNetworkReply* reply, const QString& operation) {
   const int status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
   if (status == 401 || status == 403) {
@@ -182,6 +214,7 @@ Snapshot OpenWeatherProvider::parseOneCall(const QJsonDocument& document, const 
       .windDegrees = requiredNumber(current, "wind_deg")};
   snapshot.sunsetUtc = timestamp(today.value(QStringLiteral("sunset")).toDouble());
   snapshot.todayRainProbabilityPercent = today.value(QStringLiteral("pop")).toDouble() * 100.0;
+  snapshot.todayPrecipitationKind = precipitationKind(today, snapshot.todayRainProbabilityPercent);
   const auto hourly = root.value(QStringLiteral("hourly")).toArray();
   for (const auto& value : hourly) {
     const auto object = value.toObject();
@@ -197,14 +230,16 @@ Snapshot OpenWeatherProvider::parseOneCall(const QJsonDocument& document, const 
     const auto object = value.toObject();
     const auto temperatures = object.value(QStringLiteral("temp")).toObject();
     const auto weather = object.value(QStringLiteral("weather")).toArray().at(0).toObject();
-    snapshot.daily.push_back(
-        {.timestampUtc = timestamp(requiredNumber(object, "dt")),
-         .sunriseUtc = timestamp(requiredNumber(object, "sunrise")),
-         .sunsetUtc = timestamp(requiredNumber(object, "sunset")),
-         .iconCode = weather.value(QStringLiteral("icon")).toString(),
-         .minimumCelsius = requiredNumber(temperatures, "min"),
-         .maximumCelsius = requiredNumber(temperatures, "max"),
-         .precipitationProbabilityPercent = object.value(QStringLiteral("pop")).toDouble() * 100.0});
+    snapshot.daily.push_back({.timestampUtc = timestamp(requiredNumber(object, "dt")),
+                              .sunriseUtc = timestamp(requiredNumber(object, "sunrise")),
+                              .sunsetUtc = timestamp(requiredNumber(object, "sunset")),
+                              .iconCode = weather.value(QStringLiteral("icon")).toString(),
+                              .minimumCelsius = requiredNumber(temperatures, "min"),
+                              .maximumCelsius = requiredNumber(temperatures, "max"),
+                              .averageCelsius = daypartAverage(temperatures),
+                              .precipitationProbabilityPercent = object.value(QStringLiteral("pop")).toDouble() * 100.0,
+                              .rainMillimetres = optionalNumber(object, "rain"),
+                              .snowMillimetres = optionalNumber(object, "snow")});
   }
   return snapshot;
 }
