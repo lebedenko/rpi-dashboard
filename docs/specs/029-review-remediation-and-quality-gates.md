@@ -20,7 +20,8 @@ official Qt and LLVM checks part of both local and hosted CI.
   files are ignored atomically.
 - Production QML passes `qmllint` with zero warnings. Pinned QML formatting, application
   clang-tidy, QML lint, application and daemon builds and tests, and sanitizers remain reproducible
-  through the locked CI image. Local `task check` additionally enforces C++ formatting.
+  through the locked CI image, including clean static analysis of application object teardown.
+  Local `task check` additionally enforces C++ formatting.
 - Hosted CI exposes a separate required `quality` check, and releases remain gated on a successful
   CI workflow for their exact commit.
 

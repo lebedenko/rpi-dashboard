@@ -59,6 +59,7 @@ class DeviceModel final : public QAbstractListModel {
 
   DeviceModel(sysinfo::SysInfoService& info, sysmetrics::SysMetricsService& metrics,
               telemetry::RemoteDeviceRegistry& registry, QObject* parent = nullptr);
+  ~DeviceModel() override;
   [[nodiscard]] int rowCount(const QModelIndex& parent = {}) const override;
   [[nodiscard]] QVariant data(const QModelIndex& index, int role) const override;
   [[nodiscard]] QHash<int, QByteArray> roleNames() const override;
@@ -68,6 +69,7 @@ class DeviceModel final : public QAbstractListModel {
   void countChanged();
 
  private:
+  Q_DISABLE_COPY_MOVE(DeviceModel)
   void localInfoChanged();
   void localMetricsChanged();
   void remoteChanged(const QUuid& device_id);

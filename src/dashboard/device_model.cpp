@@ -98,6 +98,9 @@ DeviceModel::DeviceModel(sysinfo::SysInfoService& info, sysmetrics::SysMetricsSe
     emit countChanged();
   });
 }
+
+DeviceModel::~DeviceModel() = default;
+
 int DeviceModel::rowCount(const QModelIndex& parent) const {
   return parent.isValid() || !info_ || !metrics_ || !registry_ ? 0 : 1 + registry_->devices().size();
 }

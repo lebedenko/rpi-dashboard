@@ -16,6 +16,9 @@ UdpTelemetryReceiver::UdpTelemetryReceiver(RemoteDeviceRegistry& registry, QObje
   });
   connect(&socket_, &QUdpSocket::readyRead, this, &UdpTelemetryReceiver::processPendingDatagrams);
 }
+
+UdpTelemetryReceiver::~UdpTelemetryReceiver() = default;
+
 bool UdpTelemetryReceiver::bind(const QHostAddress& address, quint16 port) {
   if (socket_.bind(address, port)) return true;
   diagnostic_ = QStringLiteral("Telemetry receiver bind failed: %1").arg(socket_.errorString());
