@@ -244,7 +244,8 @@ void DashboardStartupTest::
   const QStringList migratedSources = {
       QStringLiteral(DASHBOARD_MAIN_QML), QStringLiteral(DASHBOARD_CLOCK_SIDEBAR_QML),
       QStringLiteral(DASHBOARD_SIDEBAR_BUTTON_QML), QStringLiteral(DASHBOARD_DEVICE_CARD_QML),
-      QStringLiteral(DASHBOARD_SYSTEM_PAGE_QML), QStringLiteral(DASHBOARD_SYSTEM_METRIC_PANEL_QML)};
+      QStringLiteral(DASHBOARD_SYSTEM_PAGE_QML), QStringLiteral(DASHBOARD_SYSTEM_METRIC_PANEL_QML),
+      QStringLiteral(DASHBOARD_PROJECTS_PAGE_QML)};
   for (const auto& path : migratedSources) {
     QFile source(path);
     QVERIFY2(source.open(QIODevice::ReadOnly | QIODevice::Text), qPrintable(source.errorString()));
@@ -252,6 +253,7 @@ void DashboardStartupTest::
     QVERIFY2(contents.contains(QStringLiteral("Frame {")), qPrintable(path));
     QVERIFY2(!contents.contains(QStringLiteral("ShapePath {")), qPrintable(path));
     QVERIFY2(!contents.contains(QStringLiteral("import QtQuick.Shapes")), qPrintable(path));
+    QVERIFY2(!contents.contains(QStringLiteral("ChamferFrame")), qPrintable(path));
   }
 
   QFile frame(QStringLiteral(DASHBOARD_FRAME_QML));

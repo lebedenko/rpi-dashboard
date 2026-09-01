@@ -1,7 +1,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls.Basic
-import QtQuick.Shapes
+import Rpi.Dashboard as Dashboard
 
 FocusScope {
     id: root
@@ -32,30 +32,11 @@ FocusScope {
         }
     }
 
-    component ChamferFrame: Shape {
-        id: frameRoot
-        required property color fill
-        required property color stroke
-        property real chamfer: Theme.chamferSmall
-        preferredRendererType: Shape.CurveRenderer
-        ShapePath {
-            fillColor: frameRoot.fill; strokeColor: frameRoot.stroke; strokeWidth: 1
-            startX: frameRoot.chamfer; startY: 0
-            PathLine { x: frameRoot.width - frameRoot.chamfer; y: 0 }
-            PathLine { x: frameRoot.width; y: frameRoot.chamfer }
-            PathLine { x: frameRoot.width; y: frameRoot.height - frameRoot.chamfer }
-            PathLine { x: frameRoot.width - frameRoot.chamfer; y: frameRoot.height }
-            PathLine { x: frameRoot.chamfer; y: frameRoot.height }
-            PathLine { x: 0; y: frameRoot.height - frameRoot.chamfer }
-            PathLine { x: 0; y: frameRoot.chamfer }
-            PathLine { x: frameRoot.chamfer; y: 0 }
-        }
-    }
-
-    ChamferFrame {
+    Dashboard.Frame {
         id: pageFrame; objectName: "projectsPageFrame"
         anchors.fill: parent; anchors.margins: Theme.spacingSmall
-        fill: Theme.surface; stroke: Theme.cardFrame; chamfer: Theme.chamferMedium
+        backgroundColor: Theme.surface; color: Theme.cardFrame; lineWidth: 1
+        corners: ({ chamfered: Theme.chamferMedium })
     }
     Item {
         id: headerBand
@@ -84,10 +65,11 @@ FocusScope {
         Text { objectName: "failedLabel"; color: root.service && root.service.failedCount > 0 ? Theme.failureStatus : Theme.textSecondary; font.family: Theme.sansFontFamily; font.pixelSize: Theme.captionTextSize; font.weight: Theme.labelFontWeight; text: qsTr("FAILED") }
     }
 
-    ChamferFrame {
+    Dashboard.Frame {
         id: listFrame; objectName: "projectsListFrame"
         x: pageFrame.x + Theme.spacingSmall; y: headerBand.y + headerBand.height; width: 346; height: pageFrame.height - headerBand.height - Theme.spacingSmall
-        fill: Theme.cardSurface; stroke: Theme.sectionDividerStrong
+        backgroundColor: Theme.cardSurface; color: Theme.sectionDividerStrong; lineWidth: 1
+        corners: ({ chamfered: Theme.chamferSmall })
     }
     ListView {
         id: projectList; objectName: "projectList"
@@ -109,11 +91,12 @@ FocusScope {
             Accessible.name: qsTr("%1, %2, %3").arg(name).arg(branch).arg(root.statusLabel(health))
             Accessible.role: Accessible.ListItem
             onClicked: { ListView.view.currentIndex = index; root.service.selectProject(index); ListView.view.forceActiveFocus() }
-            background: ChamferFrame {
+            background: Dashboard.Frame {
                 objectName: "projectCardFrame" + projectRow.index
-                fill: projectRow.highlighted ? Theme.selectedSurface : Theme.cardSurface
-                stroke: projectRow.highlighted ? Theme.primaryAccent : Theme.sectionDivider
-                chamfer: Theme.chamferSmall
+                backgroundColor: projectRow.highlighted ? Theme.selectedSurface : Theme.cardSurface
+                color: projectRow.highlighted ? Theme.primaryAccent : Theme.sectionDivider
+                lineWidth: 1
+                corners: ({ chamfered: Theme.chamferSmall })
             }
             contentItem: Item {
                 Rectangle { objectName: "projectHealthRail" + projectRow.index; width: 4; anchors.left: parent.left; anchors.leftMargin: Theme.spacingSmall; anchors.top: parent.top; anchors.topMargin: Theme.spacingSmall; anchors.bottom: parent.bottom; anchors.bottomMargin: Theme.spacingSmall; color: projectRow.resolvedStatusColor; Accessible.ignored: true }
@@ -135,11 +118,12 @@ FocusScope {
         }
     }
 
-    ChamferFrame {
+    Dashboard.Frame {
         id: detail; objectName: "projectDetail"
         anchors.left: listFrame.right; anchors.leftMargin: Theme.spacingSmall; anchors.right: pageFrame.right; anchors.rightMargin: Theme.spacingSmall
         anchors.top: listFrame.top; anchors.bottom: listFrame.bottom
-        fill: Theme.surface; stroke: Theme.sectionDividerStrong
+        backgroundColor: Theme.surface; color: Theme.sectionDividerStrong; lineWidth: 1
+        corners: ({ chamfered: Theme.chamferSmall })
     }
     Item {
         id: detailContent; anchors.fill: detail; anchors.margins: 10
@@ -162,7 +146,7 @@ FocusScope {
                     required property string health
                     readonly property color resolvedStatusColor: Theme.statusColor(stageCard.health)
                     width: (stages.width - Theme.spacingLarge) / 4; height: stages.height
-                    ChamferFrame { anchors.fill: parent; fill: Theme.cardSurface; stroke: stageCard.resolvedStatusColor; chamfer: Theme.chamferSmall }
+                    Dashboard.Frame { objectName: "stageFrame" + stageCard.index; anchors.fill: parent; backgroundColor: Theme.cardSurface; color: stageCard.resolvedStatusColor; lineWidth: 1; corners: ({ chamfered: Theme.chamferSmall }) }
                     Text { objectName: "stageName" + stageCard.index; anchors.horizontalCenter: parent.horizontalCenter; anchors.top: parent.top; anchors.topMargin: 9; width: parent.width - Theme.spacingMedium; color: Theme.textPrimary; elide: Text.ElideRight; horizontalAlignment: Text.AlignHCenter; font.family: Theme.sansFontFamily; font.pixelSize: Theme.bodyTextSize; font.weight: Theme.informationFontWeight; text: stageCard.name.toUpperCase() }
                     Text { objectName: "stageOutcome" + stageCard.index; anchors.horizontalCenter: parent.horizontalCenter; anchors.bottom: parent.bottom; anchors.bottomMargin: 7; color: stageCard.resolvedStatusColor; font.family: Theme.sansFontFamily; font.pixelSize: Theme.captionTextSize; font.weight: Theme.headingFontWeight; text: (stageCard.health === "healthy" ? "✓ " : "") + root.statusLabel(stageCard.health) }
                     Rectangle { visible: stageCard.index > 0; x: -8; anchors.verticalCenter: parent.verticalCenter; width: 8; height: 1; color: Theme.sectionDividerStrong; Accessible.ignored: true }
@@ -183,7 +167,7 @@ FocusScope {
                     required property int index
                     required property var modelData
                     width: (metrics.width - Theme.spacingLarge) / 4; height: metrics.height
-                    Rectangle { anchors.fill: parent; color: Theme.surfaceElevated; border.color: Theme.sectionDividerStrong }
+                    Dashboard.Frame { objectName: "metricFrame" + metricCard.index; anchors.fill: parent; backgroundColor: Theme.surfaceElevated; color: Theme.sectionDividerStrong; lineWidth: 1 }
                     Text { objectName: "metricLabel" + metricCard.index; anchors.left: parent.left; anchors.leftMargin: Theme.spacingSmall; anchors.top: parent.top; anchors.topMargin: 5; color: Theme.textSecondary; font.family: Theme.sansFontFamily; font.pixelSize: Theme.captionTextSize; font.weight: Theme.labelFontWeight; text: metricCard.modelData.label }
                     Text { objectName: "metricValue" + metricCard.index; anchors.left: parent.left; anchors.leftMargin: Theme.spacingSmall; anchors.bottom: parent.bottom; anchors.bottomMargin: 4; color: Theme.textPrimary; font.family: Theme.fixedFontFamily; font.pixelSize: Theme.captionTextSize; font.weight: Theme.technicalRegularFontWeight; text: metricCard.modelData.value }
                 }
