@@ -33,12 +33,12 @@ FocusScope {
 
     function temperature(value): string { return qsTr("%1°").arg(Math.round(Number(value))) }
 
-    Frame {
+    Rectangle {
         anchors.fill: parent
         anchors.margins: Theme.spacingSmall
-        backgroundColor: Theme.cardSurface
-        color: Theme.cardFrame
-        corners: ({ rounded: Theme.radiusMedium })
+        color: Theme.cardSurface
+        border.color: Theme.cardFrame
+        radius: Theme.radiusMedium
         Accessible.ignored: true
     }
 
@@ -91,13 +91,13 @@ FocusScope {
             Layout.fillHeight: true
             spacing: Theme.spacingSmall
 
-            Frame {
+            Rectangle {
                 objectName: "currentConditionsPanel"
                 Layout.preferredWidth: 285
                 Layout.fillHeight: true
-                backgroundColor: Theme.surface
-                color: Theme.sectionDividerStrong
-                corners: ({ rounded: Theme.radiusMedium })
+                color: Theme.surface
+                border.color: Theme.sectionDividerStrong
+                radius: Theme.radiusMedium
 
                 Row {
                     anchors.fill: parent
@@ -120,13 +120,13 @@ FocusScope {
                 }
             }
 
-            Frame {
+            Rectangle {
                 objectName: "hourlyForecastPanel"
                 Layout.preferredWidth: 500
                 Layout.fillHeight: true
-                backgroundColor: Theme.surface
-                color: Theme.sectionDividerStrong
-                corners: ({ rounded: Theme.radiusMedium })
+                color: Theme.surface
+                border.color: Theme.sectionDividerStrong
+                radius: Theme.radiusMedium
                 Row {
                     anchors.fill: parent
                     anchors.margins: 5
@@ -148,13 +148,13 @@ FocusScope {
                 }
             }
 
-            Frame {
+            Rectangle {
                 objectName: "dailyForecastPanel"
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                backgroundColor: Theme.surface
-                color: Theme.sectionDividerStrong
-                corners: ({ rounded: Theme.radiusMedium })
+                color: Theme.surface
+                border.color: Theme.sectionDividerStrong
+                radius: Theme.radiusMedium
                 Column {
                     anchors.fill: parent
                     anchors.margins: 4

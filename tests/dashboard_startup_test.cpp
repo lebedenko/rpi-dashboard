@@ -16,7 +16,7 @@ class DashboardStartupTest : public QObject {
   void declaresAndUsesTypographyRoles();
   void bundledFontsArePackaged();
   void deviceCardSourcesAndChevronArePackaged();
-  void dashboardSurfacesUseReusableFrame();
+  void overviewSurfacesUseReusableFrame();
   void initializesQmlAndKeepsRunning();
   void reportsWeatherCredentialFailuresWithoutSecrets();
 };
@@ -240,13 +240,10 @@ void DashboardStartupTest::
 }
 
 void DashboardStartupTest::
-    dashboardSurfacesUseReusableFrame() {  // NOLINT(readability-convert-member-functions-to-static)
+    overviewSurfacesUseReusableFrame() {  // NOLINT(readability-convert-member-functions-to-static)
   const QStringList migratedSources = {
-      QStringLiteral(DASHBOARD_MAIN_QML),          QStringLiteral(DASHBOARD_CLOCK_SIDEBAR_QML),
-      QStringLiteral(DASHBOARD_SIDEBAR_BUTTON_QML), QStringLiteral(DASHBOARD_DEVICE_CARD_QML),
-      QStringLiteral(DASHBOARD_PROJECTS_PAGE_QML), QStringLiteral(DASHBOARD_PAGE_QML),
-      QStringLiteral(DASHBOARD_SYSTEM_PAGE_QML),   QStringLiteral(DASHBOARD_SYSTEM_METRIC_PANEL_QML),
-      QStringLiteral(DASHBOARD_WEATHER_PAGE_QML),  QStringLiteral(DASHBOARD_SCREENSAVER_VIEW_QML)};
+      QStringLiteral(DASHBOARD_MAIN_QML), QStringLiteral(DASHBOARD_CLOCK_SIDEBAR_QML),
+      QStringLiteral(DASHBOARD_SIDEBAR_BUTTON_QML), QStringLiteral(DASHBOARD_DEVICE_CARD_QML)};
   for (const auto& path : migratedSources) {
     QFile source(path);
     QVERIFY2(source.open(QIODevice::ReadOnly | QIODevice::Text), qPrintable(source.errorString()));
@@ -268,15 +265,6 @@ void DashboardStartupTest::
       QStringLiteral("corners: ({ topRight: { chamfered: Theme.chamferLarge }, bottomRight: { chamfered: "
                      "Theme.chamferLarge } })")));
   QVERIFY(deviceSource.contains(QStringLiteral("lineWidth: chevron.activeFocus ? 2 : 1")));
-
-  QFile projects(QStringLiteral(DASHBOARD_PROJECTS_PAGE_QML));
-  QVERIFY(projects.open(QIODevice::ReadOnly | QIODevice::Text));
-  const auto projectsSource = QString::fromUtf8(projects.readAll());
-  QVERIFY(!projectsSource.contains(QStringLiteral("ChamferFrame")));
-  QVERIFY(projectsSource.contains(QStringLiteral("corners: ({ chamfered: Theme.chamferMedium })")));
-  QVERIFY(projectsSource.contains(QStringLiteral("corners: ({ chamfered: Theme.chamferSmall })")));
-  QVERIFY(projectsSource.contains(
-      QStringLiteral("color: projectRow.highlighted ? Theme.primaryAccent : Theme.sectionDivider")));
 }
 
 void DashboardStartupTest::initializesQmlAndKeepsRunning() {  // NOLINT(readability-convert-member-functions-to-static)

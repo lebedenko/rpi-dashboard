@@ -2,7 +2,6 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
-import Rpi.Dashboard as Dashboard
 
 Item {
     id: root
@@ -93,12 +92,12 @@ Item {
                         font.pixelSize: Theme.bodyTextSize
                         font.weight: Theme.technicalFontWeight
                     }
-                    background: Dashboard.Frame {
-                        backgroundColor: root.selectedIndex === tab.index ? Theme.selectedSurface : Theme.surface
-                        lineWidth: tab.activeFocus ? 2 : 1
-                        color: tab.activeFocus ? Theme.focusAccent
-                                               : root.selectedIndex === tab.index ? Theme.primaryAccent : Theme.passiveBorder
-                        corners: ({ rounded: Theme.radiusMedium })
+                    background: Rectangle {
+                        color: root.selectedIndex === tab.index ? Theme.selectedSurface : Theme.surface
+                        border.width: tab.activeFocus ? 2 : 1
+                        border.color: tab.activeFocus ? Theme.focusAccent
+                                                          : root.selectedIndex === tab.index ? Theme.primaryAccent : Theme.passiveBorder
+                        radius: Theme.radiusMedium
                     }
                 }
             }

@@ -159,7 +159,7 @@ Item {
         }
     }
 
-    Frame {
+    Rectangle {
         objectName: "screensaverDetailsBacking"
         anchors.right: parent.right
         anchors.rightMargin: 20
@@ -167,10 +167,10 @@ Item {
         anchors.bottomMargin: 8
         implicitWidth: detailsRow.implicitWidth + 24
         implicitHeight: detailsRow.implicitHeight + 12
-        corners: ({ rounded: Theme.radiusMedium })
-        lineWidth: 0
-        backgroundColor: Qt.rgba(Theme.background.r, Theme.background.g, Theme.background.b,
-                                 root.dayScene ? 0.78 : 0.62)
+        radius: Theme.radiusMedium
+        border.width: 0
+        color: Qt.rgba(Theme.background.r, Theme.background.g, Theme.background.b,
+                       root.dayScene ? 0.78 : 0.62)
 
         Row {
             id: detailsRow

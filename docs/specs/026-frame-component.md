@@ -2,7 +2,7 @@
 
 ## Context
 
-Dashboard surfaces need a shared decorative frame that can express square, rounded, chamfered,
+The Overview shell needs a shared decorative frame that can express square, rounded, chamfered,
 and mixed corners without allowing an opaque background to extend outside the frame geometry.
 
 ## Observable API
@@ -22,15 +22,24 @@ and mixed corners without allowing an opaque background to extend outside the fr
 - The component draws one closed path whose edges proceed clockwise.
 - Square, circular rounded, straight chamfered, and independently mixed corners render according
   to the supplied configuration.
-- Every corner size is limited to half the smaller current frame dimension, and resizing recomputes
-  that limit.
+- Every corner size is limited to half the smaller current inset drawable dimension, and resizing
+  or border-width changes recompute that limit.
 - The border and optional background use the same path. An opaque background fills the center but
   leaves regions outside rounded or chamfered corners transparent.
+- Border strokes are fully contained within the frame bounds and cover opposing edges uniformly
+  at both odd and even pixel widths.
+- Rounded and chamfered corners are antialiased. Their requested sizes are measured from the inset
+  drawable bounds and remain unchanged unless those bounds require clamping.
 - Custom border color and thickness are applied without changing the frame geometry API.
+- Zero, negative, and non-finite border widths do not inset fill-only frame geometry.
+- The component requests the Qt Quick Shapes curve renderer and permits Qt to fall back when that
+  renderer is unavailable.
 - The component is registered in the `Rpi.Dashboard` QML module and passes QML linting and focused
   Qt Quick Tests.
-- Dashboard frame paths and framed panel or control backgrounds use this component while preserving
-  their existing geometry, colors, focus and selection states, sizing, accessibility, and interaction.
+- The Overview shell's navigation sidebar, clock/status sidebar, sidebar button backgrounds, and
+  every framed visual in `DeviceCard.qml` use this component without local `ShapePath` geometry.
+- Those migrated surfaces preserve their existing geometry, colors, focus and selection states,
+  sizing, accessibility, expansion, pointer, touch, and keyboard interaction.
 - The device status badge uses square left corners and two 12 px right-side chamfers, forming a
   six-vertex frame.
 
@@ -39,6 +48,7 @@ and mixed corners without allowing an opaque background to extend outside the fr
 - Clipping or masking child content.
 - Adding C++ geometry, networking, parsing, collection, or state.
 - Supporting corner shapes other than square, circular rounded, and straight chamfered corners.
+- Migrating Projects, System, Weather, dashboard placeholder, or Screensaver surfaces.
 
 ## Verification
 

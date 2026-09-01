@@ -265,9 +265,9 @@ Item {
             verify(!!header);
             verify(!!listFrame);
             verify(!!detail);
-            compare(frame.corners.chamfered, Theme.chamferMedium);
-            compare(listFrame.corners.chamfered, Theme.chamferSmall);
-            compare(detail.corners.chamfered, Theme.chamferSmall);
+            compare(frame.chamfer, Theme.chamferMedium);
+            compare(listFrame.chamfer, Theme.chamferSmall);
+            compare(detail.chamfer, Theme.chamferSmall);
             compare(header.height, 48);
             verify(Math.abs(heading.y + heading.height / 2 - header.y - header.height / 2) <= 0.5);
             compare(heading.text, "PROJECTS");
@@ -297,9 +297,9 @@ Item {
             const statusText = findChild(first, "projectHealth0");
             const branch = findChild(first, "projectBranch0");
             const age = findChild(first, "projectAge0");
-            compare(firstFrame.color, Theme.primaryAccent);
-            compare(firstFrame.corners.chamfered, Theme.chamferSmall);
-            compare(secondFrame.color, Theme.sectionDivider);
+            compare(firstFrame.stroke, Theme.primaryAccent);
+            compare(firstFrame.chamfer, Theme.chamferSmall);
+            compare(secondFrame.stroke, Theme.sectionDivider);
             compare(findChild(first, "projectHealthRail0").color, Theme.failureStatus);
             compare(statusDisc.color, Theme.failureStatus);
             compare(statusText.color, Theme.failureStatus);
@@ -762,9 +762,9 @@ Item {
             for (const objectName of ["currentConditionsPanel", "hourlyForecastPanel", "dailyForecastPanel", "weatherRail", "weatherAqi", "weatherSunset", "weatherRain"])
                 verify(!!findChild(dashboardWindow.contentItem, objectName), objectName);
             const page = findChild(dashboardWindow.contentItem, "weatherPage");
-            compare(findChild(dashboardWindow.contentItem, "currentConditionsPanel").corners.rounded, Theme.radiusMedium);
-            compare(findChild(dashboardWindow.contentItem, "hourlyForecastPanel").corners.rounded, Theme.radiusMedium);
-            compare(findChild(dashboardWindow.contentItem, "dailyForecastPanel").corners.rounded, Theme.radiusMedium);
+            compare(findChild(dashboardWindow.contentItem, "currentConditionsPanel").radius, Theme.radiusMedium);
+            compare(findChild(dashboardWindow.contentItem, "hourlyForecastPanel").radius, Theme.radiusMedium);
+            compare(findChild(dashboardWindow.contentItem, "dailyForecastPanel").radius, Theme.radiusMedium);
             verify(page.Accessible.name.includes("Lviv"));
             const refreshCount = fakeWeatherService.refreshCount;
             keyClick(Qt.Key_F5);
@@ -822,7 +822,7 @@ Item {
             compare(findChild(view, "screensaverLowValue").color, Theme.focusAccent);
             compare(findChild(view, "screensaverSolarEventLabel").color, Theme.textMuted);
             compare(findChild(view, "screensaverSolarEventTime").color, Theme.attentionStatus);
-            fuzzyCompare(findChild(view, "screensaverDetailsBacking").backgroundColor.a, 0.78, 0.01);
+            fuzzyCompare(findChild(view, "screensaverDetailsBacking").color.a, 0.78, 0.01);
             compare(findChild(view, "screensaverLeftScrim").width, 1120);
             fuzzyCompare(findChild(view, "screensaverScrimStart").color.a, 0.68, 0.01);
             fuzzyCompare(findChild(view, "screensaverScrimMiddle").color.a, 0.58, 0.01);
@@ -839,7 +839,7 @@ Item {
             fakeWeatherService.localNextSolarEventTime = "06:41";
             compare(findChild(view, "screensaverSolarEventLabel").text, "SUNRISE");
             compare(findChild(view, "screensaverSolarEventTime").text, "06:41");
-            fuzzyCompare(findChild(view, "screensaverDetailsBacking").backgroundColor.a, 0.62, 0.01);
+            fuzzyCompare(findChild(view, "screensaverDetailsBacking").color.a, 0.62, 0.01);
             fuzzyCompare(findChild(view, "screensaverScrimStart").color.a, 0.24, 0.01);
             fuzzyCompare(findChild(view, "screensaverScrimMiddle").color.a, 0.18, 0.01);
             fakeWeatherService.iconCode = "invalid";

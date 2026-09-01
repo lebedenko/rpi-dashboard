@@ -12,12 +12,22 @@ Item {
     Accessible.ignored: true
 
     Shape {
+        objectName: "frameShape"
         anchors.fill: parent
+        preferredRendererType: Shape.CurveRenderer
 
         ShapePath {
             id: path
 
-            readonly property real maximumCornerSize: Math.max(0, Math.min(frame.width, frame.height) / 2)
+            readonly property real effectiveStrokeWidth: Number.isFinite(frame.lineWidth) && frame.lineWidth > 0
+                                                        ? frame.lineWidth : 0
+            readonly property real inset: path.effectiveStrokeWidth / 2
+            readonly property real left: path.inset
+            readonly property real top: path.inset
+            readonly property real right: Math.max(path.left, frame.width - path.inset)
+            readonly property real bottom: Math.max(path.top, frame.height - path.inset)
+            readonly property real maximumCornerSize: Math.max(0, Math.min(path.right - path.left,
+                                                                           path.bottom - path.top) / 2)
             readonly property int topLeftType: path.cornerType("topLeft")
             readonly property int topRightType: path.cornerType("topRight")
             readonly property int bottomRightType: path.cornerType("bottomRight")
@@ -28,11 +38,11 @@ Item {
             readonly property real bottomLeftSize: path.cornerSize("bottomLeft")
 
             strokeColor: frame.color
-            strokeWidth: frame.lineWidth
+            strokeWidth: path.effectiveStrokeWidth
             fillColor: frame.backgroundColor
             joinStyle: ShapePath.MiterJoin
-            startX: path.topLeftSize
-            startY: 0
+            startX: path.left + path.topLeftSize
+            startY: path.top
 
             function cornerDescriptor(cornerName: string): var {
                 if (frame.corners === null || typeof frame.corners !== "object")
@@ -66,45 +76,45 @@ Item {
             }
 
             PathLine {
-                x: frame.width - path.topRightSize
-                y: 0
+                x: path.right - path.topRightSize
+                y: path.top
             }
             PathArc {
-                x: frame.width
-                y: path.topRightSize
+                x: path.right
+                y: path.top + path.topRightSize
                 radiusX: path.topRightType === 1 ? path.topRightSize : 0
                 radiusY: radiusX
                 direction: PathArc.Clockwise
             }
             PathLine {
-                x: frame.width
-                y: frame.height - path.bottomRightSize
+                x: path.right
+                y: path.bottom - path.bottomRightSize
             }
             PathArc {
-                x: frame.width - path.bottomRightSize
-                y: frame.height
+                x: path.right - path.bottomRightSize
+                y: path.bottom
                 radiusX: path.bottomRightType === 1 ? path.bottomRightSize : 0
                 radiusY: radiusX
                 direction: PathArc.Clockwise
             }
             PathLine {
-                x: path.bottomLeftSize
-                y: frame.height
+                x: path.left + path.bottomLeftSize
+                y: path.bottom
             }
             PathArc {
-                x: 0
-                y: frame.height - path.bottomLeftSize
+                x: path.left
+                y: path.bottom - path.bottomLeftSize
                 radiusX: path.bottomLeftType === 1 ? path.bottomLeftSize : 0
                 radiusY: radiusX
                 direction: PathArc.Clockwise
             }
             PathLine {
-                x: 0
-                y: path.topLeftSize
+                x: path.left
+                y: path.top + path.topLeftSize
             }
             PathArc {
-                x: path.topLeftSize
-                y: 0
+                x: path.left + path.topLeftSize
+                y: path.top
                 radiusX: path.topLeftType === 1 ? path.topLeftSize : 0
                 radiusY: radiusX
                 direction: PathArc.Clockwise
