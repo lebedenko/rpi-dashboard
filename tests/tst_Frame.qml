@@ -1,10 +1,11 @@
-import Rpi.Dashboard
 import QtQuick
 import QtQuick.Shapes
 import QtTest
+import Rpi.Dashboard
 
 Item {
     id: root
+
     width: 160
     height: 120
 
@@ -18,9 +19,6 @@ Item {
     }
 
     TestCase {
-        name: "FrameTests"
-        when: windowShown
-
         function createFrame(properties = {}) {
             const frame = createTemporaryObject(frameComponent, root, properties);
             verify(!!frame, "Component exists");
@@ -62,7 +60,9 @@ Item {
                 "backgroundColor": "#ff0000",
                 "color": "#00000000",
                 "lineWidth": 0,
-                "corners": ({ "rounded": 12 })
+                "corners": ({
+                        "rounded": 12
+                    })
             });
             const image = renderedImage(frame);
             compare(image.pixel(1, 1), "#ffffff");
@@ -77,7 +77,9 @@ Item {
                 "backgroundColor": "#00ff00",
                 "color": "#00000000",
                 "lineWidth": 0,
-                "corners": ({ "chamfered": 12 })
+                "corners": ({
+                        "chamfered": 12
+                    })
             });
             const image = renderedImage(frame);
             compare(image.pixel(3, 7), "#ffffff");
@@ -92,9 +94,13 @@ Item {
                 "color": "#00000000",
                 "lineWidth": 0,
                 "corners": ({
-                    "topLeft": { "rounded": 10 },
-                    "bottomRight": { "chamfered": 10 }
-                })
+                        "topLeft": {
+                            "rounded": 10
+                        },
+                        "bottomRight": {
+                            "chamfered": 10
+                        }
+                    })
             });
             const image = renderedImage(frame);
             compare(image.pixel(1, 1), "#ffffff");
@@ -113,8 +119,14 @@ Item {
 
         function test_squareBordersAreContainedAndSymmetric_data() {
             return [
-                { "tag": "one pixel", "lineWidth": 1 },
-                { "tag": "two pixels", "lineWidth": 2 }
+                {
+                    "tag": "one pixel",
+                    "lineWidth": 1
+                },
+                {
+                    "tag": "two pixels",
+                    "lineWidth": 2
+                }
             ];
         }
 
@@ -160,20 +172,34 @@ Item {
                 "color": "#00000000",
                 "lineWidth": 0
             };
-            const negative = createFrame(Object.assign({}, fillProperties,
-                                                        { "corners": ({ "rounded": -4 }) }));
+            const negative = createFrame(Object.assign({}, fillProperties, {
+                "corners": ({
+                        "rounded": -4
+                    })
+            }));
             compare(renderedImage(negative).pixel(1, 1), "#ff00ff");
             negative.destroy();
-            const malformed = createFrame(Object.assign({}, fillProperties,
-                                                         { "corners": ({ "topLeft": { "rounded": "large" } }) }));
+            const malformed = createFrame(Object.assign({}, fillProperties, {
+                "corners": ({
+                        "topLeft": {
+                            "rounded": "large"
+                        }
+                    })
+            }));
             compare(renderedImage(malformed).pixel(1, 1), "#ff00ff");
             malformed.destroy();
-            const nonFinite = createFrame(Object.assign({}, fillProperties,
-                                                         { "corners": ({ "chamfered": Number.POSITIVE_INFINITY }) }));
+            const nonFinite = createFrame(Object.assign({}, fillProperties, {
+                "corners": ({
+                        "chamfered": Number.POSITIVE_INFINITY
+                    })
+            }));
             compare(renderedImage(nonFinite).pixel(1, 1), "#ff00ff");
             nonFinite.destroy();
-            const oversized = createFrame(Object.assign({}, fillProperties,
-                                                         { "corners": ({ "rounded": 100 }) }));
+            const oversized = createFrame(Object.assign({}, fillProperties, {
+                "corners": ({
+                        "rounded": 100
+                    })
+            }));
             compare(renderedImage(oversized).pixel(1, 1), "#ffffff");
             oversized.width = 80;
             oversized.height = 20;
@@ -181,10 +207,21 @@ Item {
         }
 
         function test_reassignedConfigurationUpdatesGeometry() {
-            const frame = createFrame({ "corners": ({ "rounded": 4 }) });
-            frame.corners = ({ "topLeft": { "chamfered": 8 } });
+            const frame = createFrame({
+                "corners": ({
+                        "rounded": 4
+                    })
+            });
+            frame.corners = ({
+                    "topLeft": {
+                        "chamfered": 8
+                    }
+                });
             compare(frame.corners.topLeft.chamfered, 8);
             compare(frame.corners.topRight, undefined);
         }
+
+        name: "FrameTests"
+        when: windowShown
     }
 }

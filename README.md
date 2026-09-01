@@ -13,7 +13,7 @@ The dashboard collects local Linux system information and metrics and accepts co
 - A C++23 compiler
 - Qt 6.8 or newer with Core, Gui, Network, Qml, Quick, and Test
 - [Task](https://taskfile.dev/) for the convenience commands
-- clang-tidy and clang-format for `task check` and `task format`
+- clang-tidy, clang-format, and qmlformat for `task check` and `task format`
 
 On Raspberry Pi OS/Debian, the relevant Qt packages are normally `qt6-base-dev`, `qt6-declarative-dev`, `qt6-svg-plugins`, `qt6-wayland`, and `libxkbcommon-dev`. The SVG image-format plugin is required to decode the embedded sidebar icons. Running directly from a TTY also requires [Cage](https://github.com/cage-kiosk/cage) and `wlr-randr`. Private Qt development packages are neither required nor permitted by the project architecture.
 
@@ -62,7 +62,9 @@ ctest --preset dev
 ./build/dev/src/dashboard/rpi-dashboard
 ```
 
-Use `task check` for the clang-tidy build. If Qt is installed outside the system prefix, set `CMAKE_PREFIX_PATH` or `Qt6_ROOT` when configuring.
+Use `task format` to format C++ and QML sources. `task format:check` validates formatting without
+modifying files, and `task check` runs that validation before the clang-tidy build and tests. If Qt
+is installed outside the system prefix, set `CMAKE_PREFIX_PATH` or `Qt6_ROOT` when configuring.
 
 Use `task ci` for the authoritative pre-push check in the digest-locked project container, or
 `scripts/run-ci-container.sh tidy` for a targeted containerized clang-tidy run. The initial image

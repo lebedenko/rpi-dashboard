@@ -11,7 +11,15 @@ namespace dashboard::weather {
 class HourlyForecastModel final : public QAbstractListModel {
   Q_OBJECT
  public:
-  enum Role { TimestampRole = Qt::UserRole + 1, TimeRole, IconCodeRole, TemperatureRole, PrecipitationRole };
+  enum Role {
+    TimestampRole = Qt::UserRole + 1,
+    LocalHourRole,
+    IconCodeRole,
+    TemperatureRole,
+    PrecipitationRole,
+    TrendPositionRole,
+    PreviousTrendPositionRole
+  };
   explicit HourlyForecastModel(QObject* parent = nullptr);
   [[nodiscard]] int rowCount(const QModelIndex& parent = {}) const override;
   [[nodiscard]] QVariant data(const QModelIndex& index, int role) const override;
@@ -21,6 +29,8 @@ class HourlyForecastModel final : public QAbstractListModel {
  private:
   QVector<HourlyForecast> rows_;
   int timezoneOffsetSeconds_{};
+  double minimumTemperature_{};
+  double maximumTemperature_{};
 };
 
 class DailyForecastModel final : public QAbstractListModel {
@@ -32,6 +42,7 @@ class DailyForecastModel final : public QAbstractListModel {
     IconCodeRole,
     MinimumRole,
     MaximumRole,
+    AverageRole,
     PrecipitationRole
   };
   explicit DailyForecastModel(QObject* parent = nullptr);

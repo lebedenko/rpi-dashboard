@@ -33,12 +33,21 @@ void DashboardStartupTest::
   QVERIFY(source.contains(QStringLiteral("Accessible.role: Accessible.StaticText")));
   QVERIFY(source.contains(QStringLiteral("color: Theme.primaryAccent")));
   QVERIFY(source.contains(QStringLiteral("color: Theme.violetAccent")));
-  QVERIFY(source.contains(QStringLiteral("font.pixelSize: Theme.clockTimeTextSize")));
-  QVERIFY(source.contains(QStringLiteral("font.pixelSize: Theme.clockDateTextSize")));
-  QVERIFY(source.count(QStringLiteral("font.family: Theme.sansFontFamily")) >= 3);
-  QVERIFY(source.contains(QStringLiteral("topLeft: { rounded: Theme.radiusMedium }")));
-  QVERIFY(source.contains(QStringLiteral("topRight: { chamfered: Theme.chamferLarge }")));
-  QVERIFY(source.contains(QStringLiteral("bottomLeft: { chamfered: Theme.chamferLarge }")));
+  QVERIFY(source.contains(QStringLiteral("pixelSize: Theme.clockTimeTextSize")));
+  QVERIFY(source.contains(QStringLiteral("pixelSize: Theme.clockDateTextSize")));
+  QVERIFY(source.count(QStringLiteral("family: Theme.sansFontFamily")) >= 3);
+  QVERIFY(source.contains(QStringLiteral("\"topLeft\"")));
+  QVERIFY(source.contains(QStringLiteral("\"rounded\": Theme.radiusMedium")));
+  QVERIFY(source.contains(QStringLiteral("\"topRight\"")));
+  QVERIFY(source.contains(QStringLiteral("\"bottomLeft\"")));
+  QVERIFY(source.count(QStringLiteral("\"chamfered\": Theme.chamferLarge")) == 3);
+  QVERIFY(source.contains(QStringLiteral("weatherAirSection")));
+  QVERIFY(source.contains(QStringLiteral("weatherSolarSection")));
+  QVERIFY(source.contains(QStringLiteral("weatherPrecipitationSection")));
+  QCOMPARE(source.count(QStringLiteral("Separator {")), 3);
+  QVERIFY(!source.contains(QStringLiteral("DottedSeparator")));
+  QVERIFY(!source.contains(QStringLiteral("Qt.openUrlExternally")));
+  QVERIFY(!source.contains(QStringLiteral("OpenWeather weather data")));
 
   QFile themeQml(QStringLiteral(DASHBOARD_THEME_QML));
   QVERIFY2(themeQml.open(QIODevice::ReadOnly | QIODevice::Text), qPrintable(themeQml.errorString()));
@@ -84,10 +93,12 @@ void DashboardStartupTest::sidebarDrawsInsetClosedBorder() {  // NOLINT(readabil
   QVERIFY(sidebarSurface.contains(QStringLiteral("Frame {")));
   QVERIFY(sidebarSurface.contains(QStringLiteral("backgroundColor: Theme.surface")));
   QVERIFY(sidebarSurface.contains(QStringLiteral("color: Theme.passiveBorder")));
-  QVERIFY(sidebarSurface.contains(QStringLiteral("topLeft: { chamfered: Theme.chamferLarge }")));
-  QVERIFY(sidebarSurface.contains(QStringLiteral("topRight: { rounded: Theme.radiusMedium }")));
-  QVERIFY(sidebarSurface.contains(QStringLiteral("bottomRight: { chamfered: Theme.chamferLarge }")));
-  QVERIFY(sidebarSurface.contains(QStringLiteral("bottomLeft: { chamfered: Theme.chamferLarge }")));
+  QVERIFY(sidebarSurface.contains(QStringLiteral("topLeft: {")));
+  QVERIFY(sidebarSurface.contains(QStringLiteral("topRight: {")));
+  QVERIFY(sidebarSurface.contains(QStringLiteral("bottomRight: {")));
+  QVERIFY(sidebarSurface.contains(QStringLiteral("bottomLeft: {")));
+  QCOMPARE(sidebarSurface.count(QStringLiteral("chamfered: Theme.chamferLarge")), 3);
+  QVERIFY(sidebarSurface.contains(QStringLiteral("rounded: Theme.radiusMedium")));
   QVERIFY(!source.contains(QStringLiteral("id: sidebarSeparator")));
   QCOMPARE(sidebarSurface.count(QStringLiteral("ShapePath {")), 0);
 }
@@ -112,10 +123,8 @@ void DashboardStartupTest::
   QVERIFY(source.contains(QStringLiteral("visible: pointerHover.hovered")));
   QVERIFY(!source.contains(QStringLiteral("ToolTip.visible: root.hovered || root.activeFocus")));
   QVERIFY(source.contains(QStringLiteral("lineWidth: root.activeFocus ? 2 : root.selected ? 1 : 0")));
-  QVERIFY(source.contains(QStringLiteral("topLeft: { chamfered: Theme.chamferMedium }")));
-  QVERIFY(source.contains(QStringLiteral("topRight: { rounded: Theme.radiusSmall }")));
-  QVERIFY(source.contains(QStringLiteral("bottomRight: { chamfered: Theme.chamferMedium }")));
-  QVERIFY(source.contains(QStringLiteral("bottomLeft: { rounded: Theme.radiusSmall }")));
+  QCOMPARE(source.count(QStringLiteral("\"chamfered\": Theme.chamferMedium")), 2);
+  QCOMPARE(source.count(QStringLiteral("\"rounded\": Theme.radiusSmall")), 2);
   QVERIFY(!source.contains(QStringLiteral("ShapePath {")));
 }
 
@@ -242,10 +251,10 @@ void DashboardStartupTest::
 void DashboardStartupTest::
     migratedSurfacesUseReusableFrame() {  // NOLINT(readability-convert-member-functions-to-static)
   const QStringList migratedSources = {
-      QStringLiteral(DASHBOARD_MAIN_QML), QStringLiteral(DASHBOARD_CLOCK_SIDEBAR_QML),
+      QStringLiteral(DASHBOARD_MAIN_QML),           QStringLiteral(DASHBOARD_CLOCK_SIDEBAR_QML),
       QStringLiteral(DASHBOARD_SIDEBAR_BUTTON_QML), QStringLiteral(DASHBOARD_DEVICE_CARD_QML),
-      QStringLiteral(DASHBOARD_SYSTEM_PAGE_QML), QStringLiteral(DASHBOARD_SYSTEM_METRIC_PANEL_QML),
-      QStringLiteral(DASHBOARD_PROJECTS_PAGE_QML), QStringLiteral(DASHBOARD_WEATHER_PAGE_QML)};
+      QStringLiteral(DASHBOARD_SYSTEM_PAGE_QML),    QStringLiteral(DASHBOARD_SYSTEM_METRIC_PANEL_QML),
+      QStringLiteral(DASHBOARD_PROJECTS_PAGE_QML),  QStringLiteral(DASHBOARD_WEATHER_PAGE_QML)};
   for (const auto& path : migratedSources) {
     QFile source(path);
     QVERIFY2(source.open(QIODevice::ReadOnly | QIODevice::Text), qPrintable(source.errorString()));
@@ -261,12 +270,38 @@ void DashboardStartupTest::
   const auto frameSource = QString::fromUtf8(frame.readAll());
   QCOMPARE(frameSource.count(QStringLiteral("ShapePath {")), 1);
 
+  QFile separator(QStringLiteral(DASHBOARD_SEPARATOR_QML));
+  QVERIFY(separator.open(QIODevice::ReadOnly | QIODevice::Text));
+  const auto separatorSource = QString::fromUtf8(separator.readAll());
+  QVERIFY(separatorSource.contains(QStringLiteral("import QtQuick.Shapes")));
+  QCOMPARE(separatorSource.count(QStringLiteral("ShapePath {")), 1);
+  QVERIFY(separatorSource.contains(QStringLiteral("preferredRendererType: Shape.CurveRenderer")));
+  QVERIFY(separatorSource.contains(QStringLiteral("dashPattern: [1, 3]")));
+  QVERIFY(separatorSource.contains(QStringLiteral("capStyle: ShapePath.RoundCap")));
+
+  QFile weatherPage(QStringLiteral(DASHBOARD_WEATHER_PAGE_QML));
+  QVERIFY(weatherPage.open(QIODevice::ReadOnly | QIODevice::Text));
+  const auto weatherPageSource = QString::fromUtf8(weatherPage.readAll());
+  QVERIFY(!weatherPageSource.contains(QStringLiteral("DottedSeparator")));
+  QCOMPARE(weatherPageSource.count(QStringLiteral("Separator {")), 4);
+
+  QFile weatherGraph(QStringLiteral(DASHBOARD_WEATHER_GRAPH_SEGMENT_QML));
+  QVERIFY(weatherGraph.open(QIODevice::ReadOnly | QIODevice::Text));
+  const auto weatherGraphSource = QString::fromUtf8(weatherGraph.readAll());
+  QVERIFY(weatherGraphSource.contains(QStringLiteral("import QtQuick.Shapes")));
+  QCOMPARE(weatherGraphSource.count(QStringLiteral("ShapePath {")), 1);
+  QVERIFY(weatherGraphSource.contains(QStringLiteral("preferredRendererType: Shape.CurveRenderer")));
+  QVERIFY(weatherGraphSource.contains(QStringLiteral("capStyle: ShapePath.RoundCap")));
+
   QFile device(QStringLiteral(DASHBOARD_DEVICE_CARD_QML));
   QVERIFY(device.open(QIODevice::ReadOnly | QIODevice::Text));
   const auto deviceSource = QString::fromUtf8(device.readAll());
-  QVERIFY(deviceSource.contains(
-      QStringLiteral("corners: ({ topRight: { chamfered: Theme.chamferLarge }, bottomRight: { chamfered: "
-                     "Theme.chamferLarge } })")));
+  const auto outerFrameStart = deviceSource.indexOf(QStringLiteral("id: outerFrame"));
+  const auto activityBarStart = deviceSource.indexOf(QStringLiteral("Rectangle {"), outerFrameStart);
+  QVERIFY(outerFrameStart >= 0);
+  QVERIFY(activityBarStart > outerFrameStart);
+  const auto outerFrame = deviceSource.sliced(outerFrameStart, activityBarStart - outerFrameStart);
+  QCOMPARE(outerFrame.count(QStringLiteral("chamfered: Theme.chamferLarge")), 2);
   QVERIFY(deviceSource.contains(QStringLiteral("lineWidth: chevron.activeFocus ? 2 : 1")));
 }
 

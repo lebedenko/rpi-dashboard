@@ -18,13 +18,9 @@ ApplicationWindow {
     property var deviceModel: localDevices
     property int selectedDeviceIndex: 0
     readonly property alias currentPageIndex: pageStack.currentIndex
-    readonly property bool currentPageHasFocus: pageStack.currentIndex === 2 ? projectsPage.selectedRowHasFocus
-                                                                            : root.currentFocusTarget ? root.currentFocusTarget.activeFocus : false
+    readonly property bool currentPageHasFocus: pageStack.currentIndex === 2 ? projectsPage.selectedRowHasFocus : root.currentFocusTarget ? root.currentFocusTarget.activeFocus : false
 
-    readonly property var currentFocusTarget: pageStack.currentIndex === 0 ? overviewPage.focusTarget
-                                               : pageStack.currentIndex === 1 ? systemsPage.focusTarget
-                                               : pageStack.currentIndex === 2 ? projectsPage.focusTarget
-                                               : weatherPage.focusTarget
+    readonly property var currentFocusTarget: pageStack.currentIndex === 0 ? overviewPage.focusTarget : pageStack.currentIndex === 1 ? systemsPage.focusTarget : pageStack.currentIndex === 2 ? projectsPage.focusTarget : weatherPage.focusTarget
     readonly property var localDeviceModel: root.deviceModel
 
     width: root.windowWidth
@@ -34,112 +30,106 @@ ApplicationWindow {
     title: qsTr("rpi-dashboard")
 
     function selectPreviousPage(): void {
-        pageStack.currentIndex = Math.max(0, pageStack.currentIndex - 1)
+        pageStack.currentIndex = Math.max(0, pageStack.currentIndex - 1);
     }
 
     function selectNextPage(): void {
-        pageStack.currentIndex = Math.min(pageStack.count - 1, pageStack.currentIndex + 1)
+        pageStack.currentIndex = Math.min(pageStack.count - 1, pageStack.currentIndex + 1);
     }
 
     function isAvailable(value): bool {
-        return value !== undefined && value !== null && String(value).length > 0
+        return value !== undefined && value !== null && String(value).length > 0;
     }
 
     function valueOrPlaceholder(value): string {
-        return root.isAvailable(value) ? String(value) : "—"
+        return root.isAvailable(value) ? String(value) : "—";
     }
 
     function combine(first, second): string {
-        const values = [first, second].filter(value => root.isAvailable(value))
-        return values.length > 0 ? values.join(" · ") : "—"
+        const values = [first, second].filter(value => root.isAvailable(value));
+        return values.length > 0 ? values.join(" · ") : "—";
     }
 
     function formatCores(physical, logical): string {
         if (root.isAvailable(physical) && root.isAvailable(logical))
-            return qsTr("%1 physical · %2 logical").arg(physical).arg(logical)
+            return qsTr("%1 physical · %2 logical").arg(physical).arg(logical);
         if (root.isAvailable(logical))
-            return qsTr("%1 logical").arg(logical)
+            return qsTr("%1 logical").arg(logical);
         if (root.isAvailable(physical))
-            return qsTr("%1 physical").arg(physical)
-        return "—"
+            return qsTr("%1 physical").arg(physical);
+        return "—";
     }
 
     function formatBytes(bytes): string {
         if (!root.isAvailable(bytes))
-            return "—"
-        return qsTr("%1 GiB").arg((Number(bytes) / 1073741824).toFixed(1))
+            return "—";
+        return qsTr("%1 GiB").arg((Number(bytes) / 1073741824).toFixed(1));
     }
 
     function formatPercentage(ratio): string {
-        return root.isAvailable(ratio) ? qsTr("%1%").arg(Math.round(Number(ratio) * 100)) : "—"
+        return root.isAvailable(ratio) ? qsTr("%1%").arg(Math.round(Number(ratio) * 100)) : "—";
     }
 
     function usageRatioOrUnavailable(ratio): real {
-        return root.isAvailable(ratio) ? Number(ratio) : -1
+        return root.isAvailable(ratio) ? Number(ratio) : -1;
     }
 
     function numberOrUnavailable(value): real {
-        return root.isAvailable(value) ? Number(value) : -1
+        return root.isAvailable(value) ? Number(value) : -1;
     }
 
     function formatTemperature(celsius): string {
-        return root.isAvailable(celsius) ? qsTr("%1°C").arg(Math.round(Number(celsius))) : "—"
+        return root.isAvailable(celsius) ? qsTr("%1°C").arg(Math.round(Number(celsius))) : "—";
     }
 
     function formatUptime(seconds): string {
         if (!root.isAvailable(seconds))
-            return "—"
-        const minutes = Math.max(0, Math.floor(Number(seconds) / 60))
+            return "—";
+        const minutes = Math.max(0, Math.floor(Number(seconds) / 60));
         if (minutes < 1)
-            return qsTr("<1m")
-        const hours = Math.floor(minutes / 60)
-        const days = Math.floor(hours / 24)
+            return qsTr("<1m");
+        const hours = Math.floor(minutes / 60);
+        const days = Math.floor(hours / 24);
         if (days > 0)
-            return qsTr("%1d %2h").arg(days).arg(hours % 24)
+            return qsTr("%1d %2h").arg(days).arg(hours % 24);
         if (hours > 0)
-            return qsTr("%1h %2m").arg(hours).arg(minutes % 60)
-        return qsTr("%1m").arg(minutes)
+            return qsTr("%1h %2m").arg(hours).arg(minutes % 60);
+        return qsTr("%1m").arg(minutes);
     }
 
     function refreshLocalMetrics(): void {
-        const service = root.sysMetricsService
-        localDevices.setProperty(0, "cpuMetric", root.formatPercentage(service ? service.cpuUsageRatio : undefined))
-        localDevices.setProperty(0, "memoryMetric", root.formatPercentage(service ? service.memoryUsageRatio : undefined))
-        localDevices.setProperty(0, "cpuUsageRatio", root.usageRatioOrUnavailable(service ? service.cpuUsageRatio : undefined))
-        localDevices.setProperty(0, "memoryUsageRatio", root.usageRatioOrUnavailable(service ? service.memoryUsageRatio : undefined))
-        localDevices.setProperty(0, "temperatureMetric", root.formatTemperature(service ? service.cpuTemperatureCelsius : undefined))
-        localDevices.setProperty(0, "uptimeMetric", root.formatUptime(service ? service.uptimeSeconds : undefined))
-        localDevices.setProperty(0, "uptimeSeconds", root.numberOrUnavailable(service ? service.uptimeSeconds : undefined))
-        localDevices.setProperty(0, "cpuFrequencyHz", root.numberOrUnavailable(service ? service.averageCpuFrequencyHz : undefined))
-        localDevices.setProperty(0, "memoryUsedBytes", root.numberOrUnavailable(service ? service.memoryUsedBytes : undefined))
-        localDevices.setProperty(0, "swapUsedBytes", root.numberOrUnavailable(service ? service.swapUsedBytes : undefined))
-        localDevices.setProperty(0, "boardTemperatureCelsius", root.numberOrUnavailable(service ? service.cpuTemperatureCelsius : undefined))
-        localDevices.setProperty(0, "gpuUsageRatio", root.numberOrUnavailable(service ? service.gpuUsageRatio : undefined))
-        localDevices.setProperty(0, "gpuCoreClockHz", root.numberOrUnavailable(service ? service.gpuCoreClockHz : undefined))
-        localDevices.setProperty(0, "gpuTemperatureCelsius", root.numberOrUnavailable(service ? service.gpuTemperatureCelsius : undefined))
-        localDevices.setProperty(0, "networkReceiveRate", root.numberOrUnavailable(service ? service.networkReceiveBytesPerSecond : undefined))
-        localDevices.setProperty(0, "networkTransmitRate", root.numberOrUnavailable(service ? service.networkTransmitBytesPerSecond : undefined))
-        localDevices.setProperty(0, "networkInterfaceName", root.isAvailable(service ? service.networkInterfaceName : undefined)
-                                                       ? String(service.networkInterfaceName) : "")
-        const bootTime = service ? service.bootTimeUtc : undefined
-        localDevices.setProperty(0, "bootTimeMs", root.isAvailable(bootTime) ? new Date(bootTime).getTime() : -1)
+        const service = root.sysMetricsService;
+        localDevices.setProperty(0, "cpuMetric", root.formatPercentage(service ? service.cpuUsageRatio : undefined));
+        localDevices.setProperty(0, "memoryMetric", root.formatPercentage(service ? service.memoryUsageRatio : undefined));
+        localDevices.setProperty(0, "cpuUsageRatio", root.usageRatioOrUnavailable(service ? service.cpuUsageRatio : undefined));
+        localDevices.setProperty(0, "memoryUsageRatio", root.usageRatioOrUnavailable(service ? service.memoryUsageRatio : undefined));
+        localDevices.setProperty(0, "temperatureMetric", root.formatTemperature(service ? service.cpuTemperatureCelsius : undefined));
+        localDevices.setProperty(0, "uptimeMetric", root.formatUptime(service ? service.uptimeSeconds : undefined));
+        localDevices.setProperty(0, "uptimeSeconds", root.numberOrUnavailable(service ? service.uptimeSeconds : undefined));
+        localDevices.setProperty(0, "cpuFrequencyHz", root.numberOrUnavailable(service ? service.averageCpuFrequencyHz : undefined));
+        localDevices.setProperty(0, "memoryUsedBytes", root.numberOrUnavailable(service ? service.memoryUsedBytes : undefined));
+        localDevices.setProperty(0, "swapUsedBytes", root.numberOrUnavailable(service ? service.swapUsedBytes : undefined));
+        localDevices.setProperty(0, "boardTemperatureCelsius", root.numberOrUnavailable(service ? service.cpuTemperatureCelsius : undefined));
+        localDevices.setProperty(0, "gpuUsageRatio", root.numberOrUnavailable(service ? service.gpuUsageRatio : undefined));
+        localDevices.setProperty(0, "gpuCoreClockHz", root.numberOrUnavailable(service ? service.gpuCoreClockHz : undefined));
+        localDevices.setProperty(0, "gpuTemperatureCelsius", root.numberOrUnavailable(service ? service.gpuTemperatureCelsius : undefined));
+        localDevices.setProperty(0, "networkReceiveRate", root.numberOrUnavailable(service ? service.networkReceiveBytesPerSecond : undefined));
+        localDevices.setProperty(0, "networkTransmitRate", root.numberOrUnavailable(service ? service.networkTransmitBytesPerSecond : undefined));
+        localDevices.setProperty(0, "networkInterfaceName", root.isAvailable(service ? service.networkInterfaceName : undefined) ? String(service.networkInterfaceName) : "");
+        const bootTime = service ? service.bootTimeUtc : undefined;
+        localDevices.setProperty(0, "bootTimeMs", root.isAvailable(bootTime) ? new Date(bootTime).getTime() : -1);
     }
 
     function refreshLocalDevice(): void {
-        const service = root.sysInfoService
-        localDevices.setProperty(0, "hostname", root.valueOrPlaceholder(service ? service.hostname : undefined).toUpperCase())
-        localDevices.setProperty(0, "osDescription", root.combine(service ? service.osPrettyName : undefined,
-                                                                  service ? service.osVersion : undefined))
-        localDevices.setProperty(0, "kernelDescription", root.combine(service ? service.kernelType : undefined,
-                                                                      service ? service.kernelVersion : undefined))
-        localDevices.setProperty(0, "architecture", root.valueOrPlaceholder(service ? service.architecture : undefined))
-        localDevices.setProperty(0, "hardwareDescription", root.combine(service ? service.hardwareManufacturer : undefined,
-                                                                        service ? service.hardwareModel : undefined))
-        localDevices.setProperty(0, "cpuDescription", root.combine(service ? service.cpuVendor : undefined,
-                                                                   service ? service.cpuModel : undefined))
-        localDevices.setProperty(0, "coreDescription", root.formatCores(service ? service.physicalCoreCount : undefined,
-                                                                        service ? service.logicalCpuCount : undefined))
-        localDevices.setProperty(0, "totalMemory", root.formatBytes(service ? service.totalMemoryBytes : undefined))
+        const service = root.sysInfoService;
+        localDevices.setProperty(0, "hostname", root.valueOrPlaceholder(service ? service.hostname : undefined).toUpperCase());
+        localDevices.setProperty(0, "osDescription", root.combine(service ? service.osPrettyName : undefined, service ? service.osVersion : undefined));
+        localDevices.setProperty(0, "kernelDescription", root.combine(service ? service.kernelType : undefined, service ? service.kernelVersion : undefined));
+        localDevices.setProperty(0, "architecture", root.valueOrPlaceholder(service ? service.architecture : undefined));
+        localDevices.setProperty(0, "hardwareDescription", root.combine(service ? service.hardwareManufacturer : undefined, service ? service.hardwareModel : undefined));
+        localDevices.setProperty(0, "cpuDescription", root.combine(service ? service.cpuVendor : undefined, service ? service.cpuModel : undefined));
+        localDevices.setProperty(0, "coreDescription", root.formatCores(service ? service.physicalCoreCount : undefined, service ? service.logicalCpuCount : undefined));
+        localDevices.setProperty(0, "totalMemory", root.formatBytes(service ? service.totalMemoryBytes : undefined));
     }
 
     ListModel {
@@ -181,51 +171,95 @@ ApplicationWindow {
     Connections {
         target: root.sysInfoService
         ignoreUnknownSignals: true
-        function onHostnameChanged(): void { root.refreshLocalDevice() }
-        function onOsFamilyChanged(): void { root.refreshLocalDevice() }
-        function onOsIdChanged(): void { root.refreshLocalDevice() }
-        function onOsVersionChanged(): void { root.refreshLocalDevice() }
-        function onOsPrettyNameChanged(): void { root.refreshLocalDevice() }
-        function onKernelTypeChanged(): void { root.refreshLocalDevice() }
-        function onKernelVersionChanged(): void { root.refreshLocalDevice() }
-        function onArchitectureChanged(): void { root.refreshLocalDevice() }
-        function onHardwareManufacturerChanged(): void { root.refreshLocalDevice() }
-        function onHardwareModelChanged(): void { root.refreshLocalDevice() }
-        function onCpuVendorChanged(): void { root.refreshLocalDevice() }
-        function onCpuModelChanged(): void { root.refreshLocalDevice() }
-        function onPhysicalCoreCountChanged(): void { root.refreshLocalDevice() }
-        function onLogicalCpuCountChanged(): void { root.refreshLocalDevice() }
-        function onTotalMemoryBytesChanged(): void { root.refreshLocalDevice() }
+        function onHostnameChanged(): void {
+            root.refreshLocalDevice();
+        }
+        function onOsFamilyChanged(): void {
+            root.refreshLocalDevice();
+        }
+        function onOsIdChanged(): void {
+            root.refreshLocalDevice();
+        }
+        function onOsVersionChanged(): void {
+            root.refreshLocalDevice();
+        }
+        function onOsPrettyNameChanged(): void {
+            root.refreshLocalDevice();
+        }
+        function onKernelTypeChanged(): void {
+            root.refreshLocalDevice();
+        }
+        function onKernelVersionChanged(): void {
+            root.refreshLocalDevice();
+        }
+        function onArchitectureChanged(): void {
+            root.refreshLocalDevice();
+        }
+        function onHardwareManufacturerChanged(): void {
+            root.refreshLocalDevice();
+        }
+        function onHardwareModelChanged(): void {
+            root.refreshLocalDevice();
+        }
+        function onCpuVendorChanged(): void {
+            root.refreshLocalDevice();
+        }
+        function onCpuModelChanged(): void {
+            root.refreshLocalDevice();
+        }
+        function onPhysicalCoreCountChanged(): void {
+            root.refreshLocalDevice();
+        }
+        function onLogicalCpuCountChanged(): void {
+            root.refreshLocalDevice();
+        }
+        function onTotalMemoryBytesChanged(): void {
+            root.refreshLocalDevice();
+        }
     }
 
     Connections {
         target: root.sysMetricsService
         ignoreUnknownSignals: true
-        function onCurrentMetricsChanged(): void { root.refreshLocalMetrics() }
+        function onCurrentMetricsChanged(): void {
+            root.refreshLocalMetrics();
+        }
     }
 
     Component.onCompleted: {
-        root.refreshLocalDevice()
-        root.refreshLocalMetrics()
+        root.refreshLocalDevice();
+        root.refreshLocalMetrics();
     }
 
-    Shortcut { sequence: "Home"; onActivated: pageStack.currentIndex = 0 }
-    Shortcut { sequence: "Left"; onActivated: root.selectPreviousPage() }
-    Shortcut { sequence: "Right"; onActivated: root.selectNextPage() }
+    Shortcut {
+        sequence: "Home"
+        onActivated: pageStack.currentIndex = 0
+    }
+    Shortcut {
+        sequence: "Left"
+        onActivated: root.selectPreviousPage()
+    }
+    Shortcut {
+        sequence: "Right"
+        onActivated: root.selectNextPage()
+    }
     Shortcut {
         sequence: "F5"
         onActivated: {
             if (pageStack.currentIndex === 2)
-                projectsPage.focusSelected()
+                projectsPage.focusSelected();
             else if (pageStack.currentIndex === 1)
-                systemsPage.focusSelected()
+                systemsPage.focusSelected();
             else if (pageStack.currentIndex === 3 && root.weatherService)
-                root.weatherService.refresh()
+                root.weatherService.refresh();
             else if (root.currentFocusTarget)
-                root.currentFocusTarget.forceActiveFocus()
+                root.currentFocusTarget.forceActiveFocus();
         }
     }
-    Shortcut { sequence: "Ctrl+Q"; onActivated: root.close() }
+    Shortcut {
+        sequence: "Ctrl+Q"
+        onActivated: root.close()
+    }
 
     RowLayout {
         anchors.fill: parent
@@ -248,11 +282,19 @@ ApplicationWindow {
                 backgroundColor: Theme.surface
                 color: Theme.passiveBorder
                 corners: ({
-                    topLeft: { chamfered: Theme.chamferLarge },
-                    topRight: { rounded: Theme.radiusMedium },
-                    bottomRight: { chamfered: Theme.chamferLarge },
-                    bottomLeft: { chamfered: Theme.chamferLarge }
-                })
+                        topLeft: {
+                            chamfered: Theme.chamferLarge
+                        },
+                        topRight: {
+                            rounded: Theme.radiusMedium
+                        },
+                        bottomRight: {
+                            chamfered: Theme.chamferLarge
+                        },
+                        bottomLeft: {
+                            chamfered: Theme.chamferLarge
+                        }
+                    })
             }
 
             Column {
@@ -331,13 +373,16 @@ ApplicationWindow {
                 objectName: "projectsPage"
                 service: root.projectsService
             }
-            WeatherPage { id: weatherPage; service: root.weatherService }
+            WeatherPage {
+                id: weatherPage
+                service: root.weatherService
+            }
         }
 
         ClockSidebar {
             projectsService: root.projectsService
             weatherService: root.weatherService
-            weatherMode: pageStack.currentIndex === 3
+            pageContext: ["overview", "system", "projects", "weather"][pageStack.currentIndex]
             Layout.preferredWidth: Theme.statusSidebarWidth
             Layout.fillHeight: true
             Layout.topMargin: Theme.displaySafeInset
@@ -351,7 +396,9 @@ ApplicationWindow {
         objectName: "screensaverLoader"
         anchors.fill: parent
         active: false
-        sourceComponent: ScreensaverView { service: root.weatherService }
+        sourceComponent: ScreensaverView {
+            service: root.weatherService
+        }
     }
 
     Rectangle {
@@ -367,26 +414,50 @@ ApplicationWindow {
         target: root.screensaverController
         function onActiveChanged(): void {
             if (root.screensaverController.active) {
-                leaveScreensaver.stop()
-                enterScreensaver.start()
+                leaveScreensaver.stop();
+                enterScreensaver.start();
             } else {
-                enterScreensaver.stop()
-                leaveScreensaver.start()
+                enterScreensaver.stop();
+                leaveScreensaver.start();
             }
         }
     }
 
     SequentialAnimation {
         id: enterScreensaver
-        OpacityAnimator { target: transitionCurtain; from: 0; to: 1; duration: 150 }
-        ScriptAction { script: screensaverLoader.active = true }
-        OpacityAnimator { target: transitionCurtain; from: 1; to: 0; duration: 150 }
+        OpacityAnimator {
+            target: transitionCurtain
+            from: 0
+            to: 1
+            duration: 150
+        }
+        ScriptAction {
+            script: screensaverLoader.active = true
+        }
+        OpacityAnimator {
+            target: transitionCurtain
+            from: 1
+            to: 0
+            duration: 150
+        }
     }
 
     SequentialAnimation {
         id: leaveScreensaver
-        OpacityAnimator { target: transitionCurtain; from: 0; to: 1; duration: 150 }
-        ScriptAction { script: screensaverLoader.active = false }
-        OpacityAnimator { target: transitionCurtain; from: 1; to: 0; duration: 150 }
+        OpacityAnimator {
+            target: transitionCurtain
+            from: 0
+            to: 1
+            duration: 150
+        }
+        ScriptAction {
+            script: screensaverLoader.active = false
+        }
+        OpacityAnimator {
+            target: transitionCurtain
+            from: 1
+            to: 0
+            duration: 150
+        }
     }
 }

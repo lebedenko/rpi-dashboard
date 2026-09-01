@@ -6,44 +6,85 @@ Item {
     property date currentTimestamp: new Date()
     property var projectsService: null
     property var weatherService: null
-    property bool weatherMode: false
+    property string pageContext: "overview"
     readonly property string timeText: Qt.formatTime(root.currentTimestamp, "hh:mm")
     readonly property string dateText: Qt.formatDate(root.currentTimestamp, "ddd dd MMM")
     readonly property string ciText: qsTr("%1 CI").arg(root.statusLabel(root.projectsService ? root.projectsService.aggregateHealth : "unknown"))
-    readonly property string runnerText: root.projectsService && root.projectsService.totalRunnerCount >= 0
-                                         ? qsTr("%1/%2 RUNNERS").arg(root.projectsService.onlineRunnerCount).arg(root.projectsService.totalRunnerCount)
-                                         : qsTr("— RUNNERS")
-    readonly property string accessibleText: root.weatherMode
-        ? qsTr("%1, %2, air quality %3, sunset %4, rain probability %5 percent")
-            .arg(root.timeText).arg(root.dateText).arg(root.weatherService ? root.weatherService.airQualityCategory : qsTr("unavailable"))
-            .arg(root.weatherService ? root.weatherService.localSunset : "—")
-            .arg(root.weatherService ? Math.round(root.weatherService.todayRainProbabilityPercent) : 0)
-        : qsTr("%1, %2, %3, %4").arg(root.timeText).arg(root.dateText).arg(root.ciText).arg(root.runnerText)
+    readonly property string runnerText: root.projectsService && root.projectsService.totalRunnerCount >= 0 ? qsTr("%1/%2 RUNNERS").arg(root.projectsService.onlineRunnerCount).arg(root.projectsService.totalRunnerCount) : qsTr("— RUNNERS")
+    readonly property real precipitationProbability: root.weatherService ? root.weatherService.todayPrecipitationProbabilityPercent : 0
+    readonly property string precipitationLabel: root.precipitationProbability > 0 && root.weatherService ? root.precipitationName(root.weatherService.todayPrecipitationKind) : qsTr("PRECIPITATION")
+    readonly property string precipitationValue: root.precipitationProbability > 0 ? qsTr("%1%").arg(Math.round(root.precipitationProbability)) : qsTr("NONE")
+    readonly property string accessibleText: root.pageContext === "projects" ? qsTr("%1, %2, %3, %4").arg(root.timeText).arg(root.dateText).arg(root.ciText).arg(root.runnerText) : root.pageContext === "weather" ? qsTr("%1, %2, air %3, index %4, %5 %6, %7 %8").arg(root.timeText).arg(root.dateText).arg(root.weatherService ? root.weatherService.airQualityCategory : qsTr("unavailable")).arg(root.weatherService ? root.weatherService.airQualityIndex : 0).arg(root.weatherService && root.weatherService.nextSolarEventKind === "sunrise" ? qsTr("sunrise") : qsTr("sunset")).arg(root.weatherService ? root.weatherService.localNextSolarEventTime : "—").arg(root.precipitationLabel).arg(root.precipitationValue) : qsTr("%1, %2").arg(root.timeText).arg(root.dateText)
+
+    function statusLabel(health): string {
+        const labels = {
+            "failed": qsTr("FAILED"),
+            "attention": qsTr("ATTENTION"),
+            "running": qsTr("RUNNING"),
+            "stale": qsTr("STALE"),
+            "healthy": qsTr("HEALTHY"),
+            "unknown": qsTr("UNKNOWN")
+        };
+        return labels[health] || labels.unknown;
+    }
+
+    function precipitationName(kind): string {
+        const labels = {
+            "rain": qsTr("RAIN"),
+            "snow": qsTr("SNOW"),
+            "mixed": qsTr("MIXED"),
+            "other": qsTr("PRECIPITATION"),
+            "none": qsTr("PRECIPITATION")
+        };
+        return labels[kind] || labels.other;
+    }
+
+    function airQualityColor(index): color {
+        if (index >= 1 && index <= 2)
+            return Theme.onlineStatus;
+
+        if (index === 3)
+            return Theme.attentionStatus;
+
+        if (index >= 4 && index <= 5)
+            return Theme.failureStatus;
+
+        return Theme.textPrimary;
+    }
 
     objectName: "clockSidebar"
     Accessible.role: Accessible.StaticText
     Accessible.name: root.accessibleText
 
     Frame {
-        id: sidebarBackground
-
         anchors.fill: parent
         backgroundColor: Theme.surface
         color: Theme.passiveBorder
         corners: ({
-            topLeft: { rounded: Theme.radiusMedium },
-            topRight: { chamfered: Theme.chamferLarge },
-            bottomRight: { chamfered: Theme.chamferLarge },
-            bottomLeft: { chamfered: Theme.chamferLarge }
-        })
+                "topLeft": {
+                    "rounded": Theme.radiusMedium
+                },
+                "topRight": {
+                    "chamfered": Theme.chamferLarge
+                },
+                "bottomRight": {
+                    "chamfered": Theme.chamferLarge
+                },
+                "bottomLeft": {
+                    "chamfered": Theme.chamferLarge
+                }
+            })
     }
 
     Column {
-        anchors.top: parent.top
-        anchors.topMargin: Theme.spacingSmall
-        anchors.left: parent.left
-        anchors.right: parent.right
-        spacing: Theme.spacingSmall
+        spacing: 5
+
+        anchors {
+            top: parent.top
+            topMargin: Theme.spacingSmall
+            left: parent.left
+            right: parent.right
+        }
 
         Text {
             id: timeLabel
@@ -51,12 +92,15 @@ Item {
             objectName: "clockTimeLabel"
             width: parent.width
             color: Theme.primaryAccent
-            font.family: Theme.sansFontFamily
-            font.pixelSize: Theme.clockTimeTextSize
-            font.weight: Theme.metricFontWeight
             horizontalAlignment: Text.AlignHCenter
             text: root.timeText
             Accessible.ignored: true
+
+            font {
+                family: Theme.sansFontFamily
+                pixelSize: Theme.clockTimeTextSize
+                weight: Theme.metricFontWeight
+            }
         }
 
         Text {
@@ -66,76 +110,189 @@ Item {
             width: parent.width
             color: Theme.violetAccent
             elide: Text.ElideRight
-            font.family: Theme.sansFontFamily
-            font.pixelSize: Theme.clockDateTextSize
-            font.weight: Theme.informationFontWeight
             horizontalAlignment: Text.AlignHCenter
             text: root.dateText
             Accessible.ignored: true
+
+            font {
+                family: Theme.sansFontFamily
+                pixelSize: Theme.clockDateTextSize
+                weight: Theme.informationFontWeight
+            }
         }
 
-        Rectangle {
+        Separator {
+            objectName: "clockDateSeparator"
             width: parent.width - Theme.spacingMedium
-            height: 1
             anchors.horizontalCenter: parent.horizontalCenter
-            color: Theme.sectionDivider
-            Accessible.ignored: true
+            orientation: Qt.Horizontal
+            lineStyle: Separator.Dotted
+            color: Theme.sectionDividerStrong
         }
 
-        Text {
-            objectName: "globalCiHealth"
+        Column {
             width: parent.width
-            color: Theme.statusColor(root.projectsService ? root.projectsService.aggregateHealth : "unknown")
-            font.family: Theme.sansFontFamily
-            font.pixelSize: Theme.sectionTitleTextSize
-            font.weight: Theme.technicalFontWeight
-            horizontalAlignment: Text.AlignHCenter
-            text: root.ciText
-            Accessible.ignored: true
-        }
+            spacing: Theme.spacingSmall
+            visible: root.pageContext === "projects"
 
-        Text {
-            objectName: "globalRunnerHealth"
-            width: parent.width
-            color: Theme.textSecondary
-            font.family: Theme.fixedFontFamily
-            font.pixelSize: Theme.captionTextSize
-            horizontalAlignment: Text.AlignHCenter
-            text: root.runnerText
-            visible: !root.weatherMode
-            Accessible.ignored: true
+            Text {
+                objectName: "globalCiHealth"
+                width: parent.width
+                color: Theme.statusColor(root.projectsService ? root.projectsService.aggregateHealth : "unknown")
+                horizontalAlignment: Text.AlignHCenter
+                text: root.ciText
+                Accessible.ignored: true
+
+                font {
+                    family: Theme.sansFontFamily
+                    pixelSize: Theme.sectionTitleTextSize
+                    weight: Theme.technicalFontWeight
+                }
+            }
+
+            Text {
+                objectName: "globalRunnerHealth"
+                width: parent.width
+                color: Theme.textSecondary
+                horizontalAlignment: Text.AlignHCenter
+                text: root.runnerText
+                Accessible.ignored: true
+
+                font {
+                    family: Theme.fixedFontFamily
+                    pixelSize: Theme.captionTextSize
+                }
+            }
         }
 
         Column {
             objectName: "weatherRail"
-            width: parent.width
+            width: parent.width - 2 * Theme.spacingMedium
+            anchors.horizontalCenter: parent.horizontalCenter
             spacing: Theme.spacingSmall
-            visible: root.weatherMode
-            Text { width: parent.width; color: Theme.textMuted; horizontalAlignment: Text.AlignHCenter; font.family: Theme.sansFontFamily; font.pixelSize: Theme.captionTextSize; text: qsTr("AIR QUALITY") }
-            Text { objectName: "weatherAqi"; width: parent.width; color: Theme.primaryAccent; horizontalAlignment: Text.AlignHCenter; font.family: Theme.fixedFontFamily; font.pixelSize: Theme.metricTextSize; text: root.weatherService && root.weatherService.airQualityIndex ? qsTr("%1 · %2").arg(root.weatherService.airQualityIndex).arg(root.weatherService.airQualityCategory) : "—" }
-            Text { width: parent.width; color: Theme.textMuted; horizontalAlignment: Text.AlignHCenter; font.family: Theme.sansFontFamily; font.pixelSize: Theme.captionTextSize; text: qsTr("SUNSET") }
-            Text { objectName: "weatherSunset"; width: parent.width; color: Theme.attentionStatus; horizontalAlignment: Text.AlignHCenter; font.family: Theme.fixedFontFamily; font.pixelSize: Theme.bodyTextSize; text: root.weatherService && root.weatherService.localSunset ? root.weatherService.localSunset : "—" }
-            Text { width: parent.width; color: Theme.textMuted; horizontalAlignment: Text.AlignHCenter; font.family: Theme.sansFontFamily; font.pixelSize: Theme.captionTextSize; text: qsTr("RAIN TODAY") }
-            Text { objectName: "weatherRain"; width: parent.width; color: Theme.violetAccent; horizontalAlignment: Text.AlignHCenter; font.family: Theme.fixedFontFamily; font.pixelSize: Theme.bodyTextSize; text: root.weatherService ? qsTr("%1%").arg(Math.round(root.weatherService.todayRainProbabilityPercent)) : "—" }
-            Item {
+            visible: root.pageContext === "weather"
+
+            Column {
+                objectName: "weatherAirSection"
                 width: parent.width
-                height: Theme.touchTarget
-                activeFocusOnTab: true
-                Accessible.role: Accessible.Link
-                Accessible.name: qsTr("OpenWeather weather data")
-                Text { anchors.centerIn: parent; color: Theme.textMuted; font.family: Theme.sansFontFamily; font.pixelSize: Theme.axisTextSize; text: qsTr("OpenWeather") }
-                TapHandler { onTapped: Qt.openUrlExternally("https://openweathermap.org/") }
-                Keys.onReturnPressed: Qt.openUrlExternally("https://openweathermap.org/")
-                Keys.onSpacePressed: Qt.openUrlExternally("https://openweathermap.org/")
+                spacing: 2
+
+                Text {
+                    width: parent.width
+                    color: Theme.primaryAccent
+                    text: qsTr("AIR")
+
+                    font {
+                        family: Theme.sansFontFamily
+                        pixelSize: Theme.bodyTextSize
+                    }
+                }
+
+                Row {
+                    objectName: "weatherAqi"
+                    spacing: Theme.spacingSmall
+
+                    Text {
+                        objectName: "weatherAqiCategory"
+                        color: root.airQualityColor(root.weatherService ? root.weatherService.airQualityIndex : 0)
+                        text: root.weatherService && root.weatherService.airQualityIndex ? root.weatherService.airQualityCategory.toUpperCase() : "—"
+
+                        font {
+                            family: Theme.sansFontFamily
+                            pixelSize: Theme.bodyTextSize
+                        }
+                    }
+
+                    Text {
+                        objectName: "weatherAqiIndex"
+                        color: Theme.primaryAccent
+                        text: root.weatherService && root.weatherService.airQualityIndex ? String(root.weatherService.airQualityIndex) : "—"
+
+                        font {
+                            family: Theme.sansFontFamily
+                            pixelSize: Theme.bodyTextSize
+                        }
+                    }
+                }
+            }
+
+            Separator {
+                objectName: "weatherRailSeparator1"
+                width: parent.width
+                anchors.horizontalCenter: parent.horizontalCenter
+                orientation: Qt.Horizontal
+                lineStyle: Separator.Dotted
+                color: Theme.sectionDividerStrong
+            }
+
+            Column {
+                objectName: "weatherSolarSection"
+                width: parent.width
+                spacing: 2
+
+                Text {
+                    width: parent.width
+                    color: Theme.primaryAccent
+                    text: root.weatherService && root.weatherService.nextSolarEventKind === "sunrise" ? qsTr("SUNRISE") : qsTr("SUNSET")
+
+                    font {
+                        family: Theme.sansFontFamily
+                        pixelSize: Theme.bodyTextSize
+                    }
+                }
+
+                Text {
+                    objectName: "weatherSunset"
+                    width: parent.width
+                    color: Theme.textPrimary
+                    text: root.weatherService && root.weatherService.localNextSolarEventTime ? root.weatherService.localNextSolarEventTime : "—"
+
+                    font {
+                        family: Theme.sansFontFamily
+                        pixelSize: Theme.bodyTextSize
+                    }
+                }
+            }
+
+            Separator {
+                objectName: "weatherRailSeparator2"
+                width: parent.width
+                anchors.horizontalCenter: parent.horizontalCenter
+                orientation: Qt.Horizontal
+                lineStyle: Separator.Dotted
+                color: Theme.sectionDividerStrong
+            }
+
+            Column {
+                objectName: "weatherPrecipitationSection"
+                width: parent.width
+                spacing: 2
+
+                Text {
+                    objectName: "weatherPrecipitationLabel"
+                    width: parent.width
+                    color: Theme.primaryAccent
+                    text: root.precipitationLabel
+
+                    font {
+                        family: Theme.sansFontFamily
+                        pixelSize: Theme.bodyTextSize
+                    }
+                }
+
+                Text {
+                    objectName: "weatherRain"
+                    width: parent.width
+                    color: Theme.textPrimary
+                    text: root.precipitationValue
+
+                    font {
+                        family: Theme.sansFontFamily
+                        pixelSize: Theme.bodyTextSize
+                    }
+                }
             }
         }
-    }
-
-    function statusLabel(health): string {
-        const labels = {"failed": qsTr("FAILED"), "attention": qsTr("ATTENTION"),
-                        "running": qsTr("RUNNING"), "stale": qsTr("STALE"),
-                        "healthy": qsTr("HEALTHY"), "unknown": qsTr("UNKNOWN")}
-        return labels[health] || labels.unknown
     }
 
     Timer {

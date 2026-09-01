@@ -11,12 +11,9 @@ Control {
     required property string secondaryValue
     property real usageRatio: -1
     property color accentColor: Theme.primaryAccent
-    property string accessibleSummary: qsTr("%1, %2, %3 %4")
-                                       .arg(root.heading).arg(root.primaryValue)
-                                       .arg(root.secondaryLabel).arg(root.secondaryValue)
+    property string accessibleSummary: qsTr("%1, %2, %3 %4").arg(root.heading).arg(root.primaryValue).arg(root.secondaryLabel).arg(root.secondaryValue)
 
     padding: Theme.spacingSmall
-
     Accessible.role: Accessible.StaticText
     Accessible.name: root.accessibleSummary
 
@@ -24,12 +21,15 @@ Control {
         backgroundColor: Theme.cardSurface
         lineWidth: 1
         color: Theme.cardFrame
-        corners: ({ rounded: Theme.radiusMedium })
+        corners: ({
+                "rounded": Theme.radiusMedium
+            })
     }
 
     contentItem: Item {
         Label {
             id: headingLabel
+
             anchors.left: parent.left
             anchors.top: parent.top
             text: root.heading
@@ -41,6 +41,7 @@ Control {
 
         Label {
             id: primaryLabel
+
             objectName: root.objectName + "Primary"
             anchors.left: parent.left
             anchors.right: parent.right
@@ -56,6 +57,7 @@ Control {
 
         Rectangle {
             id: rail
+
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.top: primaryLabel.bottom

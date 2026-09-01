@@ -61,7 +61,11 @@ QString sanitizedDiagnostic(QString diagnostic) {
 
 WeatherService::WeatherService(std::optional<WeatherConfig> config, QByteArray openWeatherKey,
                                QByteArray ipGeolocationKey, QObject* parent)
-    : QObject(parent), config_(std::move(config)), hourlyModel_(this), dailyModel_(this) {
+    : QObject(parent),
+      config_(std::move(config)),
+      hourlyModel_(this),
+      dailyModel_(this),
+      currentUtc_(QDateTime::currentDateTimeUtc) {
   if (config_) {
     weather_ = std::make_unique<OpenWeatherProvider>(openWeatherKey);
     geocoding_ = std::make_unique<OpenWeatherGeocodingProvider>(openWeatherKey);
@@ -75,14 +79,16 @@ WeatherService::WeatherService(std::optional<WeatherConfig> config, QByteArray o
 
 WeatherService::WeatherService(WeatherConfig config, std::unique_ptr<WeatherProvider> weather,
                                std::unique_ptr<GeocodingProvider> geocoding,
-                               std::unique_ptr<AutomaticLocationProvider> automatic, QObject* parent)
+                               std::unique_ptr<AutomaticLocationProvider> automatic, QObject* parent,
+                               std::function<QDateTime()> currentUtc)
     : QObject(parent),
       config_(std::move(config)),
       weather_(std::move(weather)),
       geocoding_(std::move(geocoding)),
       automatic_(std::move(automatic)),
       hourlyModel_(this),
-      dailyModel_(this) {
+      dailyModel_(this),
+      currentUtc_(std::move(currentUtc)) {
   initialize();
 }
 
@@ -95,6 +101,15 @@ void WeatherService::initialize() {
   solarEventTimer_->setSingleShot(true);
   solarEventTimer_->setObjectName(QStringLiteral("weatherSolarEventTimer"));
   connect(solarEventTimer_, &QTimer::timeout, this, &WeatherService::updateNextSolarEvent);
+  localHourTimer_ = new QTimer(this);
+  localHourTimer_->setSingleShot(true);
+  localHourTimer_->setObjectName(QStringLiteral("weatherLocalHourTimer"));
+  connect(localHourTimer_, &QTimer::timeout, this, [this] {
+    const double previous = snapshot_.todayPrecipitationProbabilityPercent;
+    updateTodayPrecipitationProbability();
+    scheduleLocalHourBoundary();
+    if (snapshot_.todayPrecipitationProbabilityPercent != previous) emit changed();
+  });
   if (!config_) return;
   connectProviders();
   loadCache();
@@ -171,9 +186,12 @@ void WeatherService::startOperation(bool manual) {
 }
 
 void WeatherService::publish(Snapshot snapshot) {
+  if (snapshot.todayPrecipitationKind.isEmpty()) snapshot.todayPrecipitationKind = QStringLiteral("none");
   if (snapshot.airQuality == std::nullopt && snapshot_.location.cacheKey() == snapshot.location.cacheKey())
     snapshot.airQuality = snapshot_.airQuality;
   snapshot_ = std::move(snapshot);
+  updateTodayPrecipitationProbability();
+  scheduleLocalHourBoundary();
   hourlyModel_.replace(snapshot_.hourly, snapshot_.timezoneOffsetSeconds);
   dailyModel_.replace(snapshot_.daily, snapshot_.timezoneOffsetSeconds);
   updateNextSolarEvent();
@@ -222,7 +240,7 @@ QString WeatherService::localNextSolarEventTime() const {
 }
 
 void WeatherService::updateNextSolarEvent() {
-  const auto now = QDateTime::currentDateTimeUtc();
+  const auto now = currentUtc_();
   QDateTime selectedTimestamp;
   QString selectedKind;
   for (const auto& day : snapshot_.daily) {
@@ -253,6 +271,32 @@ void WeatherService::updateNextSolarEvent() {
   if (changed) emit solarEventChanged();
 }
 
+void WeatherService::updateTodayPrecipitationProbability() {
+  const QDateTime now = currentUtc_();
+  const QDateTime localNow = now.addSecs(snapshot_.timezoneOffsetSeconds);
+  const QDate localDate = localNow.date();
+  const int currentHour = localNow.time().hour();
+  double maximum = 0.0;
+  for (const auto& row : snapshot_.hourly) {
+    if (!row.timestampUtc.isValid()) continue;
+    const QDateTime localTimestamp = row.timestampUtc.addSecs(snapshot_.timezoneOffsetSeconds);
+    if (localTimestamp.date() == localDate && localTimestamp.time().hour() >= currentHour)
+      maximum = std::max(maximum, row.precipitationProbabilityPercent);
+  }
+  snapshot_.todayPrecipitationProbabilityPercent = maximum;
+  snapshot_.todayRainProbabilityPercent = maximum;
+}
+
+void WeatherService::scheduleLocalHourBoundary() {
+  localHourTimer_->stop();
+  if (!snapshot_.fetchedUtc.isValid()) return;
+  const QDateTime now = currentUtc_();
+  const QDateTime localNow = now.addSecs(snapshot_.timezoneOffsetSeconds);
+  const QDateTime nextLocalHour(localNow.date(), QTime(localNow.time().hour(), 0), QTimeZone::UTC);
+  const qint64 delay = localNow.msecsTo(nextLocalHour.addSecs(3600)) + 1;
+  localHourTimer_->start(static_cast<int>(std::clamp<qint64>(delay, 1, std::numeric_limits<int>::max())));
+}
+
 void WeatherService::saveCache() const {
   if (!snapshot_.fetchedUtc.isValid()) return;
   QJsonObject current{{QStringLiteral("condition"), snapshot_.current.condition},
@@ -265,26 +309,30 @@ void WeatherService::saveCache() const {
                       {QStringLiteral("windSpeed"), snapshot_.current.windSpeedKmh},
                       {QStringLiteral("windDegrees"), snapshot_.current.windDegrees}};
   QJsonArray hourly;
-  for (const auto& row : snapshot_.hourly.mid(0, 8))
+  for (const auto& row : snapshot_.hourly)
     hourly.append(QJsonObject{{QStringLiteral("timestamp"), row.timestampUtc.toString(Qt::ISODate)},
                               {QStringLiteral("icon"), row.iconCode},
                               {QStringLiteral("temperature"), row.temperatureCelsius},
                               {QStringLiteral("precipitation"), row.precipitationProbabilityPercent}});
   QJsonArray daily;
   for (const auto& row : snapshot_.daily.mid(0, 5))
-    daily.append(QJsonObject{{QStringLiteral("timestamp"), row.timestampUtc.toString(Qt::ISODate)},
-                             {QStringLiteral("sunrise"), row.sunriseUtc.toString(Qt::ISODate)},
-                             {QStringLiteral("sunset"), row.sunsetUtc.toString(Qt::ISODate)},
-                             {QStringLiteral("icon"), row.iconCode},
-                             {QStringLiteral("minimum"), row.minimumCelsius},
-                             {QStringLiteral("maximum"), row.maximumCelsius},
-                             {QStringLiteral("precipitation"), row.precipitationProbabilityPercent}});
+    daily.append(
+        QJsonObject{{QStringLiteral("timestamp"), row.timestampUtc.toString(Qt::ISODate)},
+                    {QStringLiteral("sunrise"), row.sunriseUtc.toString(Qt::ISODate)},
+                    {QStringLiteral("sunset"), row.sunsetUtc.toString(Qt::ISODate)},
+                    {QStringLiteral("icon"), row.iconCode},
+                    {QStringLiteral("minimum"), row.minimumCelsius},
+                    {QStringLiteral("maximum"), row.maximumCelsius},
+                    {QStringLiteral("precipitation"), row.precipitationProbabilityPercent},
+                    {QStringLiteral("average"), row.averageCelsius ? QJsonValue(*row.averageCelsius) : QJsonValue()},
+                    {QStringLiteral("rain"), row.rainMillimetres ? QJsonValue(*row.rainMillimetres) : QJsonValue()},
+                    {QStringLiteral("snow"), row.snowMillimetres ? QJsonValue(*row.snowMillimetres) : QJsonValue()}});
   QJsonObject root{{QStringLiteral("provider"), snapshot_.provider},
                    {QStringLiteral("location"), locationJson(snapshot_.location)},
                    {QStringLiteral("timezoneOffset"), snapshot_.timezoneOffsetSeconds},
                    {QStringLiteral("fetched"), snapshot_.fetchedUtc.toString(Qt::ISODate)},
                    {QStringLiteral("sunset"), snapshot_.sunsetUtc.toString(Qt::ISODate)},
-                   {QStringLiteral("rainProbability"), snapshot_.todayRainProbabilityPercent},
+                   {QStringLiteral("precipitationKind"), snapshot_.todayPrecipitationKind},
                    {QStringLiteral("current"), current},
                    {QStringLiteral("hourly"), hourly},
                    {QStringLiteral("daily"), daily}};
@@ -342,15 +390,27 @@ void WeatherService::loadCache() {
          .iconCode = row.value(QStringLiteral("icon")).toString(),
          .minimumCelsius = row.value(QStringLiteral("minimum")).toDouble(),
          .maximumCelsius = row.value(QStringLiteral("maximum")).toDouble(),
-         .precipitationProbabilityPercent = row.value(QStringLiteral("precipitation")).toDouble()});
+         .averageCelsius = row.value(QStringLiteral("average")).isDouble()
+                               ? std::optional<double>{row.value(QStringLiteral("average")).toDouble()}
+                               : std::nullopt,
+         .precipitationProbabilityPercent = row.value(QStringLiteral("precipitation")).toDouble(),
+         .rainMillimetres = row.value(QStringLiteral("rain")).isDouble()
+                                ? std::optional<double>{row.value(QStringLiteral("rain")).toDouble()}
+                                : std::nullopt,
+         .snowMillimetres = row.value(QStringLiteral("snow")).isDouble()
+                                ? std::optional<double>{row.value(QStringLiteral("snow")).toDouble()}
+                                : std::nullopt});
   }
   cached.sunsetUtc = QDateTime::fromString(root.value(QStringLiteral("sunset")).toString(), Qt::ISODate);
-  cached.todayRainProbabilityPercent = root.value(QStringLiteral("rainProbability")).toDouble();
+  cached.todayPrecipitationKind = root.value(QStringLiteral("precipitationKind")).toString();
+  if (cached.todayPrecipitationKind.isEmpty()) cached.todayPrecipitationKind = QStringLiteral("none");
   const auto air = root.value(QStringLiteral("airQuality")).toObject();
   if (!air.isEmpty())
     cached.airQuality = AirQuality{.index = air.value(QStringLiteral("index")).toInt(),
                                    .category = air.value(QStringLiteral("category")).toString()};
   snapshot_ = cached;
+  updateTodayPrecipitationProbability();
+  scheduleLocalHourBoundary();
   hourlyModel_.replace(cached.hourly, cached.timezoneOffsetSeconds);
   dailyModel_.replace(cached.daily, cached.timezoneOffsetSeconds);
   updateNextSolarEvent();

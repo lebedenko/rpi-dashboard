@@ -17,46 +17,48 @@ Item {
     readonly property alias deviceList: deviceList
 
     function normalizedIndex(index: int): int {
-        return deviceList.count > 0 ? Math.max(0, Math.min(index, deviceList.count - 1)) : -1
+        return deviceList.count > 0 ? Math.max(0, Math.min(index, deviceList.count - 1)) : -1;
     }
 
     function normalizeIndices(): void {
-        root.focusedIndex = root.normalizedIndex(root.focusedIndex)
-        const selected = root.normalizedIndex(root.selectedIndex)
+        root.focusedIndex = root.normalizedIndex(root.focusedIndex);
+        const selected = root.normalizedIndex(root.selectedIndex);
         if (selected !== root.selectedIndex)
-            root.selectionRequested(selected)
+            root.selectionRequested(selected);
         if (deviceList.count === 0) {
             if (root.expandedIndex >= 0)
-                root.expandedIndexBeforeModelReset = root.expandedIndex
+                root.expandedIndexBeforeModelReset = root.expandedIndex;
             if (root.modelInitialized)
-                root.expandedIndex = -1
-            return
+                root.expandedIndex = -1;
+            return;
         }
         if (root.expandedIndexBeforeModelReset >= 0 && root.expandedIndex < 0) {
-            root.expandedIndex = root.normalizedIndex(root.expandedIndexBeforeModelReset)
-            root.expandedIndexBeforeModelReset = -1
+            root.expandedIndex = root.normalizedIndex(root.expandedIndexBeforeModelReset);
+            root.expandedIndexBeforeModelReset = -1;
         } else if (root.expandedIndex >= deviceList.count) {
-            root.expandedIndex = deviceList.count - 1
+            root.expandedIndex = deviceList.count - 1;
         }
     }
 
     function expandCard(index: int): void {
-        const normalized = root.normalizedIndex(index)
+        const normalized = root.normalizedIndex(index);
         if (normalized < 0)
-            return
-        root.focusedIndex = normalized
-        root.expandedIndex = normalized
-        root.selectionRequested(normalized)
+            return;
+        root.focusedIndex = normalized;
+        root.expandedIndex = normalized;
+        root.selectionRequested(normalized);
         Qt.callLater(() => {
-            deviceList.forceLayout()
-            deviceList.positionViewAtIndex(normalized, ListView.Beginning)
-        })
+            deviceList.forceLayout();
+            deviceList.positionViewAtIndex(normalized, ListView.Beginning);
+        });
     }
 
     Connections {
         target: root.deviceModel
         ignoreUnknownSignals: true
-        function onCountChanged(): void { root.normalizeIndices() }
+        function onCountChanged(): void {
+            root.normalizeIndices();
+        }
     }
 
     ListView {
@@ -72,7 +74,7 @@ Item {
         currentIndex: root.focusedIndex
         onCountChanged: {
             if (root.modelInitialized)
-                root.normalizeIndices()
+                root.normalizeIndices();
         }
         delegate: Item {
             id: cardDelegate
@@ -124,9 +126,7 @@ Item {
                 temperatureMetric: cardDelegate.temperatureMetric
                 uptimeMetric: cardDelegate.uptimeMetric
                 expanded: root.expandedIndex === cardDelegate.index
-                expandedHeight: cardDelegate.index < deviceList.count - 1
-                                ? deviceList.height - Theme.deviceCardGap - Theme.nextCardPeek
-                                : deviceList.height
+                expandedHeight: cardDelegate.index < deviceList.count - 1 ? deviceList.height - Theme.deviceCardGap - Theme.nextCardPeek : deviceList.height
                 osDescription: cardDelegate.osDescription
                 kernelDescription: cardDelegate.kernelDescription
                 architecture: cardDelegate.architecture
@@ -135,12 +135,12 @@ Item {
                 coreDescription: cardDelegate.coreDescription
                 totalMemory: cardDelegate.totalMemory
                 onExpansionRequested: {
-                    root.focusedIndex = cardDelegate.index
+                    root.focusedIndex = cardDelegate.index;
                     if (card.expanded) {
-                        root.expandedIndexBeforeModelReset = -1
-                        root.expandedIndex = -1
+                        root.expandedIndexBeforeModelReset = -1;
+                        root.expandedIndex = -1;
                     } else {
-                        root.expandCard(cardDelegate.index)
+                        root.expandCard(cardDelegate.index);
                     }
                 }
             }
@@ -148,7 +148,7 @@ Item {
     }
 
     Component.onCompleted: {
-        root.modelInitialized = true
-        root.normalizeIndices()
+        root.modelInitialized = true;
+        root.normalizeIndices();
     }
 }

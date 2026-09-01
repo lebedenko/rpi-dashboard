@@ -1,6 +1,7 @@
-import Rpi.Dashboard
 import QtQuick
+import QtQuick.Shapes
 import QtTest
+import Rpi.Dashboard
 
 Item {
     id: root
@@ -188,7 +189,6 @@ Item {
             compare(sidebar.height, 300);
             compare(pageStack.x, 74);
             compare(pageStack.width, 1252);
-
             const buttonNames = ["overviewButton", "systemsButton", "projectsButton", "weatherButton"];
             let previousBottom = -1;
             for (const buttonName of buttonNames) {
@@ -202,9 +202,9 @@ Item {
                 verify(position.y + button.height <= dashboardWindow.height - Theme.displaySafeInset);
                 if (previousBottom >= 0)
                     compare(position.y - previousBottom, 8);
+
                 previousBottom = position.y + button.height;
             }
-
             const firstButton = findChild(sidebar, buttonNames[0]);
             const lastButton = findChild(sidebar, buttonNames[buttonNames.length - 1]);
             compare(firstButton.mapToItem(dashboardWindow.contentItem, 0, 0).y, 18);
@@ -218,17 +218,13 @@ Item {
             verify(!!sidebar);
             verify(!!timeLabel);
             verify(!!dateLabel);
-
             compare(sidebar.x, 1326);
             compare(sidebar.y, 10);
             compare(sidebar.width, 144);
             compare(sidebar.height, 300);
-            verify(timeLabel.mapToItem(dashboardWindow.contentItem, 0, 0).y
-                   < dateLabel.mapToItem(dashboardWindow.contentItem, 0, 0).y);
+            verify(timeLabel.mapToItem(dashboardWindow.contentItem, 0, 0).y < dateLabel.mapToItem(dashboardWindow.contentItem, 0, 0).y);
             verify(timeLabel.mapToItem(dashboardWindow.contentItem, 0, 0).y >= Theme.displaySafeInset);
-            verify(dateLabel.mapToItem(dashboardWindow.contentItem, 0, dateLabel.height).y
-                   <= dashboardWindow.height - Theme.displaySafeInset);
-
+            verify(dateLabel.mapToItem(dashboardWindow.contentItem, 0, dateLabel.height).y <= dashboardWindow.height - Theme.displaySafeInset);
             compare(sidebar.timeText, Qt.formatTime(sidebar.currentTimestamp, "hh:mm"));
             compare(sidebar.dateText, Qt.formatDate(sidebar.currentTimestamp, "ddd dd MMM"));
             compare(timeLabel.text, sidebar.timeText);
@@ -254,7 +250,9 @@ Item {
             const first = findChild(dashboardWindow.contentItem, "projectRow0");
             verify(!!list);
             verify(!!first);
-            tryVerify(() => !!findChild(dashboardWindow.contentItem, "projectRow1"));
+            tryVerify(() => {
+                return !!findChild(dashboardWindow.contentItem, "projectRow1");
+            });
             const second = findChild(dashboardWindow.contentItem, "projectRow1");
             const frame = findChild(dashboardWindow.contentItem, "projectsPageFrame");
             const header = findChild(dashboardWindow.contentItem, "projectsHeader");
@@ -411,7 +409,6 @@ Item {
         function test_systemPageUsesReusableFrames() {
             dashboardWindow.localDeviceModel.append(deviceEntry("02", "REMOTE"));
             mouseClick(findChild(dashboardWindow.contentItem, "systemsButton"));
-
             const selectedTab = findChild(dashboardWindow.contentItem, "systemDeviceTab0");
             const passiveTab = findChild(dashboardWindow.contentItem, "systemDeviceTab1");
             verify(selectedTab.background instanceof Frame);
@@ -424,12 +421,10 @@ Item {
             compare(passiveTab.background.lineWidth, 1);
             compare(passiveTab.background.color, Theme.passiveBorder);
             compare(passiveTab.background.corners.rounded, Theme.radiusMedium);
-
             passiveTab.forceActiveFocus();
             tryCompare(passiveTab, "activeFocus", true);
             compare(passiveTab.background.lineWidth, 2);
             compare(passiveTab.background.color, Theme.focusAccent);
-
             const panel = findChild(dashboardWindow.contentItem, "cpuPanel");
             verify(panel.background instanceof Frame);
             compare(panel.background.backgroundColor, Theme.cardSurface);
@@ -454,20 +449,22 @@ Item {
                 compare(panel.Accessible.role, Accessible.StaticText);
                 verify(panel.Accessible.name.length > 0);
             }
-            compare(panels.children.filter(child => child instanceof SystemMetricPanel).length, 6);
+            compare(panels.children.filter(child => {
+                return child instanceof SystemMetricPanel;
+            }).length, 6);
         }
 
         function test_systemPageFormatsLiveAndUnavailableValuesTruthfully() {
             mouseClick(findChild(dashboardWindow.contentItem, "systemsButton"));
             compare(findChild(dashboardWindow.contentItem, "gpuPanelPrimary").text, "—");
             compare(findChild(dashboardWindow.contentItem, "networkPanelPrimary").text, "↓ —");
-            fakeMetricsService.averageCpuFrequencyHz = 2200000000;
+            fakeMetricsService.averageCpuFrequencyHz = 2.2e+09;
             fakeMetricsService.gpuUsageRatio = 0.25;
-            fakeMetricsService.gpuCoreClockHz = 500000000;
-            fakeMetricsService.memoryUsedBytes = 3221225472;
-            fakeMetricsService.swapUsedBytes = 536870912;
+            fakeMetricsService.gpuCoreClockHz = 5e+08;
+            fakeMetricsService.memoryUsedBytes = 3.22123e+09;
+            fakeMetricsService.swapUsedBytes = 5.36871e+08;
             fakeMetricsService.gpuTemperatureCelsius = 61.2;
-            fakeMetricsService.networkReceiveBytesPerSecond = 1572864;
+            fakeMetricsService.networkReceiveBytesPerSecond = 1.57286e+06;
             fakeMetricsService.networkTransmitBytesPerSecond = 524288;
             fakeMetricsService.networkInterfaceName = "eth0";
             fakeMetricsService.bootTimeUtc = new Date(2026, 7, 27, 8, 30);
@@ -555,7 +552,9 @@ Item {
             tryCompare(card, "expanded", false);
             compare(card.height, 64);
             tryCompare(card, "expandedContentLoaded", false);
-            tryVerify(() => findChild(card, "resourceHistorySeries") === null);
+            tryVerify(() => {
+                return findChild(card, "resourceHistorySeries") === null;
+            });
             compare(card.chevronAccessibleName, "Expand PI-DASH");
             chevron.forceActiveFocus();
             keyClick(Qt.Key_Space);
@@ -584,26 +583,25 @@ Item {
             overview.deviceModel.append(deviceEntry("01", "FIRST"));
             overview.deviceModel.append(deviceEntry("02", "SECOND"));
             tryCompare(overview.deviceList, "count", 2);
-            tryVerify(() => !!findChild(overview, "deviceCard1"));
+            tryVerify(() => {
+                return !!findChild(overview, "deviceCard1");
+            });
             const first = findChild(overview, "deviceCard0");
             const second = findChild(overview, "deviceCard1");
             compare(overview.selectedIndex, 0);
             compare(first.selected, true);
             compare(second.selected, false);
-
             mouseClick(first.chevronButton);
             tryCompare(overview, "expandedIndex", -1);
             compare(overview.selectedIndex, 0);
             compare(first.selected, true);
             compare(first.expanded, false);
             compare(second.expanded, false);
-
             overview.expandCard(1);
             tryCompare(overview, "expandedIndex", 1);
             compare(overview.selectedIndex, 1);
             compare(first.selected, false);
             compare(second.selected, true);
-
             const expandedSecond = findChild(overview, "deviceCard1");
             verify(!!expandedSecond, "Object exists");
             overview.expandedIndex = -1;
@@ -723,16 +721,24 @@ Item {
             fakeMetricsService.cpuUsageRatio = 0.995;
             const series = findChild(card, "resourceHistorySeries");
             compare(series.model, fakeMetricsService.usageHistoryModel);
-            fakeMetricsService.usageHistoryModel.append({"elapsedMilliseconds": 2000,
-                                                         "cpuUsageRatio": 0.995,
-                                                         "memoryUsageRatio": 0.68});
-            fakeMetricsService.usageHistoryModel.append({"elapsedMilliseconds": 3000,
-                                                         "memoryUsageRatio": 0.64});
-            fakeMetricsService.usageHistoryModel.append({"elapsedMilliseconds": 4000,
-                                                         "cpuUsageRatio": 0.73});
-            fakeMetricsService.usageHistoryModel.append({"elapsedMilliseconds": 5000,
-                                                         "cpuUsageRatio": 0.81,
-                                                         "memoryUsageRatio": 0.66});
+            fakeMetricsService.usageHistoryModel.append({
+                "elapsedMilliseconds": 2000,
+                "cpuUsageRatio": 0.995,
+                "memoryUsageRatio": 0.68
+            });
+            fakeMetricsService.usageHistoryModel.append({
+                "elapsedMilliseconds": 3000,
+                "memoryUsageRatio": 0.64
+            });
+            fakeMetricsService.usageHistoryModel.append({
+                "elapsedMilliseconds": 4000,
+                "cpuUsageRatio": 0.73
+            });
+            fakeMetricsService.usageHistoryModel.append({
+                "elapsedMilliseconds": 5000,
+                "cpuUsageRatio": 0.81,
+                "memoryUsageRatio": 0.66
+            });
             compare(fakeMetricsService.usageHistoryModel.count, 5);
             compare(findChild(card, "resourceHistorySeries"), series);
             tryCompare(card, "cpuMetric", "100%");
@@ -831,15 +837,111 @@ Item {
             compare(pageFrame.backgroundColor, Theme.cardSurface);
             compare(pageFrame.color, Theme.cardFrame);
             compare(pageFrame.lineWidth, 1);
-            compare(pageFrame.corners.rounded, Theme.radiusMedium);
+            compare(pageFrame.y, Theme.displaySafeInset);
+            compare(pageFrame.height, page.height - 2 * Theme.displaySafeInset);
+            compare(pageFrame.corners.chamfered, Theme.chamferLarge);
             for (const panel of [currentPanel, hourlyPanel, dailyPanel]) {
                 verify(panel instanceof Frame);
                 compare(panel.backgroundColor, Theme.surface);
                 compare(panel.color, Theme.sectionDividerStrong);
                 compare(panel.lineWidth, 1);
-                compare(panel.corners.rounded, Theme.radiusMedium);
+                compare(panel.corners.chamfered, Theme.chamferLarge);
             }
             verify(page.Accessible.name.includes("Lviv"));
+            compare(findChild(page, "weatherLocation").text, "LVIV, UA");
+            compare(findChild(page, "weatherTitle").text, "WEATHER");
+            const age = findChild(page, "weatherAgeLabel");
+            compare(findChild(page, "weatherTitle").mapToItem(page, 0, 0).x, Theme.spacingMedium);
+            compare(page.width - age.mapToItem(page, age.width, 0).x, Theme.spacingMedium);
+            const hero = findChild(page, "currentHero");
+            const currentContent = findChild(page, "currentContent");
+            compare(currentContent.x, 16);
+            compare(currentPanel.width - currentContent.x - currentContent.width, 16);
+            compare(hero.spacing, 20);
+            verify(Math.abs(hero.x - (hero.parent.width - hero.width) / 2) < 0.5);
+            compare(findChild(page, "currentCondition").horizontalAlignment, Text.AlignHCenter);
+            compare(findChild(page, "currentFeelsLike").horizontalAlignment, Text.AlignHCenter);
+            const currentSeparator = findChild(page, "currentSeparator");
+            compare(currentSeparator.width, currentContent.width);
+            const currentMetrics = findChild(page, "currentMetrics");
+            compare(currentPanel.height - currentMetrics.mapToItem(currentPanel, 0, currentMetrics.height).y, 8);
+            for (let index = 0; index < 4; ++index) {
+                compare(findChild(page, "currentMetricLabel" + index).color, Theme.primaryAccent);
+                compare(findChild(page, "currentMetricLabel" + index).horizontalAlignment, Text.AlignHCenter);
+                compare(findChild(page, "currentMetricValue" + index).horizontalAlignment, Text.AlignHCenter);
+                compare(findChild(page, "currentMetricValue" + index).color, Theme.textPrimary);
+            }
+            for (let index = 0; index < 2; ++index) {
+                const inlineMetric = findChild(page, "currentMetricInline" + index);
+                verify(Math.abs(inlineMetric.y - (inlineMetric.parent.height - inlineMetric.height) / 2) < 1);
+                verify(Math.abs(inlineMetric.x - (inlineMetric.parent.width - inlineMetric.width) / 2) < 1);
+            }
+            compare(findChild(page, "hourlyForecastTitle").parent.spacing, 8);
+            compare(findChild(page, "hourlyForecastTitle").mapToItem(hourlyPanel, 0, 0).x, 16);
+            compare(findChild(page, "hourLabel0").text, "NOW");
+            compare(findChild(page, "hourLabel1").text, "13");
+            compare(findChild(page, "hourLabel0").color, Theme.primaryAccent);
+            compare(findChild(page, "hourLabel0").font.pixelSize, Theme.bodyTextSize);
+            compare(findChild(page, "hourlyPrecipitation0").font.pixelSize, Theme.bodyTextSize);
+            compare(findChild(page, "hourlyPrecipitation1").color, Theme.textPrimary);
+            const graphSegment = findChild(page, "hourlyGraphSegment1");
+            verify(!!graphSegment);
+            compare(graphSegment.previousPosition, 0.5);
+            compare(graphSegment.position, 0.7);
+            compare(findChild(page, "hourlyGraphShape1").preferredRendererType, Shape.CurveRenderer);
+            compare(findChild(page, "dailyForecastTitle").mapToItem(dailyPanel, 0, 0).x, 16);
+            compare(findChild(page, "dailyWeekday0").color, Theme.primaryAccent);
+            compare(findChild(page, "dailyPrecipitation0").color, Theme.violetAccent);
+            const dailyRow = findChild(page, "dailyRow0");
+            compare(dailyRow.spacing, 8);
+            compare(dailyRow.anchors.leftMargin, 8);
+            compare(dailyRow.anchors.rightMargin, 8);
+            const dailySeparator = findChild(page, "dailySeparator1");
+            compare(dailySeparator.anchors.leftMargin, 8);
+            compare(dailySeparator.anchors.rightMargin, 8);
+            compare(findChild(page, "dailyMinimum0").horizontalAlignment, Text.AlignRight);
+            compare(findChild(page, "dailyMaximum0").horizontalAlignment, Text.AlignLeft);
+            const weatherRail = findChild(dashboardWindow.contentItem, "weatherRail");
+            for (const section of ["weatherAirSection", "weatherSolarSection", "weatherPrecipitationSection"])
+                verify(!!findChild(weatherRail, section));
+            compare(findChild(weatherRail, "weatherAirSection").spacing, 2);
+            compare(findChild(weatherRail, "weatherSolarSection").spacing, 2);
+            compare(findChild(weatherRail, "weatherPrecipitationSection").spacing, 2);
+            compare(findChild(weatherRail, "weatherRain").text, "20%");
+            compare(findChild(weatherRail, "weatherAqiIndex").color, Theme.primaryAccent);
+            compare(findChild(weatherRail, "weatherAqiCategory").color, Theme.onlineStatus);
+            fakeWeatherService.airQualityIndex = 3;
+            compare(findChild(weatherRail, "weatherAqiCategory").color, Theme.attentionStatus);
+            fakeWeatherService.airQualityIndex = 5;
+            compare(findChild(weatherRail, "weatherAqiCategory").color, Theme.failureStatus);
+            compare(findChild(weatherRail, "weatherSunset").color, Theme.textPrimary);
+            fakeWeatherService.todayPrecipitationProbabilityPercent = 0;
+            compare(findChild(weatherRail, "weatherPrecipitationLabel").text, "PRECIPITATION");
+            compare(findChild(weatherRail, "weatherRain").text, "NONE");
+            verify(findChild(dashboardWindow.contentItem, "clockSidebar").Accessible.name.includes("PRECIPITATION NONE"));
+            fakeWeatherService.todayPrecipitationProbabilityPercent = 35;
+            for (const scenario of [
+                {
+                    "kind": "rain",
+                    "label": "RAIN"
+                },
+                {
+                    "kind": "snow",
+                    "label": "SNOW"
+                },
+                {
+                    "kind": "mixed",
+                    "label": "MIXED"
+                },
+                {
+                    "kind": "other",
+                    "label": "PRECIPITATION"
+                }
+            ]) {
+                fakeWeatherService.todayPrecipitationKind = scenario.kind;
+                compare(findChild(weatherRail, "weatherPrecipitationLabel").text, scenario.label);
+                compare(findChild(weatherRail, "weatherRain").text, "35%");
+            }
             const refreshCount = fakeWeatherService.refreshCount;
             keyClick(Qt.Key_F5);
             tryCompare(fakeWeatherService, "refreshCount", refreshCount + 1);
@@ -864,7 +966,6 @@ Item {
             compare(findChild(view, "screensaverLowValue").text, "15°");
             compare(findChild(view, "screensaverSolarEventLabel").text, "SUNSET");
             compare(findChild(view, "screensaverSolarEventTime").text, "20:12");
-
             const hero = findChild(view, "screensaverConditionBlock");
             const temperature = findChild(view, "screensaverTemperature");
             const location = findChild(view, "screensaverLocation");
@@ -876,14 +977,10 @@ Item {
             compare(temperature.font.pixelSize, 152);
             compare(temperature.mapToItem(view, 0, 0).x - findChild(view, "screensaverConditionIcon").mapToItem(view, 110, 0).x, 32);
             compare(hero.mapToItem(view, 0, 0).x - temperature.mapToItem(view, temperature.width, 0).x, 32);
-            compare(location.mapToItem(view, 0, location.baselineOffset).y,
-                    temperature.mapToItem(view, 0, temperature.baselineOffset).y);
-            compare(location.mapToItem(hero, 0, 0).y
-                    - condition.mapToItem(hero, 0, condition.height).y, -6);
+            compare(location.mapToItem(view, 0, location.baselineOffset).y, temperature.mapToItem(view, 0, temperature.baselineOffset).y);
+            compare(location.mapToItem(hero, 0, 0).y - condition.mapToItem(hero, 0, condition.height).y, -6);
             compare(status.mapToItem(view, 0, 0).x > location.mapToItem(view, 0, 0).x + location.width, true);
-            compare(status.mapToItem(view, 0, status.baselineOffset).y,
-                    location.mapToItem(view, 0, location.baselineOffset).y);
-
+            compare(status.mapToItem(view, 0, status.baselineOffset).y, location.mapToItem(view, 0, location.baselineOffset).y);
             const details = findChild(view, "screensaverDetailsRow");
             compare(details.mapToItem(view, details.width, details.height).x, view.width - 32);
             compare(details.mapToItem(view, details.width, details.height).y, view.height - 14);
@@ -900,9 +997,7 @@ Item {
             compare(findChild(view, "screensaverLeftScrim").width, 1120);
             fuzzyCompare(findChild(view, "screensaverScrimStart").color.a, 0.68, 0.01);
             fuzzyCompare(findChild(view, "screensaverScrimMiddle").color.a, 0.58, 0.01);
-
-            const codes = ["01d", "01n", "02d", "02n", "03d", "03n", "04d", "04n", "09d",
-                           "09n", "10d", "10n", "11d", "11n", "13d", "13n", "50d", "50n"];
+            const codes = ["01d", "01n", "02d", "02n", "03d", "03n", "04d", "04n", "09d", "09n", "10d", "10n", "11d", "11n", "13d", "13n", "50d", "50n"];
             for (const code of codes) {
                 fakeWeatherService.iconCode = code;
                 compare(view.iconCode, code);
@@ -923,7 +1018,6 @@ Item {
             compare(findChild(view, "screensaverTemperature").text, "—");
             compare(findChild(view, "screensaverCondition").text, "WEATHER UNAVAILABLE");
             compare(findChild(view, "screensaverSolarEventTime").text, "—");
-
             fakeScreensaverController.active = false;
             wait(350);
             compare(loader.active, false);
@@ -937,15 +1031,15 @@ Item {
     Component {
         id: fakeScreensaverControllerComponent
 
-        QtObject { property bool active: false }
+        QtObject {
+            property bool active: false
+        }
     }
 
     Component {
         id: listModelComponent
 
-        ListModel {
-        }
-
+        ListModel {}
     }
 
     Component {
@@ -968,23 +1062,15 @@ Item {
             property int logicalCpuCount: 4
             property double totalMemoryBytes: 8.58993e+09
         }
-
     }
 
     Component {
         id: fakeProjectsServiceComponent
 
         QtObject {
-            property ListModel projectModel: ListModel {
-                ListElement { key: "owner/failed"; name: "failed"; branch: "main"; age: "2m ago"; health: "failed"; status: "completed" }
-                ListElement { key: "owner/healthy"; name: "healthy"; branch: "main"; age: "4m ago"; health: "healthy"; status: "completed" }
-            }
-            property ListModel stageModel: ListModel {
-                ListElement { key: "0"; name: "build"; branch: ""; health: "healthy"; status: "completed" }
-            }
-            property ListModel runHistoryModel: ListModel {
-                ListElement { key: "42"; name: ""; branch: ""; health: "failed"; status: "" }
-            }
+            property ListModel projectModel
+            property ListModel stageModel
+            property ListModel runHistoryModel
             property int selectedProjectIndex: 0
             property string selectedRepository: selectedProjectIndex === 0 ? "failed" : "healthy"
             property string selectedBranch: "main"
@@ -1007,7 +1093,50 @@ Item {
             property string state: "ready"
             property bool stale: false
             property string diagnostics: ""
-            function selectProject(index) { selectedProjectIndex = index }
+
+            function selectProject(index) {
+                selectedProjectIndex = index;
+            }
+
+            projectModel: ListModel {
+                ListElement {
+                    key: "owner/failed"
+                    name: "failed"
+                    branch: "main"
+                    age: "2m ago"
+                    health: "failed"
+                    status: "completed"
+                }
+
+                ListElement {
+                    key: "owner/healthy"
+                    name: "healthy"
+                    branch: "main"
+                    age: "4m ago"
+                    health: "healthy"
+                    status: "completed"
+                }
+            }
+
+            stageModel: ListModel {
+                ListElement {
+                    key: "0"
+                    name: "build"
+                    branch: ""
+                    health: "healthy"
+                    status: "completed"
+                }
+            }
+
+            runHistoryModel: ListModel {
+                ListElement {
+                    key: "42"
+                    name: ""
+                    branch: ""
+                    health: "failed"
+                    status: ""
+                }
+            }
         }
     }
 
@@ -1036,14 +1165,55 @@ Item {
             property string nextSolarEventKind: "sunset"
             property string localNextSolarEventTime: "20:12"
             property real todayRainProbabilityPercent: 20
+            property string todayPrecipitationKind: "rain"
+            property real todayPrecipitationProbabilityPercent: 20
             property int refreshCount: 0
-            property ListModel hourlyModel: ListModel {
-                ListElement { localTime: "12:00"; iconCode: "01d"; temperatureCelsius: 23; precipitationProbabilityPercent: 10 }
+            property ListModel hourlyModel
+            property ListModel dailyModel
+
+            function refresh() {
+                ++refreshCount;
             }
-            property ListModel dailyModel: ListModel {
-                ListElement { weekday: "Fri"; iconCode: "01d"; minimumCelsius: 15; maximumCelsius: 25; precipitationProbabilityPercent: 20 }
+
+            hourlyModel: ListModel {
+                ListElement {
+                    localHour: "12"
+                    iconCode: "01d"
+                    temperatureCelsius: 23
+                    precipitationProbabilityPercent: 10
+                    trendPosition: 0.5
+                    previousTrendPosition: 0.5
+                }
+
+                ListElement {
+                    localHour: "13"
+                    iconCode: "01d"
+                    temperatureCelsius: 24
+                    precipitationProbabilityPercent: 0
+                    trendPosition: 0.7
+                    previousTrendPosition: 0.5
+                }
             }
-            function refresh() { ++refreshCount }
+
+            dailyModel: ListModel {
+                ListElement {
+                    weekday: "Fri"
+                    iconCode: "01d"
+                    minimumCelsius: 15
+                    maximumCelsius: 25
+                    averageCelsius: 21
+                    precipitationProbabilityPercent: 20
+                }
+
+                ListElement {
+                    weekday: "Sat"
+                    iconCode: "02d"
+                    minimumCelsius: 14
+                    maximumCelsius: 26
+                    averageCelsius: 20
+                    precipitationProbabilityPercent: 0
+                }
+            }
         }
     }
 
@@ -1065,15 +1235,22 @@ Item {
             property double networkTransmitBytesPerSecond: -1
             property string networkInterfaceName: ""
             property var bootTimeUtc: undefined
-            property ListModel usageHistoryModel: ListModel {
-                ListElement { elapsedMilliseconds: 0; cpuUsageRatio: 0.42; memoryUsageRatio: 0.68 }
-            }
-            signal currentMetricsChanged()
+            property ListModel usageHistoryModel
+
+            signal currentMetricsChanged
+
             onCpuUsageRatioChanged: currentMetricsChanged()
             onMemoryUsageRatioChanged: currentMetricsChanged()
             onCpuTemperatureCelsiusChanged: currentMetricsChanged()
             onUptimeSecondsChanged: currentMetricsChanged()
+
+            usageHistoryModel: ListModel {
+                ListElement {
+                    elapsedMilliseconds: 0
+                    cpuUsageRatio: 0.42
+                    memoryUsageRatio: 0.68
+                }
+            }
         }
     }
-
 }

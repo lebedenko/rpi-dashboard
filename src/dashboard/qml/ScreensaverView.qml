@@ -9,25 +9,19 @@ Item {
     readonly property url wallpaperSource: "qrc:/rpi-dashboard/weather-bg/" + root.iconCode + ".png"
     readonly property bool weatherReady: root.service && root.service.state === "ready"
     readonly property bool dayScene: root.iconCode.endsWith("d")
-    readonly property string locationText: root.service && root.service.city
-                                           ? qsTr("%1, %2").arg(root.service.city).arg(root.service.country)
-                                           : qsTr("Location unavailable")
+    readonly property string locationText: root.service && root.service.city ? qsTr("%1, %2").arg(root.service.city).arg(root.service.country) : qsTr("Location unavailable")
 
     objectName: "screensaverView"
     Accessible.role: Accessible.Pane
-    Accessible.name: root.weatherReady
-                     ? qsTr("%1, %2, %3 degrees Celsius").arg(root.locationText)
-                         .arg(root.service.condition).arg(Math.round(root.service.temperatureCelsius))
-                     : qsTr("Weather unavailable")
+    Accessible.name: root.weatherReady ? qsTr("%1, %2, %3 degrees Celsius").arg(root.locationText).arg(root.service.condition).arg(Math.round(root.service.temperatureCelsius)) : qsTr("Weather unavailable")
 
     function validIconCode(code): string {
-        const supported = ["01d", "01n", "02d", "02n", "03d", "03n", "04d", "04n", "09d",
-                           "09n", "10d", "10n", "11d", "11n", "13d", "13n", "50d", "50n"]
-        return supported.includes(String(code)) ? String(code) : "03d"
+        const supported = ["01d", "01n", "02d", "02n", "03d", "03n", "04d", "04n", "09d", "09n", "10d", "10n", "11d", "11n", "13d", "13n", "50d", "50n"];
+        return supported.includes(String(code)) ? String(code) : "03d";
     }
 
     function temperature(value): string {
-        return Number.isFinite(Number(value)) ? qsTr("%1°").arg(Math.round(Number(value))) : "—"
+        return Number.isFinite(Number(value)) ? qsTr("%1°").arg(Math.round(Number(value))) : "—";
     }
 
     Image {
@@ -52,14 +46,12 @@ Item {
             GradientStop {
                 objectName: "screensaverScrimStart"
                 position: 0.0
-                color: Qt.rgba(Theme.background.r, Theme.background.g, Theme.background.b,
-                               root.dayScene ? 0.68 : 0.24)
+                color: Qt.rgba(Theme.background.r, Theme.background.g, Theme.background.b, root.dayScene ? 0.68 : 0.24)
             }
             GradientStop {
                 objectName: "screensaverScrimMiddle"
                 position: 0.85
-                color: Qt.rgba(Theme.background.r, Theme.background.g, Theme.background.b,
-                               root.dayScene ? 0.58 : 0.18)
+                color: Qt.rgba(Theme.background.r, Theme.background.g, Theme.background.b, root.dayScene ? 0.58 : 0.18)
             }
             GradientStop {
                 objectName: "screensaverScrimEnd"
@@ -121,8 +113,7 @@ Item {
                 font.family: Theme.sansFontFamily
                 font.pixelSize: 32
                 font.weight: Font.Normal
-                text: root.weatherReady && root.service.condition ? root.service.condition.toUpperCase()
-                                                                        : qsTr("WEATHER UNAVAILABLE")
+                text: root.weatherReady && root.service.condition ? root.service.condition.toUpperCase() : qsTr("WEATHER UNAVAILABLE")
             }
 
             Item {
@@ -169,8 +160,7 @@ Item {
         implicitHeight: detailsRow.implicitHeight + 12
         radius: Theme.radiusMedium
         border.width: 0
-        color: Qt.rgba(Theme.background.r, Theme.background.g, Theme.background.b,
-                       root.dayScene ? 0.78 : 0.62)
+        color: Qt.rgba(Theme.background.r, Theme.background.g, Theme.background.b, root.dayScene ? 0.78 : 0.62)
 
         Row {
             id: detailsRow
@@ -181,15 +171,69 @@ Item {
             anchors.bottomMargin: 6
             spacing: 8
 
-            Text { objectName: "screensaverFeelsLabel"; color: Theme.textMuted; font.family: Theme.sansFontFamily; font.pixelSize: 22; text: qsTr("FEELS") }
-            Text { objectName: "screensaverFeelsValue"; color: Theme.focusAccent; font.family: Theme.sansFontFamily; font.pixelSize: 22; text: root.weatherReady ? root.temperature(root.service.feelsLikeCelsius) : "—" }
-            Text { objectName: "screensaverFirstSeparator"; color: Theme.textMuted; font.family: Theme.sansFontFamily; font.pixelSize: 22; text: "|" }
-            Text { objectName: "screensaverHighLabel"; color: Theme.textMuted; font.family: Theme.sansFontFamily; font.pixelSize: 22; text: qsTr("H") }
-            Text { objectName: "screensaverHighValue"; color: Theme.focusAccent; font.family: Theme.sansFontFamily; font.pixelSize: 22; text: root.weatherReady ? root.temperature(root.service.highCelsius) : "—" }
-            Text { objectName: "screensaverRangeSeparator"; color: Theme.violetAccent; font.family: Theme.sansFontFamily; font.pixelSize: 22; text: "·" }
-            Text { objectName: "screensaverLowLabel"; color: Theme.textMuted; font.family: Theme.sansFontFamily; font.pixelSize: 22; text: qsTr("L") }
-            Text { objectName: "screensaverLowValue"; color: Theme.focusAccent; font.family: Theme.sansFontFamily; font.pixelSize: 22; text: root.weatherReady ? root.temperature(root.service.lowCelsius) : "—" }
-            Text { objectName: "screensaverSecondSeparator"; color: Theme.textMuted; font.family: Theme.sansFontFamily; font.pixelSize: 22; text: "|" }
+            Text {
+                objectName: "screensaverFeelsLabel"
+                color: Theme.textMuted
+                font.family: Theme.sansFontFamily
+                font.pixelSize: 22
+                text: qsTr("FEELS")
+            }
+            Text {
+                objectName: "screensaverFeelsValue"
+                color: Theme.focusAccent
+                font.family: Theme.sansFontFamily
+                font.pixelSize: 22
+                text: root.weatherReady ? root.temperature(root.service.feelsLikeCelsius) : "—"
+            }
+            Text {
+                objectName: "screensaverFirstSeparator"
+                color: Theme.textMuted
+                font.family: Theme.sansFontFamily
+                font.pixelSize: 22
+                text: "|"
+            }
+            Text {
+                objectName: "screensaverHighLabel"
+                color: Theme.textMuted
+                font.family: Theme.sansFontFamily
+                font.pixelSize: 22
+                text: qsTr("H")
+            }
+            Text {
+                objectName: "screensaverHighValue"
+                color: Theme.focusAccent
+                font.family: Theme.sansFontFamily
+                font.pixelSize: 22
+                text: root.weatherReady ? root.temperature(root.service.highCelsius) : "—"
+            }
+            Text {
+                objectName: "screensaverRangeSeparator"
+                color: Theme.violetAccent
+                font.family: Theme.sansFontFamily
+                font.pixelSize: 22
+                text: "·"
+            }
+            Text {
+                objectName: "screensaverLowLabel"
+                color: Theme.textMuted
+                font.family: Theme.sansFontFamily
+                font.pixelSize: 22
+                text: qsTr("L")
+            }
+            Text {
+                objectName: "screensaverLowValue"
+                color: Theme.focusAccent
+                font.family: Theme.sansFontFamily
+                font.pixelSize: 22
+                text: root.weatherReady ? root.temperature(root.service.lowCelsius) : "—"
+            }
+            Text {
+                objectName: "screensaverSecondSeparator"
+                color: Theme.textMuted
+                font.family: Theme.sansFontFamily
+                font.pixelSize: 22
+                text: "|"
+            }
             Text {
                 objectName: "screensaverSolarEventLabel"
                 color: Theme.textMuted
@@ -202,8 +246,7 @@ Item {
                 color: Theme.attentionStatus
                 font.family: Theme.sansFontFamily
                 font.pixelSize: 22
-                text: root.weatherReady && root.service.localNextSolarEventTime
-                      ? root.service.localNextSolarEventTime : "—"
+                text: root.weatherReady && root.service.localNextSolarEventTime ? root.service.localNextSolarEventTime : "—"
             }
         }
     }

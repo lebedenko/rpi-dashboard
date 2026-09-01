@@ -8,6 +8,7 @@
 #include <QTimer>
 
 #include <cstdint>
+#include <functional>
 #include <memory>
 
 namespace dashboard::weather {
@@ -37,13 +38,15 @@ class WeatherService final : public QObject {
   Q_PROPERTY(QString nextSolarEventKind READ nextSolarEventKind NOTIFY solarEventChanged)
   Q_PROPERTY(QString localNextSolarEventTime READ localNextSolarEventTime NOTIFY solarEventChanged)
   Q_PROPERTY(double todayRainProbabilityPercent READ todayRainProbabilityPercent NOTIFY changed)
+  Q_PROPERTY(QString todayPrecipitationKind READ todayPrecipitationKind NOTIFY changed)
+  Q_PROPERTY(double todayPrecipitationProbabilityPercent READ todayPrecipitationProbabilityPercent NOTIFY changed)
 
  public:
   explicit WeatherService(std::optional<WeatherConfig> config, QByteArray openWeatherKey = {},
                           QByteArray ipGeolocationKey = {}, QObject* parent = nullptr);
   WeatherService(WeatherConfig config, std::unique_ptr<WeatherProvider> weather,
                  std::unique_ptr<GeocodingProvider> geocoding, std::unique_ptr<AutomaticLocationProvider> automatic,
-                 QObject* parent = nullptr);
+                 QObject* parent = nullptr, std::function<QDateTime()> currentUtc = QDateTime::currentDateTimeUtc);
 
   [[nodiscard]] QString state() const { return state_; }
   [[nodiscard]] bool stale() const { return stale_; }
@@ -69,7 +72,11 @@ class WeatherService final : public QObject {
   [[nodiscard]] QString localSunset() const;
   [[nodiscard]] QString nextSolarEventKind() const { return nextSolarEventKind_; }
   [[nodiscard]] QString localNextSolarEventTime() const;
-  [[nodiscard]] double todayRainProbabilityPercent() const { return snapshot_.todayRainProbabilityPercent; }
+  [[nodiscard]] double todayRainProbabilityPercent() const { return todayPrecipitationProbabilityPercent(); }
+  [[nodiscard]] QString todayPrecipitationKind() const { return snapshot_.todayPrecipitationKind; }
+  [[nodiscard]] double todayPrecipitationProbabilityPercent() const {
+    return snapshot_.todayPrecipitationProbabilityPercent;
+  }
 
   Q_INVOKABLE void refresh();
 
@@ -89,6 +96,8 @@ class WeatherService final : public QObject {
   void loadCache();
   void saveCache() const;
   void updateNextSolarEvent();
+  void updateTodayPrecipitationProbability();
+  void scheduleLocalHourBoundary();
 
   std::optional<WeatherConfig> config_;
   std::unique_ptr<WeatherProvider> weather_;
@@ -100,6 +109,8 @@ class WeatherService final : public QObject {
   DailyForecastModel dailyModel_;
   QTimer* refreshTimer_{};
   QTimer* solarEventTimer_{};
+  QTimer* localHourTimer_{};
+  std::function<QDateTime()> currentUtc_;
   QDateTime nextSolarEventUtc_;
   QString nextSolarEventKind_;
   QString state_{QStringLiteral("unconfigured")};
