@@ -1,5 +1,4 @@
 import QtQuick
-import QtQuick.Shapes
 
 Item {
     id: root
@@ -25,33 +24,18 @@ Item {
     Accessible.role: Accessible.StaticText
     Accessible.name: root.accessibleText
 
-    Shape {
+    Frame {
         id: sidebarBackground
 
         anchors.fill: parent
-        Accessible.ignored: true
-
-        ShapePath {
-            fillColor: Theme.surface
-            strokeColor: Theme.passiveBorder
-            strokeWidth: 1
-            joinStyle: ShapePath.MiterJoin
-            startX: Theme.radiusMedium
-            startY: 0
-            PathLine { x: sidebarBackground.width - Theme.chamferLarge; y: 0 }
-            PathLine { x: sidebarBackground.width; y: Theme.chamferLarge }
-            PathLine { x: sidebarBackground.width; y: sidebarBackground.height - Theme.chamferLarge }
-            PathLine { x: sidebarBackground.width - Theme.chamferLarge; y: sidebarBackground.height }
-            PathLine { x: Theme.chamferLarge; y: sidebarBackground.height }
-            PathLine { x: 0; y: sidebarBackground.height - Theme.chamferLarge }
-            PathLine { x: 0; y: Theme.radiusMedium }
-            PathArc {
-                x: Theme.radiusMedium
-                y: 0
-                radiusX: Theme.radiusMedium
-                radiusY: Theme.radiusMedium
-            }
-        }
+        backgroundColor: Theme.surface
+        color: Theme.passiveBorder
+        corners: ({
+            topLeft: { rounded: Theme.radiusMedium },
+            topRight: { chamfered: Theme.chamferLarge },
+            bottomRight: { chamfered: Theme.chamferLarge },
+            bottomLeft: { chamfered: Theme.chamferLarge }
+        })
     }
 
     Column {

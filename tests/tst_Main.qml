@@ -265,9 +265,21 @@ Item {
             verify(!!header);
             verify(!!listFrame);
             verify(!!detail);
-            compare(frame.chamfer, Theme.chamferMedium);
-            compare(listFrame.chamfer, Theme.chamferSmall);
-            compare(detail.chamfer, Theme.chamferSmall);
+            verify(frame instanceof Frame);
+            compare(frame.backgroundColor, Theme.surface);
+            compare(frame.color, Theme.cardFrame);
+            compare(frame.lineWidth, 1);
+            compare(frame.corners.chamfered, Theme.chamferMedium);
+            verify(listFrame instanceof Frame);
+            compare(listFrame.backgroundColor, Theme.cardSurface);
+            compare(listFrame.color, Theme.sectionDividerStrong);
+            compare(listFrame.lineWidth, 1);
+            compare(listFrame.corners.chamfered, Theme.chamferSmall);
+            verify(detail instanceof Frame);
+            compare(detail.backgroundColor, Theme.surface);
+            compare(detail.color, Theme.sectionDividerStrong);
+            compare(detail.lineWidth, 1);
+            compare(detail.corners.chamfered, Theme.chamferSmall);
             compare(header.height, 48);
             verify(Math.abs(heading.y + heading.height / 2 - header.y - header.height / 2) <= 0.5);
             compare(heading.text, "PROJECTS");
@@ -297,9 +309,16 @@ Item {
             const statusText = findChild(first, "projectHealth0");
             const branch = findChild(first, "projectBranch0");
             const age = findChild(first, "projectAge0");
-            compare(firstFrame.stroke, Theme.primaryAccent);
-            compare(firstFrame.chamfer, Theme.chamferSmall);
-            compare(secondFrame.stroke, Theme.sectionDivider);
+            verify(firstFrame instanceof Frame);
+            compare(firstFrame.backgroundColor, Theme.selectedSurface);
+            compare(firstFrame.color, Theme.primaryAccent);
+            compare(firstFrame.lineWidth, 1);
+            compare(firstFrame.corners.chamfered, Theme.chamferSmall);
+            verify(secondFrame instanceof Frame);
+            compare(secondFrame.backgroundColor, Theme.cardSurface);
+            compare(secondFrame.color, Theme.sectionDivider);
+            compare(secondFrame.lineWidth, 1);
+            compare(secondFrame.corners.chamfered, Theme.chamferSmall);
             compare(findChild(first, "projectHealthRail0").color, Theme.failureStatus);
             compare(statusDisc.color, Theme.failureStatus);
             compare(statusText.color, Theme.failureStatus);
@@ -315,6 +334,18 @@ Item {
             compare(findChild(dashboardWindow.contentItem, "selectedRunAge").text, "2m ago");
             compare(findChild(dashboardWindow.contentItem, "stageName0").text, "BUILD");
             compare(findChild(dashboardWindow.contentItem, "stageOutcome0").text, "✓ HEALTHY");
+            const stageFrame = findChild(dashboardWindow.contentItem, "stageFrame0");
+            verify(stageFrame instanceof Frame);
+            compare(stageFrame.backgroundColor, Theme.cardSurface);
+            compare(stageFrame.color, Theme.healthyStatus);
+            compare(stageFrame.lineWidth, 1);
+            compare(stageFrame.corners.chamfered, Theme.chamferSmall);
+            const metricFrame = findChild(dashboardWindow.contentItem, "metricFrame0");
+            verify(metricFrame instanceof Frame);
+            compare(metricFrame.backgroundColor, Theme.surfaceElevated);
+            compare(metricFrame.color, Theme.sectionDividerStrong);
+            compare(metricFrame.lineWidth, 1);
+            compare(Object.keys(metricFrame.corners).length, 0);
             compare(findChild(dashboardWindow.contentItem, "historyHeading").text, "RUN HISTORY (1)");
             compare(findChild(dashboardWindow.contentItem, "historySummary").text, "0 / 1 SUCCESS");
             compare(findChild(dashboardWindow.contentItem, "failedNumber").color, Theme.failureStatus);
@@ -375,6 +406,36 @@ Item {
             tryCompare(firstTab, "activeFocus", true);
             compare(firstTab.Accessible.role, Accessible.Button);
             verify(firstTab.Accessible.name.includes("PI-DASH"));
+        }
+
+        function test_systemPageUsesReusableFrames() {
+            dashboardWindow.localDeviceModel.append(deviceEntry("02", "REMOTE"));
+            mouseClick(findChild(dashboardWindow.contentItem, "systemsButton"));
+
+            const selectedTab = findChild(dashboardWindow.contentItem, "systemDeviceTab0");
+            const passiveTab = findChild(dashboardWindow.contentItem, "systemDeviceTab1");
+            verify(selectedTab.background instanceof Frame);
+            compare(selectedTab.background.backgroundColor, Theme.selectedSurface);
+            compare(selectedTab.background.lineWidth, 1);
+            compare(selectedTab.background.color, Theme.primaryAccent);
+            compare(selectedTab.background.corners.rounded, Theme.radiusMedium);
+            verify(passiveTab.background instanceof Frame);
+            compare(passiveTab.background.backgroundColor, Theme.surface);
+            compare(passiveTab.background.lineWidth, 1);
+            compare(passiveTab.background.color, Theme.passiveBorder);
+            compare(passiveTab.background.corners.rounded, Theme.radiusMedium);
+
+            passiveTab.forceActiveFocus();
+            tryCompare(passiveTab, "activeFocus", true);
+            compare(passiveTab.background.lineWidth, 2);
+            compare(passiveTab.background.color, Theme.focusAccent);
+
+            const panel = findChild(dashboardWindow.contentItem, "cpuPanel");
+            verify(panel.background instanceof Frame);
+            compare(panel.background.backgroundColor, Theme.cardSurface);
+            compare(panel.background.lineWidth, 1);
+            compare(panel.background.color, Theme.cardFrame);
+            compare(panel.background.corners.rounded, Theme.radiusMedium);
         }
 
         function test_systemPageSixPanelsFitAndExposeAccessibleSummaries() {
@@ -762,9 +823,22 @@ Item {
             for (const objectName of ["currentConditionsPanel", "hourlyForecastPanel", "dailyForecastPanel", "weatherRail", "weatherAqi", "weatherSunset", "weatherRain"])
                 verify(!!findChild(dashboardWindow.contentItem, objectName), objectName);
             const page = findChild(dashboardWindow.contentItem, "weatherPage");
-            compare(findChild(dashboardWindow.contentItem, "currentConditionsPanel").radius, Theme.radiusMedium);
-            compare(findChild(dashboardWindow.contentItem, "hourlyForecastPanel").radius, Theme.radiusMedium);
-            compare(findChild(dashboardWindow.contentItem, "dailyForecastPanel").radius, Theme.radiusMedium);
+            const pageFrame = findChild(dashboardWindow.contentItem, "weatherPageFrame");
+            const currentPanel = findChild(dashboardWindow.contentItem, "currentConditionsPanel");
+            const hourlyPanel = findChild(dashboardWindow.contentItem, "hourlyForecastPanel");
+            const dailyPanel = findChild(dashboardWindow.contentItem, "dailyForecastPanel");
+            verify(pageFrame instanceof Frame);
+            compare(pageFrame.backgroundColor, Theme.cardSurface);
+            compare(pageFrame.color, Theme.cardFrame);
+            compare(pageFrame.lineWidth, 1);
+            compare(pageFrame.corners.rounded, Theme.radiusMedium);
+            for (const panel of [currentPanel, hourlyPanel, dailyPanel]) {
+                verify(panel instanceof Frame);
+                compare(panel.backgroundColor, Theme.surface);
+                compare(panel.color, Theme.sectionDividerStrong);
+                compare(panel.lineWidth, 1);
+                compare(panel.corners.rounded, Theme.radiusMedium);
+            }
             verify(page.Accessible.name.includes("Lviv"));
             const refreshCount = fakeWeatherService.refreshCount;
             keyClick(Qt.Key_F5);

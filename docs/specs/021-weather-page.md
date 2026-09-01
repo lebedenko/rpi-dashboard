@@ -55,6 +55,9 @@ credential-bearing URLs.
 - Hourly columns show localized time, icon, temperature, a cyan axis-free temperature trend, and
   violet precipitation bars.
 - Daily rows show localized weekday, icon, rain probability, min/max, and a compact range rail.
+- The page shell and current, hourly, and daily forecast panels use the reusable `Frame` component
+  with their established fills, border colors, 1 px widths, and medium rounded corners. Chart and
+  range indicators remain simple rectangles rather than decorative frames.
 - The contextual rail shows OpenWeather AQI category/index, local sunset, today's rain probability,
   and visible OpenWeather attribution with a link.
 - Loading, unconfigured, stale, and unavailable states do not blank previously available data.
@@ -77,6 +80,11 @@ credential-bearing URLs.
   local image provider, and invalid icon identifiers resolve to a neutral fallback.
 - At 1480×320 all four content regions and the weather rail are visible. Weather states,
   accessibility, navigation, and F5 are covered by deterministic startup/QML tests.
+
+## Deferred review findings
+
+- Explicit `Text.PlainText` formatting is deferred to a separate text-rendering cleanup.
+- Synchronous weather-icon decoding must be profiled before considering asynchronous image loading.
 
 ## Non-goals
 

@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
+import Rpi.Dashboard as Dashboard
 
 FocusScope {
     id: root
@@ -33,12 +34,14 @@ FocusScope {
 
     function temperature(value): string { return qsTr("%1°").arg(Math.round(Number(value))) }
 
-    Rectangle {
+    Dashboard.Frame {
+        objectName: "weatherPageFrame"
         anchors.fill: parent
         anchors.margins: Theme.spacingSmall
-        color: Theme.cardSurface
-        border.color: Theme.cardFrame
-        radius: Theme.radiusMedium
+        backgroundColor: Theme.cardSurface
+        color: Theme.cardFrame
+        lineWidth: 1
+        corners: ({ rounded: Theme.radiusMedium })
         Accessible.ignored: true
     }
 
@@ -91,13 +94,14 @@ FocusScope {
             Layout.fillHeight: true
             spacing: Theme.spacingSmall
 
-            Rectangle {
+            Dashboard.Frame {
                 objectName: "currentConditionsPanel"
                 Layout.preferredWidth: 285
                 Layout.fillHeight: true
-                color: Theme.surface
-                border.color: Theme.sectionDividerStrong
-                radius: Theme.radiusMedium
+                backgroundColor: Theme.surface
+                color: Theme.sectionDividerStrong
+                lineWidth: 1
+                corners: ({ rounded: Theme.radiusMedium })
 
                 Row {
                     anchors.fill: parent
@@ -120,13 +124,14 @@ FocusScope {
                 }
             }
 
-            Rectangle {
+            Dashboard.Frame {
                 objectName: "hourlyForecastPanel"
                 Layout.preferredWidth: 500
                 Layout.fillHeight: true
-                color: Theme.surface
-                border.color: Theme.sectionDividerStrong
-                radius: Theme.radiusMedium
+                backgroundColor: Theme.surface
+                color: Theme.sectionDividerStrong
+                lineWidth: 1
+                corners: ({ rounded: Theme.radiusMedium })
                 Row {
                     anchors.fill: parent
                     anchors.margins: 5
@@ -148,13 +153,14 @@ FocusScope {
                 }
             }
 
-            Rectangle {
+            Dashboard.Frame {
                 objectName: "dailyForecastPanel"
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                color: Theme.surface
-                border.color: Theme.sectionDividerStrong
-                radius: Theme.radiusMedium
+                backgroundColor: Theme.surface
+                color: Theme.sectionDividerStrong
+                lineWidth: 1
+                corners: ({ rounded: Theme.radiusMedium })
                 Column {
                     anchors.fill: parent
                     anchors.margins: 4
