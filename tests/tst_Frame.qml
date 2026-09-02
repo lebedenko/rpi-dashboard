@@ -56,7 +56,11 @@ Item {
         }
 
         function test_chamferedCornersUseOnlyLineCommands() {
-            const frame = createFrame({ "corners": ({ "chamfered": 12 }) });
+            const frame = createFrame({
+                "corners": ({
+                        "chamfered": 12
+                    })
+            });
             const svgPath = findChild(frame, "frameSvgPath");
             verify(!!svgPath, "SVG path exists");
             verify(!svgPath.path.includes("A "));
@@ -64,7 +68,11 @@ Item {
         }
 
         function test_roundedCornersUseArcCommands() {
-            const frame = createFrame({ "corners": ({ "rounded": 12 }) });
+            const frame = createFrame({
+                "corners": ({
+                        "rounded": 12
+                    })
+            });
             const svgPath = findChild(frame, "frameSvgPath");
             verify(!!svgPath, "SVG path exists");
             compare(svgPath.path.split("A ").length - 1, 4);

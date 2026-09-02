@@ -34,18 +34,7 @@ Item {
             readonly property real topRightSize: path.cornerSize("topRight")
             readonly property real bottomRightSize: path.cornerSize("bottomRight")
             readonly property real bottomLeftSize: path.cornerSize("bottomLeft")
-            readonly property string pathData: [
-                "M " + (path.left + path.topLeftSize) + " " + path.top,
-                "L " + (path.right - path.topRightSize) + " " + path.top,
-                path.cornerCommand(path.topRightType, path.topRightSize, path.right, path.top + path.topRightSize),
-                "L " + path.right + " " + (path.bottom - path.bottomRightSize),
-                path.cornerCommand(path.bottomRightType, path.bottomRightSize, path.right - path.bottomRightSize, path.bottom),
-                "L " + (path.left + path.bottomLeftSize) + " " + path.bottom,
-                path.cornerCommand(path.bottomLeftType, path.bottomLeftSize, path.left, path.bottom - path.bottomLeftSize),
-                "L " + path.left + " " + (path.top + path.topLeftSize),
-                path.cornerCommand(path.topLeftType, path.topLeftSize, path.left + path.topLeftSize, path.top),
-                "Z"
-            ].join(" ")
+            readonly property string pathData: ["M " + (path.left + path.topLeftSize) + " " + path.top, "L " + (path.right - path.topRightSize) + " " + path.top, path.cornerCommand(path.topRightType, path.topRightSize, path.right, path.top + path.topRightSize), "L " + path.right + " " + (path.bottom - path.bottomRightSize), path.cornerCommand(path.bottomRightType, path.bottomRightSize, path.right - path.bottomRightSize, path.bottom), "L " + (path.left + path.bottomLeftSize) + " " + path.bottom, path.cornerCommand(path.bottomLeftType, path.bottomLeftSize, path.left, path.bottom - path.bottomLeftSize), "L " + path.left + " " + (path.top + path.topLeftSize), path.cornerCommand(path.topLeftType, path.topLeftSize, path.left + path.topLeftSize, path.top), "Z"].join(" ")
 
             strokeColor: frame.color
             strokeWidth: path.effectiveStrokeWidth
@@ -86,9 +75,7 @@ Item {
             }
 
             function cornerCommand(type: int, size: real, x: real, y: real): string {
-                return type === 1 && size > 0
-                    ? "A " + size + " " + size + " 0 0 1 " + x + " " + y
-                    : "L " + x + " " + y;
+                return type === 1 && size > 0 ? "A " + size + " " + size + " 0 0 1 " + x + " " + y : "L " + x + " " + y;
             }
 
             PathSvg {
