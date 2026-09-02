@@ -37,21 +37,28 @@ Item {
 
     Rectangle {
         objectName: "screensaverLeftScrim"
-        anchors.left: parent.left
-        anchors.top: parent.top
-        anchors.bottom: parent.bottom
-        width: Math.min(1120, parent.width)
+        anchors.fill: parent
         gradient: Gradient {
             orientation: Gradient.Horizontal
             GradientStop {
                 objectName: "screensaverScrimStart"
                 position: 0.0
-                color: Qt.rgba(Theme.background.r, Theme.background.g, Theme.background.b, root.dayScene ? 0.68 : 0.24)
+                color: Qt.rgba(Theme.background.r, Theme.background.g, Theme.background.b, root.dayScene ? 0.62 : 0.24)
+            }
+            GradientStop {
+                objectName: "screensaverScrimThirty"
+                position: 0.3
+                color: Qt.rgba(Theme.background.r, Theme.background.g, Theme.background.b, root.dayScene ? 0.54 : 0.21)
             }
             GradientStop {
                 objectName: "screensaverScrimMiddle"
-                position: 0.85
-                color: Qt.rgba(Theme.background.r, Theme.background.g, Theme.background.b, root.dayScene ? 0.58 : 0.18)
+                position: 0.55
+                color: Qt.rgba(Theme.background.r, Theme.background.g, Theme.background.b, root.dayScene ? 0.34 : 0.14)
+            }
+            GradientStop {
+                objectName: "screensaverScrimSeventyEight"
+                position: 0.78
+                color: Qt.rgba(Theme.background.r, Theme.background.g, Theme.background.b, root.dayScene ? 0.12 : 0.05)
             }
             GradientStop {
                 objectName: "screensaverScrimEnd"
@@ -160,7 +167,7 @@ Item {
         implicitHeight: detailsRow.implicitHeight + 12
         radius: Theme.radiusMedium
         border.width: 0
-        color: Qt.rgba(Theme.background.r, Theme.background.g, Theme.background.b, root.dayScene ? 0.78 : 0.62)
+        color: Qt.rgba(Theme.background.r, Theme.background.g, Theme.background.b, root.dayScene ? 0.39 : 0.31)
 
         Row {
             id: detailsRow

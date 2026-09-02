@@ -993,10 +993,18 @@ Item {
             compare(findChild(view, "screensaverLowValue").color, Theme.focusAccent);
             compare(findChild(view, "screensaverSolarEventLabel").color, Theme.textMuted);
             compare(findChild(view, "screensaverSolarEventTime").color, Theme.attentionStatus);
-            fuzzyCompare(findChild(view, "screensaverDetailsBacking").color.a, 0.78, 0.01);
-            compare(findChild(view, "screensaverLeftScrim").width, 1120);
-            fuzzyCompare(findChild(view, "screensaverScrimStart").color.a, 0.68, 0.01);
-            fuzzyCompare(findChild(view, "screensaverScrimMiddle").color.a, 0.58, 0.01);
+            fuzzyCompare(findChild(view, "screensaverDetailsBacking").color.a, 0.39, 0.01);
+            compare(findChild(view, "screensaverLeftScrim").width, 1480);
+            compare(findChild(view, "screensaverScrimStart").position, 0.00);
+            fuzzyCompare(findChild(view, "screensaverScrimStart").color.a, 0.62, 0.01);
+            compare(findChild(view, "screensaverScrimThirty").position, 0.30);
+            fuzzyCompare(findChild(view, "screensaverScrimThirty").color.a, 0.54, 0.01);
+            compare(findChild(view, "screensaverScrimMiddle").position, 0.55);
+            fuzzyCompare(findChild(view, "screensaverScrimMiddle").color.a, 0.34, 0.01);
+            compare(findChild(view, "screensaverScrimSeventyEight").position, 0.78);
+            fuzzyCompare(findChild(view, "screensaverScrimSeventyEight").color.a, 0.12, 0.01);
+            compare(findChild(view, "screensaverScrimEnd").position, 1.00);
+            fuzzyCompare(findChild(view, "screensaverScrimEnd").color.a, 0.00, 0.01);
             const codes = ["01d", "01n", "02d", "02n", "03d", "03n", "04d", "04n", "09d", "09n", "10d", "10n", "11d", "11n", "13d", "13n", "50d", "50n"];
             for (const code of codes) {
                 fakeWeatherService.iconCode = code;
@@ -1008,9 +1016,12 @@ Item {
             fakeWeatherService.localNextSolarEventTime = "06:41";
             compare(findChild(view, "screensaverSolarEventLabel").text, "SUNRISE");
             compare(findChild(view, "screensaverSolarEventTime").text, "06:41");
-            fuzzyCompare(findChild(view, "screensaverDetailsBacking").color.a, 0.62, 0.01);
+            fuzzyCompare(findChild(view, "screensaverDetailsBacking").color.a, 0.31, 0.01);
             fuzzyCompare(findChild(view, "screensaverScrimStart").color.a, 0.24, 0.01);
-            fuzzyCompare(findChild(view, "screensaverScrimMiddle").color.a, 0.18, 0.01);
+            fuzzyCompare(findChild(view, "screensaverScrimThirty").color.a, 0.21, 0.01);
+            fuzzyCompare(findChild(view, "screensaverScrimMiddle").color.a, 0.14, 0.01);
+            fuzzyCompare(findChild(view, "screensaverScrimSeventyEight").color.a, 0.05, 0.01);
+            fuzzyCompare(findChild(view, "screensaverScrimEnd").color.a, 0.00, 0.01);
             fakeWeatherService.iconCode = "invalid";
             compare(view.iconCode, "03d");
             compare(findChild(view, "screensaverStatus").visible, true);
