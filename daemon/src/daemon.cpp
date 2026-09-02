@@ -1,14 +1,19 @@
 #include "dashboard_daemon/daemon.h"
 
+#include <algorithm>
 #include <arpa/inet.h>
 #include <bit>
+#include <cctype>
 #include <charconv>
 #include <chrono>
 #include <cstring>
 #include <fcntl.h>
 #include <fstream>
+#include <limits>
 #include <netdb.h>
 #include <random>
+#include <ranges>
+#include <set>
 #include <stdexcept>
 #include <sys/socket.h>
 #include <sys/stat.h>
@@ -48,6 +53,104 @@ std::string read(const std::filesystem::path& p) {
   std::ifstream f(p);
   if (!f) return {};
   return {std::istreambuf_iterator<char>(f), {}};
+}
+constexpr std::size_t kSmallFileLimit = 64 * 1024;
+constexpr std::size_t kCpuInfoLimit = 1024 * 1024;
+constexpr std::uint32_t kMaximumCpuCount = 256;
+constexpr std::uint32_t kMaximumCpuId = 4095;
+
+std::optional<std::string> bounded_read(const std::filesystem::path& path, std::size_t maximum_bytes) {
+  std::ifstream file(path, std::ios::binary);
+  if (!file) return std::nullopt;
+  std::string contents(maximum_bytes + 1, '\0');
+  file.read(contents.data(), static_cast<std::streamsize>(contents.size()));
+  contents.resize(static_cast<std::size_t>(file.gcount()));
+  if (contents.size() > maximum_bytes) return std::nullopt;
+  return contents;
+}
+
+std::optional<std::string> clean(std::string value) {
+  value = trim(std::move(value));
+  std::string lower = value;
+  std::transform(lower.begin(), lower.end(), lower.begin(), [](unsigned char c) { return std::tolower(c); });
+  if (value.empty() || lower == "unknown" || !utf8(value)) return std::nullopt;
+  return value;
+}
+
+std::optional<std::uint32_t> unsigned_value(std::string_view input, std::uint32_t maximum) {
+  if (input.empty() || !std::ranges::all_of(input, [](unsigned char c) { return std::isdigit(c); }))
+    return std::nullopt;
+  std::uint32_t value{};
+  const auto [end, error] = std::from_chars(input.data(), input.data() + input.size(), value);
+  if (error != std::errc{} || end != input.data() + input.size() || value > maximum) return std::nullopt;
+  return value;
+}
+
+std::optional<std::vector<std::uint32_t>> online_cpu_ids(std::string contents) {
+  contents = trim(std::move(contents));
+  if (contents.empty()) return std::nullopt;
+  std::vector<std::uint32_t> result;
+  std::set<std::uint32_t> unique;
+  std::size_t position = 0;
+  while (position <= contents.size()) {
+    const auto comma = contents.find(',', position);
+    const std::string_view entry(contents.data() + position,
+                                 (comma == std::string::npos ? contents.size() : comma) - position);
+    const auto dash = entry.find('-');
+    if (entry.empty() || (dash != std::string_view::npos && entry.find('-', dash + 1) != std::string_view::npos))
+      return std::nullopt;
+    const auto first = unsigned_value(entry.substr(0, dash), kMaximumCpuId);
+    const auto last = dash == std::string_view::npos ? first : unsigned_value(entry.substr(dash + 1), kMaximumCpuId);
+    if (!first || !last || *first > *last || *last - *first + 1 > kMaximumCpuCount) return std::nullopt;
+    for (auto id = *first;; ++id) {
+      if (!unique.insert(id).second || result.size() >= kMaximumCpuCount) return std::nullopt;
+      result.push_back(id);
+      if (id == *last) break;
+    }
+    if (comma == std::string::npos) break;
+    position = comma + 1;
+  }
+  return result.empty() ? std::nullopt : std::optional(std::move(result));
+}
+
+std::optional<std::uint64_t> memory_bytes(std::string_view contents) {
+  std::size_t position = 0;
+  while (position <= contents.size()) {
+    const auto newline = contents.find('\n', position);
+    const auto line =
+        contents.substr(position, (newline == std::string_view::npos ? contents.size() : newline) - position);
+    if (line.starts_with("MemTotal:")) {
+      const auto value = trim(std::string(line.substr(9)));
+      const auto separator = value.find_first_of(" \t");
+      if (separator == std::string::npos || trim(value.substr(separator)) != "kB") return std::nullopt;
+      std::uint64_t kibibytes{};
+      const auto digits = std::string_view(value).substr(0, separator);
+      const auto [end, error] = std::from_chars(digits.data(), digits.data() + digits.size(), kibibytes);
+      constexpr std::uint64_t bytes_per_kibibyte = 1024;
+      if (digits.empty() || error != std::errc{} || end != digits.data() + digits.size() || kibibytes == 0 ||
+          kibibytes > std::numeric_limits<std::uint64_t>::max() / bytes_per_kibibyte)
+        return std::nullopt;
+      return kibibytes * bytes_per_kibibyte;
+    }
+    if (newline == std::string_view::npos) break;
+    position = newline + 1;
+  }
+  return std::nullopt;
+}
+
+std::optional<std::string> cpu_info_value(std::string_view contents, std::string_view expected_key) {
+  std::size_t position = 0;
+  while (position <= contents.size()) {
+    const auto newline = contents.find('\n', position);
+    const auto line =
+        contents.substr(position, (newline == std::string_view::npos ? contents.size() : newline) - position);
+    const auto separator = line.find(':');
+    if (separator != std::string_view::npos && trim(std::string(line.substr(0, separator))) == expected_key)
+      return clean(std::string(line.substr(separator + 1)));
+    if (newline == std::string_view::npos) break;
+    position = newline + 1;
+  }
+  return std::nullopt;
 }
 void head(std::vector<std::uint8_t>& o, unsigned m, std::uint64_t n) {
   if (n < 24)
@@ -283,44 +386,154 @@ Uuid load_or_create_identity(const std::filesystem::path& p) {
 }
 Collector::Collector(std::filesystem::path r) : root_(std::move(r)) {}
 Value Collector::system_info() const {
-  std::map<std::string, Value> root, host, os, kernel, cpu, memory;
+  std::map<std::string, Value> root, host, os, kernel, hardware, cpu, memory;
   char name[256]{};
-  if (root_ == "/" && gethostname(name, sizeof name) == 0)
-    host["host_name"] = Value::s(name);
-  else {
-    auto n = trim(read(rooted(root_, "/etc/hostname")));
-    if (!n.empty()) host["host_name"] = Value::s(n);
+  std::optional<std::string> hostname;
+  if (root_ == "/" && gethostname(name, sizeof name) == 0) {
+    name[sizeof name - 1] = '\0';
+    hostname = clean(name);
+  } else if (const auto contents = bounded_read(rooted(root_, "/etc/hostname"), kSmallFileLimit)) {
+    hostname = clean(*contents);
   }
+  if (hostname) {
+    hostname = hostname->substr(0, hostname->find('.'));
+    if (hostname->empty()) hostname.reset();
+  }
+  if (hostname) host["host_name"] = Value::s(*hostname);
+
   struct utsname u{};
-  if (root_ == "/" && uname(&u) == 0) {
-    kernel["kernel_type"] = Value::s(u.sysname);
-    kernel["kernel_version"] = Value::s(u.release);
-    cpu["architecture"] = Value::s(u.machine);
-    os["os_family"] = Value::s(u.sysname);
+  if (uname(&u) == 0) {
+    if (auto type = clean(u.sysname)) {
+      std::transform(type->begin(), type->end(), type->begin(), [](unsigned char c) { return std::tolower(c); });
+      kernel["kernel_type"] = Value::s(*type);
+      os["os_family"] = Value::s(*type);
+    }
+    if (auto version = clean(u.release)) kernel["kernel_version"] = Value::s(*version);
+    if (auto architecture = clean(u.machine)) {
+      std::transform(architecture->begin(), architecture->end(), architecture->begin(),
+                     [](unsigned char c) { return std::tolower(c); });
+      if (*architecture == "amd64") *architecture = "x86_64";
+      if (*architecture == "arm64") *architecture = "aarch64";
+      cpu["architecture"] = Value::s(*architecture);
+    }
   }
-  std::string rel = read(rooted(root_, "/etc/os-release"));
-  for (std::string line; !rel.empty();) {
-    auto e = rel.find('\n');
-    line = rel.substr(0, e);
-    rel = e == std::string::npos ? "" : rel.substr(e + 1);
-    auto q = line.find('=');
-    if (q == std::string::npos) continue;
-    auto v = line.substr(q + 1);
-    if (v.size() > 1 && v.front() == '"' && v.back() == '"') v = v.substr(1, v.size() - 2);
-    if (line.substr(0, q) == "ID") os["os_id"] = Value::s(v);
-    if (line.substr(0, q) == "VERSION_ID") os["os_version"] = Value::s(v);
-    if (line.substr(0, q) == "PRETTY_NAME") os["os_pretty_name"] = Value::s(v);
+
+  if (auto release = bounded_read(rooted(root_, "/etc/os-release"), kSmallFileLimit)) {
+    for (std::string line; !release->empty();) {
+      const auto newline = release->find('\n');
+      line = release->substr(0, newline);
+      *release = newline == std::string::npos ? "" : release->substr(newline + 1);
+      const auto separator = line.find('=');
+      if (separator == std::string::npos) continue;
+      auto value = line.substr(separator + 1);
+      if (value.size() > 1 && value.front() == '"' && value.back() == '"') value = value.substr(1, value.size() - 2);
+      const auto normalized = clean(std::move(value));
+      if (!normalized) continue;
+      const auto key = line.substr(0, separator);
+      if (key == "ID") os["os_id"] = Value::s(*normalized);
+      if (key == "VERSION_ID") os["os_version"] = Value::s(*normalized);
+      if (key == "PRETTY_NAME") os["os_pretty_name"] = Value::s(*normalized);
+    }
   }
-  std::string mem = read(rooted(root_, "/proc/meminfo"));
-  auto p = mem.find("MemTotal:");
-  if (p != std::string::npos) {
-    std::uint64_t kb{};
-    std::from_chars(mem.data() + p + 9, mem.data() + mem.size(), kb);
-    memory["total_bytes"] = Value::u(kb * 1024);
+
+  if (const auto meminfo = bounded_read(rooted(root_, "/proc/meminfo"), kSmallFileLimit)) {
+    if (const auto bytes = memory_bytes(*meminfo)) memory["total_bytes"] = Value::u(*bytes);
+  }
+  if (const auto manufacturer = bounded_read(rooted(root_, "/sys/class/dmi/id/sys_vendor"), kSmallFileLimit)) {
+    if (auto value = clean(*manufacturer)) hardware["manufacturer"] = Value::s(*value);
+  }
+  if (const auto model = bounded_read(rooted(root_, "/sys/class/dmi/id/product_name"), kSmallFileLimit)) {
+    if (auto value = clean(*model)) hardware["model"] = Value::s(*value);
+  }
+  const auto cpuinfo = bounded_read(rooted(root_, "/proc/cpuinfo"), kCpuInfoLimit);
+  if (cpuinfo) {
+    if (auto vendor = cpu_info_value(*cpuinfo, "vendor_id")) cpu["vendor"] = Value::s(*vendor);
+    if (auto model = cpu_info_value(*cpuinfo, "model name")) cpu["model"] = Value::s(*model);
+  }
+
+  std::optional<std::vector<std::uint32_t>> online;
+  if (const auto contents = bounded_read(rooted(root_, "/sys/devices/system/cpu/online"), kSmallFileLimit)) {
+    online = online_cpu_ids(*contents);
+  }
+  if (online) {
+    cpu["logical_cpu_count"] = Value::u(online->size());
+    std::set<std::pair<std::uint32_t, std::uint32_t>> cores;
+    bool complete = true;
+    for (const auto id : *online) {
+      const auto topology = std::string("/sys/devices/system/cpu/cpu") + std::to_string(id) + "/topology/";
+      const auto package_file = bounded_read(rooted(root_, topology + "physical_package_id"), kSmallFileLimit);
+      const auto core_file = bounded_read(rooted(root_, topology + "core_id"), kSmallFileLimit);
+      const auto package =
+          package_file ? unsigned_value(trim(*package_file), std::numeric_limits<std::uint32_t>::max()) : std::nullopt;
+      const auto core_id =
+          core_file ? unsigned_value(trim(*core_file), std::numeric_limits<std::uint32_t>::max()) : std::nullopt;
+      if (!package || !core_id) {
+        complete = false;
+        break;
+      }
+      cores.emplace(*package, *core_id);
+    }
+    if (complete && !cores.empty() && cores.size() <= kMaximumCpuCount)
+      cpu["physical_core_count"] = Value::u(cores.size());
+  } else if (root_ == "/") {
+    const long processors = sysconf(_SC_NPROCESSORS_ONLN);
+    if (processors > 0 && processors <= kMaximumCpuCount)
+      cpu["logical_cpu_count"] = Value::u(static_cast<std::uint64_t>(processors));
+  }
+
+  std::vector<std::string> compatible_ids;
+  if (const auto compatible =
+          bounded_read(rooted(root_, "/sys/firmware/devicetree/base/compatible"), kSmallFileLimit)) {
+    std::size_t position = 0;
+    while (position < compatible->size()) {
+      const auto separator = compatible->find('\0', position);
+      const auto length = (separator == std::string::npos ? compatible->size() : separator) - position;
+      if (auto identifier = clean(compatible->substr(position, length))) compatible_ids.push_back(*identifier);
+      if (separator == std::string::npos) break;
+      position = separator + 1;
+    }
+  }
+  const bool is_pi = std::ranges::any_of(compatible_ids, [](const auto& id) { return id.starts_with("raspberrypi,"); });
+  if (is_pi) {
+    hardware["manufacturer"] = Value::s("Raspberry Pi");
+    std::vector<Value> ids;
+    for (const auto& id : compatible_ids) ids.push_back(Value::s(id));
+    hardware["compatible_ids"] = Value::list(std::move(ids));
+    if (const auto model_file = bounded_read(rooted(root_, "/sys/firmware/devicetree/base/model"), kSmallFileLimit)) {
+      auto model_text = *model_file;
+      std::erase(model_text, '\0');
+      if (auto model = clean(std::move(model_text))) hardware["model"] = Value::s(*model);
+    }
+    if (cpuinfo) {
+      std::size_t position = 0;
+      while (position <= cpuinfo->size()) {
+        const auto newline = cpuinfo->find('\n', position);
+        const auto line = std::string_view(*cpuinfo).substr(
+            position, (newline == std::string::npos ? cpuinfo->size() : newline) - position);
+        const auto separator = line.find(':');
+        if (separator != std::string_view::npos && trim(std::string(line.substr(0, separator))) == "Revision") {
+          if (auto revision = clean(std::string(line.substr(separator + 1))))
+            hardware["board_revision"] = Value::s(*revision);
+          break;
+        }
+        if (newline == std::string::npos) break;
+        position = newline + 1;
+      }
+    }
+    for (const auto& id : compatible_ids) {
+      if (id.starts_with("brcm,bcm")) {
+        cpu["vendor"] = Value::s("Broadcom");
+        auto model = id.substr(5);
+        std::transform(model.begin(), model.end(), model.begin(), [](unsigned char c) { return std::toupper(c); });
+        cpu["model"] = Value::s(std::move(model));
+        break;
+      }
+    }
   }
   if (!host.empty()) root["host"] = Value::object(host);
   if (!os.empty()) root["os"] = Value::object(os);
   if (!kernel.empty()) root["kernel"] = Value::object(kernel);
+  if (!hardware.empty()) root["hardware"] = Value::object(hardware);
   if (!cpu.empty()) root["cpu"] = Value::object(cpu);
   if (!memory.empty()) root["memory"] = Value::object(memory);
   return Value::object(root);

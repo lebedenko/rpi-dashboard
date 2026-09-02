@@ -50,6 +50,16 @@ and systemd 235+.
 - The standalone directory configures and tests without Qt.
 - Configuration validation/discovery, UUID persistence, canonical map ordering, counter reset,
   and partial collection have deterministic tests.
+- System information has protocol-v1 field parity with the dashboard collector: hostname domains are stripped;
+  OS/kernel family and architecture aliases are normalized; Device Tree Raspberry Pi manufacturer, model, revision,
+  ordered compatible IDs, and Broadcom CPU identity are enriched; and logical and physical online CPU counts are
+  reported when topology is complete.
+- Generic Linux hosts use bounded DMI `sys_vendor`/`product_name` reads and exact `/proc/cpuinfo` `vendor_id`/`model
+  name` fields for hardware and processor descriptions. Raspberry Pi Device Tree values override generic identity.
+- System-information reads are bounded. Empty or `unknown` text and zero, malformed, overflowing, oversized, or
+  over-limit numeric/topology values are omitted without discarding valid fields from other sources.
+- Field-level fixtures cover all 17 system-information fields, normalization, compatible-ID ordering, physical-core
+  SMT collapse, partial snapshots, and the exclusion of `/proc/cpuinfo` serials and unrelated identifiers.
 - A loopback run registers and sends a snapshot accepted by the Qt protocol receiver.
 - The service uses `DynamicUser`, `StateDirectory`, restricted filesystem access, journald, and
   restart-on-failure hardening.
