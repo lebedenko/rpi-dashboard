@@ -69,18 +69,9 @@ DeviceModel::DeviceModel(sysinfo::SysInfoService& info, sysmetrics::SysMetricsSe
   connect(&info, &sysinfo::SysInfoService::currentInfoChanged, this, &DeviceModel::localInfoChanged);
   connect(&metrics, &sysmetrics::SysMetricsService::currentMetricsChanged, this, &DeviceModel::localMetricsChanged);
   connect(&registry, &telemetry::RemoteDeviceRegistry::deviceChanged, this, &DeviceModel::remoteChanged);
-  connect(&info, &QObject::destroyed, this, [this] {
-    info_ = nullptr;
-    invalidateDependencies();
-  });
-  connect(&metrics, &QObject::destroyed, this, [this] {
-    metrics_ = nullptr;
-    invalidateDependencies();
-  });
-  connect(&registry, &QObject::destroyed, this, [this] {
-    registry_ = nullptr;
-    invalidateDependencies();
-  });
+  connect(&info, &QObject::destroyed, this, &DeviceModel::invalidateDependencies);
+  connect(&metrics, &QObject::destroyed, this, &DeviceModel::invalidateDependencies);
+  connect(&registry, &QObject::destroyed, this, &DeviceModel::invalidateDependencies);
   connect(&registry, &telemetry::RemoteDeviceRegistry::deviceAboutToBeAdded, this, [this](int remote_index) {
     structured_registry_change_ = true;
     beginInsertRows({}, remote_index + 1, remote_index + 1);
@@ -107,6 +98,9 @@ DeviceModel::DeviceModel(sysinfo::SysInfoService& info, sysmetrics::SysMetricsSe
     emit countChanged();
   });
 }
+
+DeviceModel::~DeviceModel() = default;
+
 int DeviceModel::rowCount(const QModelIndex& parent) const {
   return parent.isValid() || !info_ || !metrics_ || !registry_ ? 0 : 1 + registry_->devices().size();
 }

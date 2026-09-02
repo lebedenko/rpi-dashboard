@@ -34,6 +34,7 @@ Item {
             readonly property real topRightSize: path.cornerSize("topRight")
             readonly property real bottomRightSize: path.cornerSize("bottomRight")
             readonly property real bottomLeftSize: path.cornerSize("bottomLeft")
+            readonly property string pathData: ["M " + (path.left + path.topLeftSize) + " " + path.top, "L " + (path.right - path.topRightSize) + " " + path.top, path.cornerCommand(path.topRightType, path.topRightSize, path.right, path.top + path.topRightSize), "L " + path.right + " " + (path.bottom - path.bottomRightSize), path.cornerCommand(path.bottomRightType, path.bottomRightSize, path.right - path.bottomRightSize, path.bottom), "L " + (path.left + path.bottomLeftSize) + " " + path.bottom, path.cornerCommand(path.bottomLeftType, path.bottomLeftSize, path.left, path.bottom - path.bottomLeftSize), "L " + path.left + " " + (path.top + path.topLeftSize), path.cornerCommand(path.topLeftType, path.topLeftSize, path.left + path.topLeftSize, path.top), "Z"].join(" ")
 
             strokeColor: frame.color
             strokeWidth: path.effectiveStrokeWidth
@@ -73,49 +74,13 @@ Item {
                 return Math.min(requestedSize, path.maximumCornerSize);
             }
 
-            PathLine {
-                x: path.right - path.topRightSize
-                y: path.top
+            function cornerCommand(type: int, size: real, x: real, y: real): string {
+                return type === 1 && size > 0 ? "A " + size + " " + size + " 0 0 1 " + x + " " + y : "L " + x + " " + y;
             }
-            PathArc {
-                x: path.right
-                y: path.top + path.topRightSize
-                radiusX: path.topRightType === 1 ? path.topRightSize : 0
-                radiusY: radiusX
-                direction: PathArc.Clockwise
-            }
-            PathLine {
-                x: path.right
-                y: path.bottom - path.bottomRightSize
-            }
-            PathArc {
-                x: path.right - path.bottomRightSize
-                y: path.bottom
-                radiusX: path.bottomRightType === 1 ? path.bottomRightSize : 0
-                radiusY: radiusX
-                direction: PathArc.Clockwise
-            }
-            PathLine {
-                x: path.left + path.bottomLeftSize
-                y: path.bottom
-            }
-            PathArc {
-                x: path.left
-                y: path.bottom - path.bottomLeftSize
-                radiusX: path.bottomLeftType === 1 ? path.bottomLeftSize : 0
-                radiusY: radiusX
-                direction: PathArc.Clockwise
-            }
-            PathLine {
-                x: path.left
-                y: path.top + path.topLeftSize
-            }
-            PathArc {
-                x: path.left + path.topLeftSize
-                y: path.top
-                radiusX: path.topLeftType === 1 ? path.topLeftSize : 0
-                radiusY: radiusX
-                direction: PathArc.Clockwise
+
+            PathSvg {
+                objectName: "frameSvgPath"
+                path: path.pathData
             }
         }
     }

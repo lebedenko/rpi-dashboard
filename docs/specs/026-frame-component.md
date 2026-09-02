@@ -34,6 +34,8 @@ and mixed corners without allowing an opaque background to extend outside the fr
 - Zero, negative, and non-finite border widths do not inset fill-only frame geometry.
 - The component requests the Qt Quick Shapes curve renderer and permits Qt to fall back when that
   renderer is unavailable.
+- Chamfered and square corners are represented by line segments. Arc commands are emitted only for
+  rounded corners with a positive radius.
 - The component is registered in the `Rpi.Dashboard` QML module and passes QML linting and focused
   Qt Quick Tests.
 - The Overview shell's navigation sidebar, clock/status sidebar, sidebar button backgrounds, and
