@@ -32,6 +32,9 @@ class SysMetricsService final : public QObject {
   Q_PROPERTY(QVariant swapTotalBytes READ swapTotalBytes NOTIFY currentMetricsChanged)
   Q_PROPERTY(QVariant swapAvailableBytes READ swapAvailableBytes NOTIFY currentMetricsChanged)
   Q_PROPERTY(QVariant swapUsedBytes READ swapUsedBytes NOTIFY currentMetricsChanged)
+  Q_PROPERTY(QVariant primaryStorageTotalBytes READ primaryStorageTotalBytes NOTIFY currentMetricsChanged)
+  Q_PROPERTY(QVariant primaryStorageUsedBytes READ primaryStorageUsedBytes NOTIFY currentMetricsChanged)
+  Q_PROPERTY(QVariant primaryStorageUsageRatio READ primaryStorageUsageRatio NOTIFY currentMetricsChanged)
   Q_PROPERTY(QVariant gpuName READ gpuName NOTIFY currentMetricsChanged)
   Q_PROPERTY(QVariant gpuUsageRatio READ gpuUsageRatio NOTIFY currentMetricsChanged)
   Q_PROPERTY(QVariant gpuMemoryTotalBytes READ gpuMemoryTotalBytes NOTIFY currentMetricsChanged)
@@ -66,6 +69,9 @@ class SysMetricsService final : public QObject {
   [[nodiscard]] QVariant swapTotalBytes() const;
   [[nodiscard]] QVariant swapAvailableBytes() const;
   [[nodiscard]] QVariant swapUsedBytes() const;
+  [[nodiscard]] QVariant primaryStorageTotalBytes() const;
+  [[nodiscard]] QVariant primaryStorageUsedBytes() const;
+  [[nodiscard]] QVariant primaryStorageUsageRatio() const;
   [[nodiscard]] QVariant gpuName() const;
   [[nodiscard]] QVariant gpuUsageRatio() const;
   [[nodiscard]] QVariant gpuMemoryTotalBytes() const;

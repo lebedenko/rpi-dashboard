@@ -33,6 +33,15 @@ seconds until accepted and then complete snapshots at the configured interval. D
 UDP errors are retried. Invalid configuration, persistent identity failure, unsupported protocol,
 and explicit rejection are fatal.
 
+Live metrics include strictly parsed physical and swap memory, CPU thermal-zone temperature, non-loopback network
+counters and rates, `/` plus block-backed `/dev/*` mounts, and best-effort Raspberry Pi V3D metrics. V3D identity is
+discovered from an explicit `.v3d` platform-device or devfreq entry. Utilization is derived from valid cumulative
+`.v3d/gpu_stats` timestamp and runtime deltas. V3D core frequency comes only from a positive `.v3d` devfreq `cur_freq`; temperature comes
+only from an explicitly GPU- or V3D-labelled thermal zone. On generic Linux hosts, known PCI GPU vendors are discovered
+through DRM cards; cards with a readable utilization or Intel `gt_cur_freq_mhz` metric are ordered first. CPU thermal
+collection accepts Raspberry Pi CPU/SoC labels and standard x86 package labels. Unsupported GPU values remain absent. Mounts
+are deduplicated and sorted with `/` first, virtual filesystems are excluded, and the protocol limit of 64 is enforced.
+
 ## Installation and support
 
 Each architecture-specific archive contains `dashboard-daemon`, `dashboard-daemon.service`, an
@@ -60,6 +69,9 @@ and systemd 235+.
   over-limit numeric/topology values are omitted without discarding valid fields from other sources.
 - Field-level fixtures cover all 17 system-information fields, normalization, compatible-ID ordering, physical-core
   SMT collapse, partial snapshots, and the exclusion of `/proc/cpuinfo` serials and unrelated identifiers.
+- Metrics fixtures cover valid and malformed swap, CPU thermal readings, non-loopback network counters and rates,
+  V3D discovery and optional fields, real-mount filtering and ordering, invalid capacity relationships, and the
+  64-volume bound.
 - A loopback run registers and sends a snapshot accepted by the Qt protocol receiver.
 - The service uses `DynamicUser`, `StateDirectory`, restricted filesystem access, journald, and
   restart-on-failure hardening.

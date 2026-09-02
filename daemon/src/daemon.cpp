@@ -6,6 +6,7 @@
 #include <cctype>
 #include <charconv>
 #include <chrono>
+#include <cmath>
 #include <cstring>
 #include <fcntl.h>
 #include <fstream>
@@ -14,6 +15,7 @@
 #include <random>
 #include <ranges>
 #include <set>
+#include <sstream>
 #include <stdexcept>
 #include <sys/socket.h>
 #include <sys/stat.h>
@@ -56,8 +58,13 @@ std::string read(const std::filesystem::path& p) {
 }
 constexpr std::size_t kSmallFileLimit = 64 * 1024;
 constexpr std::size_t kCpuInfoLimit = 1024 * 1024;
+constexpr std::size_t kProcLimit = 1024 * 1024;
+constexpr std::size_t kSysfsLimit = 4096;
 constexpr std::uint32_t kMaximumCpuCount = 256;
 constexpr std::uint32_t kMaximumCpuId = 4095;
+constexpr std::size_t kMaximumStorageVolumes = 64;
+constexpr std::size_t kMaximumNetworkInterfaces = 64;
+constexpr std::uint64_t kWireMaximum = static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max());
 
 std::optional<std::string> bounded_read(const std::filesystem::path& path, std::size_t maximum_bytes) {
   std::ifstream file(path, std::ios::binary);
@@ -84,6 +91,93 @@ std::optional<std::uint32_t> unsigned_value(std::string_view input, std::uint32_
   const auto [end, error] = std::from_chars(input.data(), input.data() + input.size(), value);
   if (error != std::errc{} || end != input.data() + input.size() || value > maximum) return std::nullopt;
   return value;
+}
+
+std::optional<std::uint64_t> unsigned_value(std::string_view input) {
+  if (input.empty() || !std::ranges::all_of(input, [](unsigned char character) { return std::isdigit(character); }))
+    return std::nullopt;
+  std::uint64_t value{};
+  const auto [end, error] = std::from_chars(input.data(), input.data() + input.size(), value);
+  return error == std::errc{} && end == input.data() + input.size() ? std::optional(value) : std::nullopt;
+}
+
+std::vector<std::string> directory_entries(const std::filesystem::path& path) {
+  std::vector<std::string> result;
+  std::error_code error;
+  for (std::filesystem::directory_iterator iterator(path, error), end; !error && iterator != end;
+       iterator.increment(error)) {
+    result.push_back(iterator->path().filename().string());
+  }
+  std::ranges::sort(result);
+  return result;
+}
+
+bool v3d_entry(std::string entry) {
+  std::transform(entry.begin(), entry.end(), entry.begin(),
+                 [](unsigned char character) { return std::tolower(character); });
+  return entry == "v3d" || entry.ends_with(".v3d");
+}
+
+bool gpu_thermal_zone(std::string type) {
+  type = trim(std::move(type));
+  std::transform(type.begin(), type.end(), type.begin(),
+                 [](unsigned char character) { return std::tolower(character); });
+  return type == "gpu" || type == "gpu-thermal" || type == "gpu_thermal" || type == "v3d";
+}
+
+bool cpu_thermal_zone(std::string type) {
+  type = trim(std::move(type));
+  std::transform(type.begin(), type.end(), type.begin(),
+                 [](unsigned char character) { return std::tolower(character); });
+  return type == "cpu-thermal" || type == "cpu_thermal" || type == "soc_thermal" || type == "x86_pkg_temp" ||
+         type == "tcpu" || type == "tcpu_pci";
+}
+
+std::optional<std::string> gpu_vendor(std::string value) {
+  value = trim(std::move(value));
+  if (value == "0x8086") return "Intel";
+  if (value == "0x10de") return "NVIDIA";
+  if (value == "0x1002") return "AMD";
+  return std::nullopt;
+}
+
+std::optional<std::pair<std::uint64_t, std::uint64_t>> gpu_stats(std::string_view contents) {
+  std::istringstream lines{std::string(contents)};
+  std::string line;
+  std::uint64_t timestamp = 0;
+  std::uint64_t runtime = 0;
+  bool found = false;
+  while (std::getline(lines, line)) {
+    std::istringstream fields(line);
+    std::string queue, timestamp_text, jobs_text, runtime_text, extra;
+    if (!(fields >> queue >> timestamp_text >> jobs_text >> runtime_text) || fields >> extra) continue;
+    const auto parsed_timestamp = unsigned_value(timestamp_text);
+    const auto parsed_jobs = unsigned_value(jobs_text);
+    const auto parsed_runtime = unsigned_value(runtime_text);
+    if (!parsed_timestamp || !parsed_jobs || !parsed_runtime || (found && *parsed_timestamp != timestamp) ||
+        runtime > kWireMaximum - *parsed_runtime)
+      continue;
+    timestamp = *parsed_timestamp;
+    runtime += *parsed_runtime;
+    found = true;
+  }
+  return found && timestamp > 0 ? std::optional(std::pair(timestamp, runtime)) : std::nullopt;
+}
+
+std::string mount_path(std::string_view encoded) {
+  std::string result;
+  for (std::size_t index = 0; index < encoded.size(); ++index) {
+    if (encoded[index] == '\\' && index + 3 < encoded.size() && encoded[index + 1] >= '0' &&
+        encoded[index + 1] <= '7' && encoded[index + 2] >= '0' && encoded[index + 2] <= '7' &&
+        encoded[index + 3] >= '0' && encoded[index + 3] <= '7') {
+      result.push_back(static_cast<char>((encoded[index + 1] - '0') * 64 + (encoded[index + 2] - '0') * 8 +
+                                         encoded[index + 3] - '0'));
+      index += 3;
+    } else {
+      result.push_back(encoded[index]);
+    }
+  }
+  return result;
 }
 
 std::optional<std::vector<std::uint32_t>> online_cpu_ids(std::string contents) {
@@ -540,7 +634,9 @@ Value Collector::system_info() const {
 }
 std::optional<Value> Collector::metrics() {
   std::map<std::string, Value> root, cpu, memory, system;
-  auto stat = read(rooted(root_, "/proc/stat"));
+  const auto now = std::chrono::steady_clock::now();
+  const auto stat_file = bounded_read(rooted(root_, "/proc/stat"), kProcLimit);
+  const std::string stat = stat_file.value_or("");
   if (stat.starts_with("cpu ")) {
     std::istringstream in(stat.substr(4));
     std::uint64_t x{}, total = 0, idle = 0;
@@ -557,43 +653,211 @@ std::optional<Value> Collector::metrics() {
     }
     previous_cpu_ = {{total, idle}};
   }
-  auto mem = read(rooted(root_, "/proc/meminfo"));
-  for (auto [source, target] : {std::pair{"MemTotal:", "total_bytes"},
-                                {"MemAvailable:", "available_bytes"},
-                                {"SwapTotal:", "swap_total_bytes"},
-                                {"SwapFree:", "swap_available_bytes"}}) {
-    auto p = mem.find(source);
-    if (p != std::string::npos) {
-      std::uint64_t kb{};
-      std::from_chars(mem.data() + p + strlen(source), mem.data() + mem.size(), kb);
-      memory[target] = Value::u(kb * 1024);
+  if (const auto mem = bounded_read(rooted(root_, "/proc/meminfo"), kProcLimit)) {
+    std::map<std::string, std::uint64_t> values;
+    std::istringstream lines(*mem);
+    for (std::string line; std::getline(lines, line);) {
+      const auto colon = line.find(':');
+      if (colon == std::string::npos) continue;
+      std::istringstream fields(line.substr(colon + 1));
+      std::string digits, unit, extra;
+      if (!(fields >> digits >> unit) || unit != "kB" || fields >> extra) continue;
+      const auto kibibytes = unsigned_value(digits);
+      if (kibibytes && *kibibytes <= kWireMaximum / 1024) values[line.substr(0, colon)] = *kibibytes * 1024;
     }
+    const auto add_memory = [&](std::string_view source, std::string_view target, bool positive) {
+      const auto found = values.find(std::string(source));
+      if (found != values.end() && (!positive || found->second > 0))
+        memory[std::string(target)] = Value::u(found->second);
+    };
+    add_memory("MemTotal", "total_bytes", true);
+    add_memory("MemAvailable", "available_bytes", false);
+    add_memory("SwapTotal", "swap_total_bytes", false);
+    add_memory("SwapFree", "swap_available_bytes", false);
+    if (memory.contains("total_bytes") && memory.contains("available_bytes") &&
+        memory["available_bytes"].unsigned_value > memory["total_bytes"].unsigned_value)
+      memory.erase("available_bytes");
+    if (memory.contains("swap_total_bytes") && memory.contains("swap_available_bytes") &&
+        memory["swap_available_bytes"].unsigned_value > memory["swap_total_bytes"].unsigned_value)
+      memory.erase("swap_available_bytes");
   }
-  auto up = trim(read(rooted(root_, "/proc/uptime")));
+  const auto uptime_file = bounded_read(rooted(root_, "/proc/uptime"), kSysfsLimit);
+  auto up = trim(uptime_file.value_or(""));
   if (!up.empty()) {
     char* e{};
     double v = strtod(up.c_str(), &e);
-    if (e != up.c_str()) system["uptime_seconds"] = Value::n(v);
+    if (e != up.c_str() && std::isfinite(v) && v >= 0.0) system["uptime_seconds"] = Value::n(v);
   }
-  auto load = read(rooted(root_, "/proc/loadavg"));
+  const auto load_file = bounded_read(rooted(root_, "/proc/loadavg"), kSysfsLimit);
+  const std::string load = load_file.value_or("");
   if (!load.empty()) {
     std::istringstream in(load);
     double a, b, c;
-    if (in >> a >> b >> c) {
+    if (in >> a >> b >> c && std::isfinite(a) && std::isfinite(b) && std::isfinite(c) && a >= 0.0 && b >= 0.0 &&
+        c >= 0.0) {
       system["load_average_1m"] = Value::n(a);
       system["load_average_5m"] = Value::n(b);
       system["load_average_15m"] = Value::n(c);
     }
   }
-  if (root_ == "/") {
-    struct statvfs s{};
-    if (statvfs("/", &s) == 0)
-      root["storage_volumes"] = Value::list({Value::object({{"mount_point", Value::s("/")},
-                                                            {"device_name", Value::s("root")},
-                                                            {"primary", Value::flag(true)},
-                                                            {"read_only", Value::flag(false)},
-                                                            {"total_bytes", Value::u(s.f_blocks * s.f_frsize)},
-                                                            {"available_bytes", Value::u(s.f_bavail * s.f_frsize)}})});
+
+  std::optional<double> gpu_temperature;
+  for (const auto& zone : directory_entries(rooted(root_, "/sys/class/thermal"))) {
+    const auto base = std::string("/sys/class/thermal/") + zone + "/";
+    const auto type = bounded_read(rooted(root_, base + "type"), kSysfsLimit);
+    if (!type || (!cpu_thermal_zone(*type) && !gpu_thermal_zone(*type))) continue;
+    const auto raw = bounded_read(rooted(root_, base + "temp"), kSysfsLimit);
+    if (!raw) continue;
+    const std::string value = trim(*raw);
+    char* end{};
+    const double milli = std::strtod(value.c_str(), &end);
+    if (end == value.c_str() || *end != '\0' || !std::isfinite(milli) || milli < 0.0) continue;
+    if (cpu_thermal_zone(*type) && !cpu.contains("temperature_celsius"))
+      cpu["temperature_celsius"] = Value::n(milli / 1000.0);
+    if (gpu_thermal_zone(*type) && !gpu_temperature) gpu_temperature = milli / 1000.0;
+  }
+
+  std::vector<Value> networks;
+  std::map<std::string, std::pair<std::uint64_t, std::uint64_t>> next_network;
+  const double elapsed = previous_time_ ? std::chrono::duration<double>(now - *previous_time_).count() : 0.0;
+  for (const auto& name : directory_entries(rooted(root_, "/sys/class/net"))) {
+    if (name == "lo" || name.empty() || name.size() > 256 || !utf8(name)) continue;
+    const auto base = std::string("/sys/class/net/") + name + "/statistics/";
+    const auto rx_raw = bounded_read(rooted(root_, base + "rx_bytes"), kSysfsLimit);
+    const auto tx_raw = bounded_read(rooted(root_, base + "tx_bytes"), kSysfsLimit);
+    const auto received = rx_raw ? unsigned_value(trim(*rx_raw)) : std::nullopt;
+    const auto transmitted = tx_raw ? unsigned_value(trim(*tx_raw)) : std::nullopt;
+    if (!received && !transmitted) continue;
+    std::map<std::string, Value> network{{"name", Value::s(name)}};
+    if (received && *received <= kWireMaximum) network["rx_bytes"] = Value::u(*received);
+    if (transmitted && *transmitted <= kWireMaximum) network["tx_bytes"] = Value::u(*transmitted);
+    if (received && transmitted) {
+      next_network[name] = {*received, *transmitted};
+      const auto previous = previous_network_.find(name);
+      if (elapsed > 0.0 && previous != previous_network_.end() && *received >= previous->second.first &&
+          *transmitted >= previous->second.second) {
+        network["rx_bytes_per_second"] = Value::n(static_cast<double>(*received - previous->second.first) / elapsed);
+        network["tx_bytes_per_second"] =
+            Value::n(static_cast<double>(*transmitted - previous->second.second) / elapsed);
+      }
+    }
+    if (network.size() > 1) networks.push_back(Value::object(std::move(network)));
+    if (networks.size() == kMaximumNetworkInterfaces) break;
+  }
+  previous_network_ = std::move(next_network);
+  previous_time_ = now;
+  if (!networks.empty()) root["network_interfaces"] = Value::list(std::move(networks));
+
+  struct Mount {
+    std::string mount_point;
+    std::string device;
+    bool read_only{false};
+  };
+  std::vector<Mount> mounts;
+  if (const auto mountinfo = bounded_read(rooted(root_, "/proc/self/mountinfo"), kProcLimit)) {
+    std::istringstream lines(*mountinfo);
+    for (std::string line; std::getline(lines, line);) {
+      std::istringstream fields(line);
+      std::vector<std::string> tokens{std::istream_iterator<std::string>(fields), {}};
+      const auto separator = std::ranges::find(tokens, "-");
+      if (tokens.size() < 7 || separator == tokens.end() ||
+          std::distance(tokens.begin(), separator) + 2 >= static_cast<std::ptrdiff_t>(tokens.size()))
+        continue;
+      const std::string mount_point = mount_path(tokens[4]);
+      const std::string device = mount_path(*(separator + 2));
+      if (mount_point.empty() || device.empty() || mount_point.size() > 256 || device.size() > 256 ||
+          !utf8(mount_point) || !utf8(device) || (mount_point != "/" && !device.starts_with("/dev/")))
+        continue;
+      const std::string options = "," + tokens[5] + ",";
+      mounts.push_back({mount_point, device, options.find(",ro,") != std::string::npos});
+    }
+  }
+  std::ranges::sort(mounts, [](const Mount& left, const Mount& right) {
+    const bool left_primary = left.mount_point == "/";
+    const bool right_primary = right.mount_point == "/";
+    return left_primary != right_primary ? left_primary : left.mount_point < right.mount_point;
+  });
+  std::set<std::string> seen_mounts;
+  std::vector<Value> storage;
+  for (const auto& mount : mounts) {
+    if (!seen_mounts.insert(mount.mount_point).second) continue;
+    struct statvfs status{};
+    const auto path = rooted(root_, mount.mount_point);
+    if (statvfs(path.c_str(), &status) != 0 || status.f_frsize == 0 ||
+        status.f_blocks > std::numeric_limits<std::uint64_t>::max() / status.f_frsize ||
+        status.f_bavail > std::numeric_limits<std::uint64_t>::max() / status.f_frsize)
+      continue;
+    const std::uint64_t total = status.f_blocks * status.f_frsize;
+    const std::uint64_t available = status.f_bavail * status.f_frsize;
+    if (total == 0 || total > kWireMaximum || available > total) continue;
+    storage.push_back(Value::object({{"mount_point", Value::s(mount.mount_point)},
+                                     {"device_name", Value::s(mount.device)},
+                                     {"primary", Value::flag(mount.mount_point == "/")},
+                                     {"read_only", Value::flag(mount.read_only)},
+                                     {"total_bytes", Value::u(total)},
+                                     {"available_bytes", Value::u(available)}}));
+    if (storage.size() == kMaximumStorageVolumes) break;
+  }
+  if (!storage.empty()) root["storage_volumes"] = Value::list(std::move(storage));
+
+  bool v3d_found = std::ranges::any_of(directory_entries(rooted(root_, "/sys/bus/platform/devices")), v3d_entry);
+  std::map<std::string, Value> gpu{{"name", Value::s("V3D")}};
+  for (const auto& entry : directory_entries(rooted(root_, "/sys/class/devfreq"))) {
+    if (!v3d_entry(entry)) continue;
+    v3d_found = true;
+    const auto raw = bounded_read(rooted(root_, std::string("/sys/class/devfreq/") + entry + "/cur_freq"), kSysfsLimit);
+    const auto frequency = raw ? unsigned_value(trim(*raw)) : std::nullopt;
+    if (frequency && *frequency > 0 && *frequency <= kWireMaximum) gpu["core_clock_hz"] = Value::u(*frequency);
+    break;
+  }
+  if (v3d_found) {
+    for (const auto& entry : directory_entries(rooted(root_, "/sys/bus/platform/devices"))) {
+      if (!v3d_entry(entry)) continue;
+      const auto raw =
+          bounded_read(rooted(root_, std::string("/sys/bus/platform/devices/") + entry + "/gpu_stats"), kSysfsLimit);
+      const auto current = raw ? gpu_stats(*raw) : std::nullopt;
+      if (current && previous_gpu_ && current->first > previous_gpu_->first &&
+          current->second >= previous_gpu_->second) {
+        const double usage = static_cast<double>(current->second - previous_gpu_->second) /
+                             static_cast<double>(current->first - previous_gpu_->first);
+        if (std::isfinite(usage)) gpu["usage_ratio"] = Value::n(std::clamp(usage, 0.0, 1.0));
+      }
+      previous_gpu_ = current;
+      break;
+    }
+    if (gpu_temperature) gpu["temperature_celsius"] = Value::n(*gpu_temperature);
+    root["gpus"] = Value::list({Value::object(std::move(gpu))});
+  } else {
+    std::vector<std::pair<bool, Value>> discovered;
+    for (const auto& entry : directory_entries(rooted(root_, "/sys/class/drm"))) {
+      if (!entry.starts_with("card") || entry.size() <= 4 ||
+          !std::ranges::all_of(entry.substr(4), [](unsigned char character) { return std::isdigit(character); }))
+        continue;
+      const auto base = std::string("/sys/class/drm/") + entry + "/";
+      const auto vendor_raw = bounded_read(rooted(root_, base + "device/vendor"), kSysfsLimit);
+      const auto vendor = vendor_raw ? gpu_vendor(*vendor_raw) : std::nullopt;
+      if (!vendor) continue;
+      std::map<std::string, Value> item{{"name", Value::s(*vendor)}};
+      if (const auto raw = bounded_read(rooted(root_, base + "gt_cur_freq_mhz"), kSysfsLimit)) {
+        const auto megahertz = unsigned_value(trim(*raw));
+        if (megahertz && *megahertz > 0 && *megahertz <= kWireMaximum / 1'000'000)
+          item["core_clock_hz"] = Value::u(*megahertz * 1'000'000);
+      }
+      if (const auto raw = bounded_read(rooted(root_, base + "device/gpu_busy_percent"), kSysfsLimit)) {
+        const auto percent = unsigned_value(trim(*raw));
+        if (percent && *percent <= 100) item["usage_ratio"] = Value::n(static_cast<double>(*percent) / 100.0);
+      }
+      const bool has_metric = item.size() > 1;
+      discovered.emplace_back(has_metric, Value::object(std::move(item)));
+    }
+    std::ranges::stable_sort(discovered, std::greater{}, &std::pair<bool, Value>::first);
+    std::vector<Value> gpus;
+    for (auto& [has_metric, item] : discovered) {
+      (void)has_metric;
+      gpus.push_back(std::move(item));
+      if (gpus.size() == 16) break;
+    }
+    if (!gpus.empty()) root["gpus"] = Value::list(std::move(gpus));
   }
   if (!cpu.empty()) root["cpu"] = Value::object(cpu);
   if (!memory.empty()) root["memory"] = Value::object(memory);

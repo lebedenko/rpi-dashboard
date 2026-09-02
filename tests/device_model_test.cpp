@@ -59,6 +59,13 @@ void DeviceModelTest::appendsAndUpdatesRemoteInPlace() {  // NOLINT(readability-
   remote_metrics.memory.total_bytes = 1000;
   remote_metrics.memory.available_bytes = 400;
   remote_metrics.system.uptime_seconds = 120.0;
+  remote_metrics.storage_volumes.append({.mount_point = QStringLiteral("/"),
+                                         .device_name = QStringLiteral("/dev/root"),
+                                         .primary = true,
+                                         .total_bytes = 2'000,
+                                         .available_bytes = 500});
+  remote_metrics.gpus.append(
+      {.name = QStringLiteral("V3D"), .core_clock_hz = 800'000'000, .temperature_celsius = 51.0});
   dashboard::protocol::DeviceSnapshot snapshot{.device_id = device,
                                                .instance_id = instance,
                                                .interval_seconds = 1,
@@ -72,6 +79,10 @@ void DeviceModelTest::appendsAndUpdatesRemoteInPlace() {  // NOLINT(readability-
   QCOMPARE(model.get(1).value(QStringLiteral("statusKey")).toString(), QStringLiteral("online"));
   QCOMPARE(model.get(1).value(QStringLiteral("cpuUsageRatio")).toDouble(), 0.25);
   QCOMPARE(model.get(1).value(QStringLiteral("memoryUsageRatio")).toDouble(), 0.6);
+  QCOMPARE(model.get(1).value(QStringLiteral("gpuName")).toString(), QStringLiteral("V3D"));
+  QCOMPARE(model.get(1).value(QStringLiteral("diskUsedBytes")).toULongLong(), 1'500ULL);
+  QCOMPARE(model.get(1).value(QStringLiteral("diskTotalBytes")).toULongLong(), 2'000ULL);
+  QCOMPARE(model.get(1).value(QStringLiteral("diskUsageRatio")).toDouble(), 0.75);
 }
 
 void DeviceModelTest::
