@@ -25,7 +25,7 @@ text; the dot between high and low uses the violet accent. Temperature values us
 and the solar-event time uses the attention status color.
 Its text edge is 32 pixels from the right and 14 pixels from the bottom. A borderless rounded
 background provides 12 pixels of horizontal and 6 pixels of vertical padding. Its background alpha
-is 0.78 for day scenes and 0.62 for night scenes.
+is 0.39 for day scenes and 0.31 for night scenes.
 
 The current validated OpenWeather icon code selects the corresponding bundled day/night wallpaper.
 All 18 supported codes (`01`–`04`, `09`–`11`, `13`, and `50`, each day and night) map directly to
@@ -33,10 +33,11 @@ their wallpaper. Missing or invalid codes use the neutral `03d` scene. Weather c
 while the view is present. Unavailable values use placeholders; stale and unavailable state remain
 visible.
 
-The validated icon suffix also selects a wallpaper contrast treatment. A frameless, full-height
-left scrim extends 1120 pixels and fades at gradient positions 0.0, 0.85, and 1.0. Day scenes use
-background alpha values 0.68, 0.58, and 0.0; night scenes use 0.24, 0.18, and 0.0. Wallpapers are
-not modified and the composition does not use shadows, outlines, blur, or shader effects.
+The validated icon suffix also selects a wallpaper contrast treatment. A frameless, full-height,
+full-width scrim fades at gradient positions 0.00, 0.30, 0.55, 0.78, and 1.00. Day scenes use
+background alpha values 0.62, 0.54, 0.34, 0.12, and 0.00; night scenes use 0.24, 0.21, 0.14, 0.05,
+and 0.00. Wallpapers are not modified and the composition does not use shadows, outlines, blur, or
+shader effects.
 
 The screensaver shows the earliest sunrise or sunset timestamp later than the current UTC time from
 the available daily forecasts. This yields sunrise before dawn, sunset during daylight, and the
@@ -63,7 +64,8 @@ changed, and the screensaver view unloads after its exit transition.
 - The hero uses the specified size, spacing, and baseline alignment, including the adjacent
   stale marker.
 - Detail tokens use their specified colors, backing, and 32-pixel right/14-pixel bottom placement.
-- Day and night wallpapers use their specified scrim and detail-backing strengths.
+- Day and night wallpapers use their specified full-width, five-stop scrim and detail-backing
+  strengths, with no perceptible vertical scrim boundary.
 - The next chronological solar event is selected across day boundaries, is locale-formatted at the
   forecast UTC offset, and switches when its timestamp is reached without a network refresh.
 - Missing and legacy-cached solar timestamps use the icon-derived label and an em-dash time.
