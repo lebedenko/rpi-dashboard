@@ -229,7 +229,48 @@ Item {
             compare(separator.color, Theme.passiveBorder);
             compare(separator.opacity, 0.5);
             compare(separator.Accessible.ignored, true);
-            compare(findChild(separator, "separatorShape").preferredRendererType, Shape.CurveRenderer);
+            const shape = findChild(separator, "separatorShape");
+            compare(shape.preferredRendererType, Shape.CurveRenderer);
+            compare(shape.asynchronous, true);
+            separator.destroy();
+        }
+
+        function test_layoutSettlingRendersFinalEndpoints_data() {
+            return [
+                {
+                    "tag": "hourly vertical",
+                    "orientation": Qt.Vertical,
+                    "width": 1,
+                    "height": 255
+                },
+                {
+                    "tag": "daily horizontal",
+                    "orientation": Qt.Horizontal,
+                    "width": 348,
+                    "height": 1
+                }
+            ];
+        }
+
+        function test_layoutSettlingRendersFinalEndpoints(data) {
+            const separator = createSeparator({
+                "width": 0,
+                "height": 0,
+                "orientation": data.orientation,
+                "color": "#000000",
+                "opacity": 1
+            });
+            const shape = findChild(separator, "separatorShape");
+            verify(!!shape, "Object exists");
+            separator.width = data.width;
+            separator.height = data.height;
+            tryCompare(shape, "status", Shape.Ready);
+            waitForRendering(separator);
+            const image = grabImage(separator);
+            const endX = data.orientation === Qt.Vertical ? 0 : data.width - 1;
+            const endY = data.orientation === Qt.Vertical ? data.height - 1 : 0;
+            verify(image.pixel(0, 0) !== "#ffffff");
+            verify(image.pixel(endX, endY) !== "#ffffff");
             separator.destroy();
         }
 

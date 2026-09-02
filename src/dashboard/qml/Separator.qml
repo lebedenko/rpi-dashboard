@@ -69,6 +69,7 @@ Item {
     Shape {
         objectName: "separatorShape"
         anchors.fill: parent
+        asynchronous: true
         preferredRendererType: Shape.CurveRenderer
 
         ShapePath {
