@@ -6,8 +6,8 @@ import Rpi.Dashboard
 Item {
     id: root
 
-    width: 160
-    height: 120
+    width: 600
+    height: 300
 
     Component {
         id: frameComponent
@@ -40,6 +40,17 @@ Item {
             }
         }
 
+        function compareChamferedBorderCoverage(image, width, height, chamfer) {
+            compare(image.pixel(width / 2, 0), "#000000");
+            compare(image.pixel(width / 2, height - 1), "#000000");
+            compare(image.pixel(0, height / 2), "#000000");
+            compare(image.pixel(width - 1, height / 2), "#000000");
+            compare(image.pixel(chamfer / 2, chamfer / 2), "#000000");
+            compare(image.pixel(width - 1 - chamfer / 2, chamfer / 2), "#000000");
+            compare(image.pixel(width - 1 - chamfer / 2, height - 1 - chamfer / 2), "#000000");
+            compare(image.pixel(chamfer / 2, height - 1 - chamfer / 2), "#000000");
+        }
+
         function test_defaults() {
             const frame = createFrame();
             compare(frame.color, Theme.passiveBorder);
@@ -53,6 +64,7 @@ Item {
             const shape = findChild(frame, "frameShape");
             verify(!!shape, "Object exists");
             compare(shape.preferredRendererType, Shape.CurveRenderer);
+            compare(shape.asynchronous, true);
         }
 
         function test_chamferedCornersUseOnlyLineCommands() {
@@ -65,6 +77,43 @@ Item {
             verify(!!svgPath, "SVG path exists");
             verify(!svgPath.path.includes("A "));
             compare(svgPath.path.split("L ").length - 1, 8);
+        }
+
+        function test_layoutSettlingRendersFinalWeatherPanelGeometry_data() {
+            return [
+                {
+                    "tag": "current conditions",
+                    "width": 340
+                },
+                {
+                    "tag": "hourly forecast",
+                    "width": 500
+                },
+                {
+                    "tag": "daily forecast",
+                    "width": 364
+                }
+            ];
+        }
+
+        function test_layoutSettlingRendersFinalWeatherPanelGeometry(data) {
+            const chamfer = 12;
+            const frame = createFrame({
+                "width": 0,
+                "height": 0,
+                "backgroundColor": "#ffffff",
+                "color": "#000000",
+                "lineWidth": 1,
+                "corners": ({
+                        "chamfered": chamfer
+                    })
+            });
+            const shape = findChild(frame, "frameShape");
+            verify(!!shape, "Object exists");
+            frame.width = data.width;
+            frame.height = 255;
+            tryCompare(shape, "status", Shape.Ready);
+            compareChamferedBorderCoverage(renderedImage(frame), data.width, 255, chamfer);
         }
 
         function test_roundedCornersUseArcCommands() {

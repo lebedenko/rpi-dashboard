@@ -14,6 +14,7 @@ Item {
     Shape {
         objectName: "frameShape"
         anchors.fill: parent
+        asynchronous: true
         preferredRendererType: Shape.CurveRenderer
 
         ShapePath {
