@@ -78,7 +78,7 @@ FocusScope {
                     color: Theme.primaryAccent
                     font {
                         family: Theme.sansFontFamily
-                        pixelSize: Theme.secondaryHeadingTextSize
+                        pixelSize: Theme.headingTextSize
                         weight: Theme.headingFontWeight
                     }
                     text: qsTr("WEATHER")

@@ -11,7 +11,7 @@ QtObject {
     readonly property string bundledFixedFontFamily: root.jetBrainsRegular.status === FontLoader.Ready ? root.jetBrainsRegular.name : ""
     readonly property string sansFontFamily: root.bundledSansFontFamily.length > 0 ? root.bundledSansFontFamily : root.installedFontFamilies.includes("Rajdhani") ? "Rajdhani" : "sans-serif"
     readonly property string fixedFontFamily: root.bundledFixedFontFamily.length > 0 ? root.bundledFixedFontFamily : root.preferredFixedFontFamily()
-    readonly property int headingFontWeight: Font.DemiBold
+    readonly property int headingFontWeight: Font.Normal
     readonly property int labelFontWeight: Font.Normal
     readonly property int informationFontWeight: Font.Medium
     readonly property int metricFontWeight: Font.Light
