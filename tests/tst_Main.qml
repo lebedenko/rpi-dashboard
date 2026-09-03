@@ -433,11 +433,11 @@ Item {
             compare(panel.background.corners.rounded, Theme.radiusMedium);
         }
 
-        function test_systemPageSixPanelsFitAndExposeAccessibleSummaries() {
+        function test_systemPageSevenPanelsFitAndExposeAccessibleSummaries() {
             mouseClick(findChild(dashboardWindow.contentItem, "systemsButton"));
             const panels = findChild(dashboardWindow.contentItem, "systemPanels");
             verify(!!panels);
-            const names = ["cpuPanel", "gpuPanel", "memoryPanel", "thermalsPanel", "networkPanel", "uptimePanel"];
+            const names = ["cpuPanel", "gpuPanel", "memoryPanel", "thermalsPanel", "networkPanel", "uptimePanel", "diskPanel"];
             for (const name of names) {
                 const panel = findChild(dashboardWindow.contentItem, name);
                 verify(!!panel, name);
@@ -451,18 +451,23 @@ Item {
             }
             compare(panels.children.filter(child => {
                 return child instanceof SystemMetricPanel;
-            }).length, 6);
+            }).length, 7);
         }
 
         function test_systemPageFormatsLiveAndUnavailableValuesTruthfully() {
             mouseClick(findChild(dashboardWindow.contentItem, "systemsButton"));
             compare(findChild(dashboardWindow.contentItem, "gpuPanelPrimary").text, "—");
+            compare(findChild(dashboardWindow.contentItem, "diskPanelPrimary").text, "—");
             compare(findChild(dashboardWindow.contentItem, "networkPanelPrimary").text, "↓ —");
             fakeMetricsService.averageCpuFrequencyHz = 2.2e+09;
             fakeMetricsService.gpuUsageRatio = 0.25;
+            fakeMetricsService.gpuName = "V3D";
             fakeMetricsService.gpuCoreClockHz = 5e+08;
             fakeMetricsService.memoryUsedBytes = 3.22123e+09;
             fakeMetricsService.swapUsedBytes = 5.36871e+08;
+            fakeMetricsService.primaryStorageUsedBytes = 3.22123e+10;
+            fakeMetricsService.primaryStorageTotalBytes = 6.87195e+10;
+            fakeMetricsService.primaryStorageUsageRatio = 0.46875;
             fakeMetricsService.gpuTemperatureCelsius = 61.2;
             fakeMetricsService.networkReceiveBytesPerSecond = 1.57286e+06;
             fakeMetricsService.networkTransmitBytesPerSecond = 524288;
@@ -471,11 +476,22 @@ Item {
             fakeMetricsService.currentMetricsChanged();
             tryCompare(findChild(dashboardWindow.contentItem, "cpuPanelSecondary"), "text", "2.20 GHz");
             compare(findChild(dashboardWindow.contentItem, "gpuPanelPrimary").text, "25%");
+            compare(findChild(dashboardWindow.contentItem, "gpuPanel").heading, "GPU V3D");
             compare(findChild(dashboardWindow.contentItem, "memoryPanelPrimary").text, "3072 MiB");
             compare(findChild(dashboardWindow.contentItem, "thermalsPanelSecondary").text, "61°C");
             compare(findChild(dashboardWindow.contentItem, "networkPanelPrimary").text, "↓ 1.5 MiB/s");
             verify(findChild(dashboardWindow.contentItem, "networkPanel").heading.includes("eth0"));
             verify(findChild(dashboardWindow.contentItem, "uptimePanelSecondary").text.includes("08:30"));
+            compare(findChild(dashboardWindow.contentItem, "diskPanelPrimary").text, "30.0 GiB");
+            compare(findChild(dashboardWindow.contentItem, "diskPanelSecondary").text, "64.0 GiB");
+            verify(findChild(dashboardWindow.contentItem, "diskPanelGauge").visible);
+        }
+
+        function test_systemPageGpuHeadingAcceptsMissingOptionalRole() {
+            const systemsPage = findChild(dashboardWindow.contentItem, "systemsPage");
+            compare(systemsPage.gpuHeading(undefined), "GPU");
+            compare(systemsPage.gpuHeading(null), "GPU");
+            compare(systemsPage.gpuHeading("V3D"), "GPU V3D");
         }
 
         function test_localDeviceContentAndExpandedState() {
@@ -995,16 +1011,16 @@ Item {
             compare(findChild(view, "screensaverSolarEventTime").color, Theme.attentionStatus);
             fuzzyCompare(findChild(view, "screensaverDetailsBacking").color.a, 0.39, 0.01);
             compare(findChild(view, "screensaverLeftScrim").width, 1480);
-            compare(findChild(view, "screensaverScrimStart").position, 0.00);
+            compare(findChild(view, "screensaverScrimStart").position, 0);
             fuzzyCompare(findChild(view, "screensaverScrimStart").color.a, 0.62, 0.01);
-            compare(findChild(view, "screensaverScrimThirty").position, 0.30);
+            compare(findChild(view, "screensaverScrimThirty").position, 0.3);
             fuzzyCompare(findChild(view, "screensaverScrimThirty").color.a, 0.54, 0.01);
             compare(findChild(view, "screensaverScrimMiddle").position, 0.55);
             fuzzyCompare(findChild(view, "screensaverScrimMiddle").color.a, 0.34, 0.01);
             compare(findChild(view, "screensaverScrimSeventyEight").position, 0.78);
             fuzzyCompare(findChild(view, "screensaverScrimSeventyEight").color.a, 0.12, 0.01);
-            compare(findChild(view, "screensaverScrimEnd").position, 1.00);
-            fuzzyCompare(findChild(view, "screensaverScrimEnd").color.a, 0.00, 0.01);
+            compare(findChild(view, "screensaverScrimEnd").position, 1);
+            fuzzyCompare(findChild(view, "screensaverScrimEnd").color.a, 0, 0.01);
             const codes = ["01d", "01n", "02d", "02n", "03d", "03n", "04d", "04n", "09d", "09n", "10d", "10n", "11d", "11n", "13d", "13n", "50d", "50n"];
             for (const code of codes) {
                 fakeWeatherService.iconCode = code;
@@ -1021,7 +1037,7 @@ Item {
             fuzzyCompare(findChild(view, "screensaverScrimThirty").color.a, 0.21, 0.01);
             fuzzyCompare(findChild(view, "screensaverScrimMiddle").color.a, 0.14, 0.01);
             fuzzyCompare(findChild(view, "screensaverScrimSeventyEight").color.a, 0.05, 0.01);
-            fuzzyCompare(findChild(view, "screensaverScrimEnd").color.a, 0.00, 0.01);
+            fuzzyCompare(findChild(view, "screensaverScrimEnd").color.a, 0, 0.01);
             fakeWeatherService.iconCode = "invalid";
             compare(view.iconCode, "03d");
             compare(findChild(view, "screensaverStatus").visible, true);
@@ -1239,6 +1255,10 @@ Item {
             property double averageCpuFrequencyHz: -1
             property double memoryUsedBytes: -1
             property double swapUsedBytes: -1
+            property double primaryStorageUsedBytes: -1
+            property double primaryStorageTotalBytes: -1
+            property double primaryStorageUsageRatio: -1
+            property string gpuName: ""
             property double gpuUsageRatio: -1
             property double gpuCoreClockHz: -1
             property double gpuTemperatureCelsius: -1

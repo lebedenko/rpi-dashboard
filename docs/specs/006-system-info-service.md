@@ -35,7 +35,15 @@ sentinels, zero counts, and zero byte values are absent rather than published.
 ## Collection and state
 
 - Linux collection uses public Qt and POSIX APIs plus bounded reads of `/proc/meminfo`, Device Tree `model` and
-  `compatible`, and the Raspberry Pi `Revision` line in `/proc/cpuinfo`.
+  `compatible`, DMI `sys_vendor` and `product_name`, selected identity fields in `/proc/cpuinfo`, and Linux CPU
+  topology in `/sys`.
+- Generic Linux hardware manufacturer/model come from DMI when available. CPU vendor/model come only from exact
+  `/proc/cpuinfo` keys (`vendor_id` and `model name`). Raspberry Pi Device Tree identity takes precedence over these
+  generic sources.
+- Physical cores are the distinct `(physical_package_id, core_id)` pairs for every CPU listed by
+  `/sys/devices/system/cpu/online`. Single IDs and sparse ranges are accepted. The field is omitted unless the online
+  list and every referenced topology value form a complete, positive, bounded result; SMT siblings therefore collapse
+  to one physical core.
 - Device Tree compatible values are NUL-separated, retain their source order, and identify a Pi only when a complete
   entry begins with `raspberrypi,`.
 - `/proc/cpuinfo` serials and unrelated fields are never retained or exposed.
@@ -68,5 +76,8 @@ virtualization status.
 - Missing baseline data produces `Partial`; missing optional Pi data never creates sentinels or invalid numeric values.
 - Device Tree compatible ordering, Pi/SoC enrichment, architecture aliases, positive numeric validation, and bounded
   `MemTotal` conversion are deterministic and covered by tests.
+- SMT, one-thread-per-core, and sparse online-CPU fixtures produce the expected physical-core count. Missing,
+  malformed, duplicate, oversized, over-limit, or incomplete topology leaves `physical_core_count` absent.
 - Non-Pi fixtures do not acquire Pi-derived fields, and sensitive fixture values cannot leak into `SystemInfo`.
+- Generic DMI and processor identity are published when valid and omitted when missing, empty, `unknown`, or oversized.
 - Tests observe asynchronous startup and refresh transitions, coalescing, and preservation after total failure.

@@ -52,6 +52,14 @@ std::shared_ptr<FakeAccess> completeAccess() {
   access->directories[QStringLiteral("/sys/class/net")] = {QStringLiteral("lo"), QStringLiteral("eth0")};
   access->files[QStringLiteral("/sys/class/net/eth0/statistics/rx_bytes")] = QByteArrayLiteral("1000\n");
   access->files[QStringLiteral("/sys/class/net/eth0/statistics/tx_bytes")] = QByteArrayLiteral("2000\n");
+  access->directories[QStringLiteral("/sys/class/devfreq")] = {QStringLiteral("1002000000.v3d")};
+  access->files[QStringLiteral("/sys/class/devfreq/1002000000.v3d/cur_freq")] = QByteArrayLiteral("800000000\n");
+  access->directories[QStringLiteral("/sys/class/thermal")] = {QStringLiteral("thermal_zone0"),
+                                                               QStringLiteral("thermal_zone1")};
+  access->files[QStringLiteral("/sys/class/thermal/thermal_zone0/type")] = QByteArrayLiteral("cpu-thermal\n");
+  access->files[QStringLiteral("/sys/class/thermal/thermal_zone0/temp")] = QByteArrayLiteral("52500\n");
+  access->files[QStringLiteral("/sys/class/thermal/thermal_zone1/type")] = QByteArrayLiteral("gpu-thermal\n");
+  access->files[QStringLiteral("/sys/class/thermal/thermal_zone1/temp")] = QByteArrayLiteral("51000\n");
   return access;
 }
 
@@ -83,6 +91,8 @@ class SystemMetricsTest : public QObject {
  private slots:
   void classifiesSnapshots();
   void calculatesSecondSampleDeltas();
+  void filtersStorageAndCollectsV3d();
+  void discoversV3dWithoutDevfreq();
   void serviceReplacesAndPreservesSnapshots();
   void serviceProjectsDetailedMetrics();
   void serviceKeepsMissingDetailedMetricsInvalid();
@@ -126,6 +136,80 @@ void SystemMetricsTest::calculatesSecondSampleDeltas() {  // NOLINT(readability-
   QCOMPARE(*second.metrics.network_interfaces[0].rx_bytes_per_second, 200.0);
   QCOMPARE(*second.metrics.network_interfaces[0].tx_bytes_per_second, 300.0);
   QVERIFY(second.metrics.hasAllBaselineFields());
+}
+
+void SystemMetricsTest::filtersStorageAndCollectsV3d() {  // NOLINT(readability-convert-member-functions-to-static)
+  const auto access = completeAccess();
+  access->volumes = {{.mount_point = QStringLiteral("/run"),
+                      .device_name = QStringLiteral("tmpfs"),
+                      .ready = true,
+                      .total_bytes = 100,
+                      .available_bytes = 50},
+                     {.mount_point = QStringLiteral("/data"),
+                      .device_name = QStringLiteral("/dev/nvme0n1p1"),
+                      .ready = true,
+                      .read_only = true,
+                      .total_bytes = 20'000,
+                      .available_bytes = 5'000},
+                     {.mount_point = QStringLiteral("/"),
+                      .device_name = QStringLiteral("/dev/root"),
+                      .ready = true,
+                      .total_bytes = 10'000,
+                      .available_bytes = 4'000},
+                     {.mount_point = QStringLiteral("/data"),
+                      .device_name = QStringLiteral("/dev/duplicate"),
+                      .ready = true,
+                      .total_bytes = 1,
+                      .available_bytes = 0},
+                     {.mount_point = QStringLiteral("/broken"),
+                      .device_name = QStringLiteral("/dev/broken"),
+                      .ready = true,
+                      .total_bytes = 10,
+                      .available_bytes = 11}};
+
+  const auto metrics = LinuxSysMetricsCollector(access).collect().metrics;
+  QCOMPARE(metrics.storage_volumes.size(), 2);
+  QCOMPARE(metrics.storage_volumes[0].mount_point, QStringLiteral("/"));
+  QVERIFY(metrics.storage_volumes[0].primary);
+  QCOMPARE(metrics.storage_volumes[1].mount_point, QStringLiteral("/data"));
+  QVERIFY(metrics.storage_volumes[1].read_only);
+  QCOMPARE(metrics.gpus.size(), 1);
+  QCOMPARE(metrics.gpus[0].name, QStringLiteral("V3D"));
+  QCOMPARE(metrics.gpus[0].core_clock_hz, std::optional<quint64>(800'000'000));
+  QCOMPARE(metrics.gpus[0].temperature_celsius, std::optional<double>(51.0));
+  QVERIFY(!metrics.gpus[0].usage_ratio);
+  QVERIFY(!metrics.gpus[0].memory_total_bytes);
+
+  access->volumes.clear();
+  for (int index = 69; index >= 0; --index) {
+    access->volumes.append({.mount_point = QStringLiteral("/volume-%1").arg(index, 2, 10, QLatin1Char('0')),
+                            .device_name = QStringLiteral("/dev/storage%1").arg(index),
+                            .ready = true,
+                            .total_bytes = 100,
+                            .available_bytes = 50});
+  }
+  access->volumes.append({.mount_point = QStringLiteral("/"),
+                          .device_name = QStringLiteral("/dev/root"),
+                          .ready = true,
+                          .total_bytes = 100,
+                          .available_bytes = 50});
+  const auto bounded = LinuxSysMetricsCollector(access).collect().metrics.storage_volumes;
+  QCOMPARE(bounded.size(), 64);
+  QCOMPARE(bounded.first().mount_point, QStringLiteral("/"));
+  QCOMPARE(bounded.last().mount_point, QStringLiteral("/volume-62"));
+}
+
+void SystemMetricsTest::discoversV3dWithoutDevfreq() {  // NOLINT(readability-convert-member-functions-to-static)
+  const auto access = completeAccess();
+  access->directories.remove(QStringLiteral("/sys/class/devfreq"));
+  access->files.remove(QStringLiteral("/sys/class/devfreq/1002000000.v3d/cur_freq"));
+  access->directories[QStringLiteral("/sys/bus/platform/devices")] = {QStringLiteral("1002000000.v3d")};
+
+  const auto metrics = LinuxSysMetricsCollector(access).collect().metrics;
+  QCOMPARE(metrics.gpus.size(), 1);
+  QCOMPARE(metrics.gpus[0].name, QStringLiteral("V3D"));
+  QVERIFY(!metrics.gpus[0].core_clock_hz);
+  QCOMPARE(metrics.gpus[0].temperature_celsius, std::optional<double>(51.0));
 }
 
 void SystemMetricsTest::
@@ -185,6 +269,9 @@ void SystemMetricsTest::serviceProjectsDetailedMetrics() {  // NOLINT(readabilit
   QCOMPARE(service.swapTotalBytes(), QVariant::fromValue<quint64>(2'000));
   QCOMPARE(service.swapAvailableBytes(), QVariant::fromValue<quint64>(750));
   QCOMPARE(service.swapUsedBytes(), QVariant::fromValue<quint64>(1'250));
+  QCOMPARE(service.primaryStorageTotalBytes(), QVariant::fromValue<quint64>(1'000));
+  QCOMPARE(service.primaryStorageUsedBytes(), QVariant::fromValue<quint64>(500));
+  QCOMPARE(service.primaryStorageUsageRatio(), QVariant(0.5));
   QCOMPARE(service.gpuName(), QVariant(QStringLiteral("gpu0")));
   QCOMPARE(service.gpuUsageRatio(), QVariant(0.25));
   QCOMPARE(service.gpuMemoryTotalBytes(), QVariant::fromValue<quint64>(1'000));
@@ -221,6 +308,9 @@ void SystemMetricsTest::
   QVERIFY(!service.averageCpuFrequencyHz().isValid());
   QVERIFY(!service.memoryUsedBytes().isValid());
   QVERIFY(!service.swapUsedBytes().isValid());
+  QVERIFY(!service.primaryStorageTotalBytes().isValid());
+  QVERIFY(!service.primaryStorageUsedBytes().isValid());
+  QVERIFY(!service.primaryStorageUsageRatio().isValid());
   QVERIFY(!service.gpuName().isValid());
   QVERIFY(!service.gpuUsageRatio().isValid());
   QVERIFY(!service.networkReceiveBytesPerSecond().isValid());
