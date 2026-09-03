@@ -863,12 +863,24 @@ Item {
                 compare(panel.lineWidth, 1);
                 compare(panel.corners.chamfered, Theme.chamferLarge);
             }
+            compare(currentPanel.width, 360);
+            compare(hourlyPanel.width, 500);
+            compare(dailyPanel.width, 344);
             verify(page.Accessible.name.includes("Lviv"));
             compare(findChild(page, "weatherLocation").text, "LVIV, UA");
             compare(findChild(page, "weatherTitle").text, "WEATHER");
+            const header = findChild(page, "weatherHeader");
+            const title = findChild(page, "weatherTitle");
+            const location = findChild(page, "weatherLocation");
+            const updated = findChild(page, "weatherUpdatedLabel");
             const age = findChild(page, "weatherAgeLabel");
-            compare(findChild(page, "weatherTitle").mapToItem(page, 0, 0).x, Theme.spacingMedium);
-            compare(page.width - age.mapToItem(page, age.width, 0).x, Theme.spacingMedium);
+            compare(title.mapToItem(page, 0, 0).x, 32);
+            compare(page.width - age.mapToItem(page, age.width, 0).x, 32);
+            const titleCenterY = title.mapToItem(header, 0, title.height / 2).y;
+            verify(Math.abs(titleCenterY - header.height / 2) < 0.5, "title center " + titleCenterY + ", header center " + header.height / 2);
+            compare(location.mapToItem(header, 0, location.baselineOffset).y, title.mapToItem(header, 0, title.baselineOffset).y);
+            compare(updated.mapToItem(header, 0, updated.baselineOffset).y, title.mapToItem(header, 0, title.baselineOffset).y);
+            compare(age.mapToItem(header, 0, age.baselineOffset).y, title.mapToItem(header, 0, title.baselineOffset).y);
             const hero = findChild(page, "currentHero");
             const currentContent = findChild(page, "currentContent");
             compare(currentContent.x, 16);
@@ -881,12 +893,22 @@ Item {
             compare(currentSeparator.width, currentContent.width);
             const currentMetrics = findChild(page, "currentMetrics");
             compare(currentPanel.height - currentMetrics.mapToItem(currentPanel, 0, currentMetrics.height).y, 8);
+            const expectedMetricWidths = [64, 64, 85, 115];
             for (let index = 0; index < 4; ++index) {
+                const metricColumn = findChild(page, "currentMetricColumn" + index);
+                const metricContent = findChild(page, "currentMetricContent" + index);
+                compare(metricColumn.width, expectedMetricWidths[index]);
+                compare(metricContent.x, 8);
+                compare(metricColumn.width - metricContent.x - metricContent.width, 8);
                 compare(findChild(page, "currentMetricLabel" + index).color, Theme.primaryAccent);
                 compare(findChild(page, "currentMetricLabel" + index).horizontalAlignment, Text.AlignHCenter);
                 compare(findChild(page, "currentMetricValue" + index).horizontalAlignment, Text.AlignHCenter);
                 compare(findChild(page, "currentMetricValue" + index).color, Theme.textPrimary);
             }
+            const windValue = findChild(page, "currentMetricValue3");
+            fakeWeatherService.windDirection = "NW";
+            compare(windValue.text, "NW 12 km/h");
+            verify(windValue.paintedWidth <= windValue.width);
             for (let index = 0; index < 2; ++index) {
                 const inlineMetric = findChild(page, "currentMetricInline" + index);
                 verify(Math.abs(inlineMetric.y - (inlineMetric.parent.height - inlineMetric.height) / 2) < 1);
@@ -900,23 +922,90 @@ Item {
             compare(findChild(page, "hourLabel0").font.pixelSize, Theme.bodyTextSize);
             compare(findChild(page, "hourlyPrecipitation0").font.pixelSize, Theme.bodyTextSize);
             compare(findChild(page, "hourlyPrecipitation1").color, Theme.textPrimary);
+            const precipitationLabel = findChild(page, "hourlyPrecipitation0");
+            const precipitationBar = findChild(page, "hourlyPrecipitationBar0");
+            compare(precipitationBar.y - (precipitationLabel.y + precipitationLabel.height), 8);
+            const originalBarBottom = precipitationBar.y + precipitationBar.height;
+            const originalBarTop = precipitationBar.y;
+            const originalLabelY = precipitationLabel.y;
+            fakeWeatherService.hourlyModel.setProperty(0, "precipitationProbabilityPercent", 50);
+            tryCompare(precipitationBar, "height", 12.5);
+            compare(precipitationBar.y + precipitationBar.height, originalBarBottom);
+            verify(precipitationBar.y < originalBarTop);
+            verify(precipitationLabel.y < originalLabelY);
+            compare(precipitationBar.y - (precipitationLabel.y + precipitationLabel.height), 8);
+            const zeroPrecipitationLabel = findChild(page, "hourlyPrecipitation1");
+            const zeroPrecipitationBar = findChild(page, "hourlyPrecipitationBar1");
+            compare(zeroPrecipitationBar.height, 0);
+            compare(zeroPrecipitationBar.y + zeroPrecipitationBar.height, zeroPrecipitationBar.parent.height);
+            compare(zeroPrecipitationLabel.y + zeroPrecipitationLabel.height, zeroPrecipitationLabel.parent.height);
             const graphSegment = findChild(page, "hourlyGraphSegment1");
             verify(!!graphSegment);
             compare(graphSegment.previousPosition, 0.5);
             compare(graphSegment.position, 0.7);
             compare(findChild(page, "hourlyGraphShape1").preferredRendererType, Shape.CurveRenderer);
-            compare(findChild(page, "dailyForecastTitle").mapToItem(dailyPanel, 0, 0).x, 16);
+            const hourlyTitle = findChild(page, "hourlyForecastTitle");
+            const dailyTitle = findChild(page, "dailyForecastTitle");
+            compare(dailyTitle.mapToItem(dailyPanel, 0, 0).x, 16);
+            compare(dailyTitle.mapToItem(dailyPanel, 0, 0).y, hourlyTitle.mapToItem(hourlyPanel, 0, 0).y);
             compare(findChild(page, "dailyWeekday0").color, Theme.primaryAccent);
             compare(findChild(page, "dailyPrecipitation0").color, Theme.violetAccent);
             const dailyRow = findChild(page, "dailyRow0");
-            compare(dailyRow.spacing, 8);
-            compare(dailyRow.anchors.leftMargin, 8);
-            compare(dailyRow.anchors.rightMargin, 8);
+            compare(dailyRow.spacing, 16);
+            compare(dailyRow.anchors.leftMargin, 16);
+            compare(dailyRow.anchors.rightMargin, 16);
             const dailySeparator = findChild(page, "dailySeparator1");
-            compare(dailySeparator.anchors.leftMargin, 8);
-            compare(dailySeparator.anchors.rightMargin, 8);
+            compare(dailySeparator.anchors.leftMargin, 16);
+            compare(dailySeparator.anchors.rightMargin, 16);
             compare(findChild(page, "dailyMinimum0").horizontalAlignment, Text.AlignRight);
             compare(findChild(page, "dailyMaximum0").horizontalAlignment, Text.AlignLeft);
+            const weekdayMetrics = findChild(page, "dailyWeekdayMetrics");
+            const precipitationMetrics = findChild(page, "dailyPrecipitationMetrics");
+            const expectedWeekdayWidth = Math.ceil(weekdayMetrics.advanceWidth / 2) * 2;
+            const expectedPrecipitationWidth = Math.ceil(precipitationMetrics.advanceWidth / 2) * 2;
+            const firstPrecipitationGroup = findChild(page, "dailyPrecipitationGroup0");
+            const firstPrecipitationGroupLeft = firstPrecipitationGroup.mapToItem(page, 0, 0).x;
+            for (let index = 0; index < fakeWeatherService.dailyModel.count; ++index) {
+                const weekday = findChild(page, "dailyWeekday" + index).parent;
+                const icon = findChild(page, "dailyIcon" + index).parent;
+                const precipitationLabel = findChild(page, "dailyPrecipitation" + index);
+                const precipitation = precipitationLabel.parent;
+                const temperatures = findChild(page, "dailyTemperatureGroup" + index);
+                const weekdayLeft = weekday.mapToItem(page, 0, 0).x;
+                const weekdayRight = weekday.mapToItem(page, weekday.width, 0).x;
+                const iconLeft = icon.mapToItem(page, 0, 0).x;
+                const iconRight = icon.mapToItem(page, icon.width, 0).x;
+                const precipitationLeft = precipitation.mapToItem(page, 0, 0).x;
+                const precipitationRight = precipitation.mapToItem(page, precipitation.width, 0).x;
+                const temperaturesLeft = temperatures.mapToItem(page, 0, 0).x;
+                compare(weekday.width, expectedWeekdayWidth);
+                compare(icon.width, 28);
+                compare(precipitation.width, expectedPrecipitationWidth);
+                compare(iconLeft - weekdayRight, 16);
+                compare(precipitationLeft - iconRight, 16);
+                compare(temperaturesLeft - precipitationRight, 16);
+                compare(precipitationLeft, firstPrecipitationGroupLeft);
+                compare(precipitationLabel.x, 0);
+                compare(precipitationLabel.horizontalAlignment, Text.AlignLeft);
+                verify(precipitationLabel.x + precipitationLabel.width <= precipitation.width);
+                if (index > 0) {
+                    compare(weekdayLeft, findChild(page, "dailyWeekday0").parent.mapToItem(page, 0, 0).x);
+                    compare(iconLeft, findChild(page, "dailyIcon0").parent.mapToItem(page, 0, 0).x);
+                    compare(precipitationLeft, findChild(page, "dailyPrecipitation0").parent.mapToItem(page, 0, 0).x);
+                    compare(temperaturesLeft, findChild(page, "dailyTemperatureGroup0").mapToItem(page, 0, 0).x);
+                }
+                const segment = findChild(page, "dailyTemperatureSegment" + index);
+                const maximum = findChild(page, "dailyMaximum" + index);
+                verify(segment.mapToItem(temperatures, 0, 0).x >= 0);
+                verify(maximum.mapToItem(temperatures, maximum.width, 0).x <= temperatures.width);
+                verify(temperatures.mapToItem(dailyRow, temperatures.width, 0).x <= dailyRow.width);
+            }
+            const precipitationFitLabel = findChild(page, "dailyPrecipitation1");
+            for (const probability of [0, 20, 100]) {
+                fakeWeatherService.dailyModel.setProperty(1, "precipitationProbabilityPercent", probability);
+                tryCompare(precipitationFitLabel, "text", probability + "%");
+                verify(precipitationFitLabel.x + precipitationFitLabel.width <= precipitationFitLabel.parent.width);
+            }
             const weatherRail = findChild(dashboardWindow.contentItem, "weatherRail");
             for (const section of ["weatherAirSection", "weatherSolarSection", "weatherPrecipitationSection"])
                 verify(!!findChild(weatherRail, section));

@@ -187,7 +187,7 @@ void DashboardStartupTest::declaresAndUsesTypographyRoles() {  // NOLINT(readabi
   QVERIFY(themeSource.contains(QStringLiteral("installedFontFamilies.includes(\"JetBrains Mono\")")));
   QVERIFY(themeSource.contains(QStringLiteral("installedFontFamilies.includes(\"IBM Plex Mono\")")));
   QVERIFY(themeSource.contains(QStringLiteral("return \"monospace\"")));
-  QVERIFY(themeSource.contains(QStringLiteral("headingFontWeight: Font.DemiBold")));
+  QVERIFY(themeSource.contains(QStringLiteral("headingFontWeight: Font.Normal")));
   QVERIFY(themeSource.contains(QStringLiteral("informationFontWeight: Font.Medium")));
   QVERIFY(themeSource.contains(QStringLiteral("metricFontWeight: Font.Light")));
 

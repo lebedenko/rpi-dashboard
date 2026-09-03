@@ -397,9 +397,9 @@ Item {
                 verify(isIntegral((row.y + row.height) * dpr));
                 if (index > 0) {
                     const separator = findChild(page, "dailySeparator" + index);
-                    compare(separator.anchors.leftMargin, 8);
-                    compare(separator.anchors.rightMargin, 8);
-                    compare(separator.width, row.width - 16);
+                    compare(separator.anchors.leftMargin, 16);
+                    compare(separator.anchors.rightMargin, 16);
+                    compare(separator.width, row.width - 32);
                     compare(separator.orientation, Qt.Horizontal);
                     compare(separator.lineStyle, Separator.Solid);
                     compare(separator.lineWidth, 1);

@@ -8,7 +8,7 @@ The dashboard uses a condensed, technical visual style. Its canonical Rajdhani a
 
 - Bundle the OFL-licensed Rajdhani 300, 400, 500, and 600 faces and JetBrains Mono 300, 400, and 500 faces with the dashboard QML module.
 - Load every bundled face through `FontLoader` in the theme and expose whether all faces are ready.
-- UI headings and labels use Rajdhani at weight 600.
+- UI headings use Rajdhani at weight 400.
 - Regular labels use Rajdhani at weight 400 and ordinary information uses Rajdhani at weight 500.
 - Large metric values use Rajdhani at weight 300.
 - Technical values, including branches, revisions, identifiers, ages, durations, counts, and sizes, use JetBrains Mono at the matching semantic weight.

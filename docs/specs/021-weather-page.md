@@ -56,21 +56,36 @@ credential-bearing URLs.
 
 - The shell is inset 10 px vertically, uses 8 px horizontal gaps, and all shell/card corners use
   the large chamfer. The header restores the `WEATHER` hierarchy followed by resolved city/country,
-  a status marker, `UPDATED`, and relative age (`NOW`, minutes, hours, or days). Its left and right
-  padding are equal and its minute clock runs only while the page is visible.
-- Current conditions use 16 px horizontal content padding and show icon, temperature, condition,
-  feels-like, high/low, humidity, and compass wind direction/speed. The separator and bottom metric
+  a status marker, `UPDATED`, and relative age (`NOW`, minutes, hours, or days). The header alone has
+  32 px left/right page padding; forecast cards retain their 16 px page inset. The 22 px `WEATHER`
+  title is vertically centered, and the location, `UPDATED`, and age text share its baseline. The
+  status marker remains visually centered beside the status text. Its minute clock runs only while
+  the page is visible.
+- Current conditions occupy 360 px and use 16 px horizontal content padding. They show icon,
+  temperature, condition, feels-like, high/low, humidity, and compass wind direction/speed followed
+  by the lowercase `km/h` unit (for example, `N 5 km/h`). The separator and bottom metric
   row extend to those content edges, and the row has an 8 px bottom margin. High/low are centered
   inline label/value pairs with cyan labels and primary-colored temperature values; humidity and
-  wind remain centered label/value stacks.
+  wind remain centered label/value stacks. The 328 px metric row uses fixed 64 px high, 64 px low,
+  85 px humidity, and 115 px wind columns. Content in every column is inset 8 px from its vertical
+  boundaries.
 - Hourly columns show `NOW` followed by the location's zero-padded numeric 24-hour local hour
   (`00`–`23`), icon, temperature, a min/max-normalized cyan trend (centered when all values are
-  equal), and proportional precipitation bars hidden at zero percent. Hour and precipitation labels
-  use the body text size; hour labels use the primary accent. Straight graph connections use the
-  Qt Quick Shapes curve renderer with round caps and cyan points.
-- Daily rows and their horizontal separators have equal 8 px left/right margins. Rows use 8 px gaps
-  between cyan `TODAY`/weekday labels, icon, violet
-  precipitation probability, minimum, range rail, and maximum. Minimum temperatures are
+  equal), and proportional precipitation bars hidden at zero percent. Each precipitation bar is
+  anchored to the bottom of its hourly column, so higher probabilities grow upward. Nonzero
+  percentage labels sit 8 px above their bars and move upward with them; zero-percent labels remain
+  at the column bottom. Hour and precipitation labels use the body text size; hour labels use the
+  primary accent. Straight graph connections use the Qt Quick Shapes curve renderer with round caps
+  and cyan points.
+- Daily forecast occupies 344 px. Daily rows and their horizontal separators have equal 16 px
+  left/right margins. The daily title
+  has the same panel-relative vertical position as `NEXT 8 HOURS`, and row boundaries account for
+  that title offset. Rows use stable aligned weekday, icon, precipitation, and temperature groups,
+  with a uniform 16 px structural gap between each group. Weekday and precipitation groups use the
+  localized `TODAY` and formatted `100%` text advance widths, respectively, rounded up to the
+  nearest even pixel; the icon group remains 28 px wide. Weekday and precipitation labels are
+  left-aligned at their group edges. The temperature group uses the remaining row width and
+  contains the minimum, range rail, and maximum with 8 px internal gaps. Minimum temperatures are
   right-aligned and maximum temperatures left-aligned so the visual gaps beside the rail match. The
   rail knob uses the provider-derived mean of available morning/day/evening/night temperatures.
   Legacy cached rows without a mean omit the knob.
@@ -104,8 +119,8 @@ credential-bearing URLs.
   the journal as sanitized warnings without API keys or credential-bearing URL query data.
 - All 18 weather SVGs are packaged, use neutral fallback styles, are safely recolored through the
   local image provider, and invalid icon identifiers resolve to a neutral fallback.
-- At 1480×320 all four content regions and the weather rail are visible with approximately 340 px
-  for current conditions and 500 px for hourly forecast. Weather states,
+- At 1480×320 all four content regions and the weather rail are visible with 360 px for current
+  conditions, 500 px for hourly forecast, and 344 px for daily forecast. Weather states,
   accessibility, navigation, and F5 are covered by deterministic startup/QML tests.
 
 ## Deferred review findings
