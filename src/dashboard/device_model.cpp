@@ -120,6 +120,9 @@ QVariant DeviceModel::data(const QModelIndex& index, int role) const {
   const QVariant temp = value(metrics.cpu.temperature_celsius);
   const QVariant up = value(metrics.system.uptime_seconds);
   const auto gpu = metrics.gpus.isEmpty() ? nullptr : &metrics.gpus.first();
+  const auto storage_iterator = std::ranges::find_if(
+      metrics.storage_volumes, [](const protocol::SystemMetrics::StorageVolume& volume) { return volume.primary; });
+  const auto storage = storage_iterator == metrics.storage_volumes.cend() ? nullptr : &*storage_iterator;
   const auto network = metrics.network_interfaces.isEmpty() ? nullptr : &metrics.network_interfaces.first();
   switch (role) {
     case DeviceNumberRole:
@@ -168,8 +171,16 @@ QVariant DeviceModel::data(const QModelIndex& index, int role) const {
       return used(metrics.memory.total_bytes, metrics.memory.available_bytes);
     case SwapUsedBytesRole:
       return used(metrics.memory.swap_total_bytes, metrics.memory.swap_available_bytes);
+    case DiskUsedBytesRole:
+      return storage ? used(storage->total_bytes, storage->available_bytes) : QVariant{};
+    case DiskTotalBytesRole:
+      return storage ? value(storage->total_bytes) : QVariant{};
+    case DiskUsageRatioRole:
+      return storage ? ratio(storage->total_bytes, storage->available_bytes) : QVariant{};
     case BoardTemperatureCelsiusRole:
       return temp;
+    case GpuNameRole:
+      return gpu && !gpu->name.isEmpty() ? QVariant::fromValue(gpu->name) : QVariant{};
     case GpuUsageRatioRole:
       return gpu ? value(gpu->usage_ratio) : QVariant{};
     case GpuCoreClockHzRole:
@@ -224,7 +235,11 @@ QHash<int, QByteArray> DeviceModel::roleNames() const {
           {CpuFrequencyHzRole, "cpuFrequencyHz"},
           {MemoryUsedBytesRole, "memoryUsedBytes"},
           {SwapUsedBytesRole, "swapUsedBytes"},
+          {DiskUsedBytesRole, "diskUsedBytes"},
+          {DiskTotalBytesRole, "diskTotalBytes"},
+          {DiskUsageRatioRole, "diskUsageRatio"},
           {BoardTemperatureCelsiusRole, "boardTemperatureCelsius"},
+          {GpuNameRole, "gpuName"},
           {GpuUsageRatioRole, "gpuUsageRatio"},
           {GpuCoreClockHzRole, "gpuCoreClockHz"},
           {GpuTemperatureCelsiusRole, "gpuTemperatureCelsius"},
@@ -257,10 +272,28 @@ void DeviceModel::localInfoChanged() {
 void DeviceModel::localMetricsChanged() {
   if (rowCount() == 0) return;
   emit dataChanged(index(0), index(0),
-                   {CpuMetricRole, MemoryMetricRole, CpuUsageRatioRole, MemoryUsageRatioRole, TemperatureMetricRole,
-                    UptimeMetricRole, UptimeSecondsRole, CpuFrequencyHzRole, MemoryUsedBytesRole, SwapUsedBytesRole,
-                    BoardTemperatureCelsiusRole, GpuUsageRatioRole, GpuCoreClockHzRole, GpuTemperatureCelsiusRole,
-                    NetworkReceiveRateRole, NetworkTransmitRateRole, NetworkInterfaceNameRole, BootTimeMsRole});
+                   {CpuMetricRole,
+                    MemoryMetricRole,
+                    CpuUsageRatioRole,
+                    MemoryUsageRatioRole,
+                    TemperatureMetricRole,
+                    UptimeMetricRole,
+                    UptimeSecondsRole,
+                    CpuFrequencyHzRole,
+                    MemoryUsedBytesRole,
+                    SwapUsedBytesRole,
+                    DiskUsedBytesRole,
+                    DiskTotalBytesRole,
+                    DiskUsageRatioRole,
+                    BoardTemperatureCelsiusRole,
+                    GpuNameRole,
+                    GpuUsageRatioRole,
+                    GpuCoreClockHzRole,
+                    GpuTemperatureCelsiusRole,
+                    NetworkReceiveRateRole,
+                    NetworkTransmitRateRole,
+                    NetworkInterfaceNameRole,
+                    BootTimeMsRole});
 }
 void DeviceModel::remoteChanged(const QUuid& device_id) {
   const auto devices = registry_->devices();

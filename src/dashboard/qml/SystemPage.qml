@@ -59,6 +59,16 @@ Item {
         const bytesValue = Number(value);
         return bytesValue >= 1048576 ? qsTr("%1 MiB").arg((bytesValue / 1048576).toFixed(0)) : qsTr("%1 KiB").arg((bytesValue / 1024).toFixed(0));
     }
+    function capacity(value): string {
+        if (!root.availableNumber(value))
+            return "—";
+        const bytesValue = Number(value);
+        return bytesValue >= 1073741824 ? qsTr("%1 GiB").arg((bytesValue / 1073741824).toFixed(1)) : root.bytes(bytesValue);
+    }
+    function gpuHeading(value): string {
+        const name = value === undefined || value === null ? "" : String(value);
+        return name.length > 0 ? qsTr("GPU %1").arg(name) : qsTr("GPU");
+    }
     function rate(value): string {
         if (!root.availableNumber(value))
             return "—";
@@ -160,7 +170,7 @@ Item {
                 objectName: "gpuPanel"
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                heading: qsTr("GPU")
+                heading: root.gpuHeading(root.selectedDevice ? root.selectedDevice.gpuName : undefined)
                 primaryValue: root.percent(root.selectedDevice ? root.selectedDevice.gpuUsageRatio : -1)
                 secondaryLabel: qsTr("CORE")
                 secondaryValue: root.frequency(root.selectedDevice ? root.selectedDevice.gpuCoreClockHz : -1)
@@ -207,6 +217,17 @@ Item {
                 secondaryLabel: qsTr("BOOT")
                 secondaryValue: root.bootTime(root.selectedDevice ? root.selectedDevice.bootTimeMs : -1)
                 accentColor: Theme.primaryAccent
+            }
+            SystemMetricPanel {
+                objectName: "diskPanel"
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                heading: qsTr("DISK /")
+                primaryValue: root.capacity(root.selectedDevice ? root.selectedDevice.diskUsedBytes : -1)
+                secondaryLabel: qsTr("TOTAL")
+                secondaryValue: root.capacity(root.selectedDevice ? root.selectedDevice.diskTotalBytes : -1)
+                usageRatio: root.ratio(root.selectedDevice ? root.selectedDevice.diskUsageRatio : -1)
+                accentColor: Theme.blueAccent
             }
         }
     }

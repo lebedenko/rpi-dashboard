@@ -2,6 +2,7 @@
 
 #include <QtConcurrentRun>
 
+#include <algorithm>
 #include <cmath>
 #include <limits>
 #include <stdexcept>
@@ -71,6 +72,30 @@ QVariant SysMetricsService::swapUsedBytes() const {
     return {};
   }
   return QVariant::fromValue(*memory.swap_total_bytes - *memory.swap_available_bytes);
+}
+QVariant SysMetricsService::primaryStorageTotalBytes() const {
+  const auto found =
+      std::ranges::find_if(current_metrics_.storage_volumes, [](const auto& volume) { return volume.primary; });
+  return found == current_metrics_.storage_volumes.cend() ? QVariant{} : optionalVariant(found->total_bytes);
+}
+QVariant SysMetricsService::primaryStorageUsedBytes() const {
+  const auto found =
+      std::ranges::find_if(current_metrics_.storage_volumes, [](const auto& volume) { return volume.primary; });
+  if (found == current_metrics_.storage_volumes.cend() || !found->total_bytes || !found->available_bytes ||
+      *found->available_bytes > *found->total_bytes) {
+    return {};
+  }
+  return QVariant::fromValue(*found->total_bytes - *found->available_bytes);
+}
+QVariant SysMetricsService::primaryStorageUsageRatio() const {
+  const auto found =
+      std::ranges::find_if(current_metrics_.storage_volumes, [](const auto& volume) { return volume.primary; });
+  if (found == current_metrics_.storage_volumes.cend() || !found->total_bytes || !found->available_bytes ||
+      *found->total_bytes == 0 || *found->available_bytes > *found->total_bytes) {
+    return {};
+  }
+  return QVariant::fromValue(static_cast<double>(*found->total_bytes - *found->available_bytes) /
+                             static_cast<double>(*found->total_bytes));
 }
 QVariant SysMetricsService::gpuName() const {
   return current_metrics_.gpus.isEmpty() || current_metrics_.gpus.first().name.isEmpty()

@@ -53,6 +53,7 @@ class Collector {
   std::optional<std::pair<std::uint64_t, std::uint64_t>> previous_cpu_;
   std::map<std::string, std::pair<std::uint64_t, std::uint64_t>> previous_network_;
   std::optional<std::chrono::steady_clock::time_point> previous_time_;
+  std::optional<std::pair<std::uint64_t, std::uint64_t>> previous_gpu_;
 };
 std::vector<std::uint8_t> hello(const Config&, const Uuid&, const Uuid&, const Value&);
 std::vector<std::uint8_t> snapshot(const Config&, const Uuid&, const Uuid&, std::uint64_t, const Value&,

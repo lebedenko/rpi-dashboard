@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <limits>
 #include <ranges>
+#include <set>
 #include <unistd.h>
 #include <utility>
 
@@ -14,6 +15,8 @@ namespace {
 
 constexpr qsizetype kSmallFileLimit = 64 * 1024;
 constexpr qsizetype kCpuInfoLimit = 1024 * 1024;
+constexpr quint32 kMaximumCpuCount = 256;
+constexpr quint32 kMaximumCpuId = 4095;
 
 std::optional<QString> cleanString(QString value) {
   value = value.trimmed();
@@ -72,6 +75,83 @@ std::optional<QString> boardRevision(const QByteArray& contents) {
     return cleanString(QString::fromLatin1(line.mid(separator + 1)));
   }
   return std::nullopt;
+}
+
+std::optional<QString> cpuInfoValue(const QByteArray& contents, const QByteArray& key) {
+  for (const QByteArray& line : contents.split('\n')) {
+    const qsizetype separator = line.indexOf(':');
+    if (separator >= 0 && line.first(separator).trimmed() == key) {
+      return cleanString(QString::fromUtf8(line.sliced(separator + 1)));
+    }
+  }
+  return std::nullopt;
+}
+
+std::optional<quint32> unsignedValue(const QByteArray& contents, quint32 maximum) {
+  const QByteArray value = contents.trimmed();
+  if (value.isEmpty() ||
+      !std::ranges::all_of(value, [](char character) { return character >= '0' && character <= '9'; })) {
+    return std::nullopt;
+  }
+  bool valid = false;
+  const quint64 parsed = value.toULongLong(&valid);
+  if (!valid || parsed > maximum) {
+    return std::nullopt;
+  }
+  return static_cast<quint32>(parsed);
+}
+
+std::optional<QList<quint32>> onlineCpuIds(const QByteArray& contents) {
+  const QList<QByteArray> entries = contents.trimmed().split(',');
+  if (entries.isEmpty()) {
+    return std::nullopt;
+  }
+  QList<quint32> result;
+  std::set<quint32> unique;
+  for (const QByteArray& entry : entries) {
+    if (entry.isEmpty() || entry != entry.trimmed() || entry.count('-') > 1) {
+      return std::nullopt;
+    }
+    const qsizetype separator = entry.indexOf('-');
+    const auto first = unsignedValue(separator < 0 ? entry : entry.first(separator), kMaximumCpuId);
+    const auto last = unsignedValue(separator < 0 ? entry : entry.sliced(separator + 1), kMaximumCpuId);
+    if (!first || !last || *first > *last || *last - *first + 1 > kMaximumCpuCount) {
+      return std::nullopt;
+    }
+    for (quint32 id = *first;; ++id) {
+      if (!unique.insert(id).second || result.size() >= kMaximumCpuCount) {
+        return std::nullopt;
+      }
+      result.append(id);
+      if (id == *last) {
+        break;
+      }
+    }
+  }
+  return result.isEmpty() ? std::nullopt : std::optional<QList<quint32>>(std::move(result));
+}
+
+std::optional<quint32> physicalCoreCount(const LinuxPlatformAccess& access) {
+  const auto online = access.readFile(QStringLiteral("/sys/devices/system/cpu/online"), kSmallFileLimit);
+  const auto ids = online ? onlineCpuIds(*online) : std::nullopt;
+  if (!ids) {
+    return std::nullopt;
+  }
+  std::set<std::pair<quint32, quint32>> cores;
+  for (const quint32 cpu_id : *ids) {
+    const QString base = QStringLiteral("/sys/devices/system/cpu/cpu%1/topology/").arg(cpu_id);
+    const auto package_file = access.readFile(base + QStringLiteral("physical_package_id"), kSmallFileLimit);
+    const auto core_file = access.readFile(base + QStringLiteral("core_id"), kSmallFileLimit);
+    const auto package =
+        package_file ? unsignedValue(*package_file, std::numeric_limits<quint32>::max()) : std::nullopt;
+    const auto core = core_file ? unsignedValue(*core_file, std::numeric_limits<quint32>::max()) : std::nullopt;
+    if (!package || !core) {
+      return std::nullopt;
+    }
+    cores.emplace(*package, *core);
+  }
+  return cores.empty() || cores.size() > kMaximumCpuCount ? std::nullopt
+                                                          : std::optional<quint32>(static_cast<quint32>(cores.size()));
 }
 
 class NativeLinuxPlatformAccess final : public LinuxPlatformAccess {
@@ -148,13 +228,26 @@ SysInfoCollectionResult LinuxSysInfoCollector::collect() const {
   info.kernel.kernel_type = cleanString(values.kernel_type);
   info.kernel.kernel_version = cleanString(values.kernel_version);
   info.cpu.architecture = normalizedArchitecture(values.architecture);
-  if (values.logical_cpu_count.value_or(0) > 0) {
+  if (values.logical_cpu_count.value_or(0) > 0 && values.logical_cpu_count.value() <= kMaximumCpuCount) {
     info.cpu.logical_cpu_count = values.logical_cpu_count;
   }
+  info.cpu.physical_core_count = physicalCoreCount(*access_);
 
   QStringList diagnostics;
   if (const auto meminfo = access_->readFile(QStringLiteral("/proc/meminfo"), kSmallFileLimit); meminfo.has_value()) {
     info.memory.total_bytes = memoryBytes(*meminfo);
+  }
+
+  if (const auto manufacturer = access_->readFile(QStringLiteral("/sys/class/dmi/id/sys_vendor"), kSmallFileLimit)) {
+    info.hardware.manufacturer = cleanString(QString::fromUtf8(*manufacturer));
+  }
+  if (const auto model = access_->readFile(QStringLiteral("/sys/class/dmi/id/product_name"), kSmallFileLimit)) {
+    info.hardware.model = cleanString(QString::fromUtf8(*model));
+  }
+  const auto cpuinfo = access_->readFile(QStringLiteral("/proc/cpuinfo"), kCpuInfoLimit);
+  if (cpuinfo) {
+    info.cpu.vendor = cpuInfoValue(*cpuinfo, QByteArrayLiteral("vendor_id"));
+    info.cpu.model = cpuInfoValue(*cpuinfo, QByteArrayLiteral("model name"));
   }
 
   const auto compatible_file =
@@ -168,7 +261,7 @@ SysInfoCollectionResult LinuxSysInfoCollector::collect() const {
     if (const auto model = access_->readFile(QStringLiteral("/sys/firmware/devicetree/base/model"), kSmallFileLimit)) {
       info.hardware.model = cleanString(QString::fromUtf8(*model).remove(QChar::Null));
     }
-    if (const auto cpuinfo = access_->readFile(QStringLiteral("/proc/cpuinfo"), kCpuInfoLimit)) {
+    if (cpuinfo) {
       info.hardware.board_revision = boardRevision(*cpuinfo);
     }
     for (const QString& identifier : compatible) {

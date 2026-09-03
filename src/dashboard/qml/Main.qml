@@ -109,7 +109,11 @@ ApplicationWindow {
         localDevices.setProperty(0, "cpuFrequencyHz", root.numberOrUnavailable(service ? service.averageCpuFrequencyHz : undefined));
         localDevices.setProperty(0, "memoryUsedBytes", root.numberOrUnavailable(service ? service.memoryUsedBytes : undefined));
         localDevices.setProperty(0, "swapUsedBytes", root.numberOrUnavailable(service ? service.swapUsedBytes : undefined));
+        localDevices.setProperty(0, "diskUsedBytes", root.numberOrUnavailable(service ? service.primaryStorageUsedBytes : undefined));
+        localDevices.setProperty(0, "diskTotalBytes", root.numberOrUnavailable(service ? service.primaryStorageTotalBytes : undefined));
+        localDevices.setProperty(0, "diskUsageRatio", root.usageRatioOrUnavailable(service ? service.primaryStorageUsageRatio : undefined));
         localDevices.setProperty(0, "boardTemperatureCelsius", root.numberOrUnavailable(service ? service.cpuTemperatureCelsius : undefined));
+        localDevices.setProperty(0, "gpuName", root.isAvailable(service ? service.gpuName : undefined) ? String(service.gpuName) : "");
         localDevices.setProperty(0, "gpuUsageRatio", root.numberOrUnavailable(service ? service.gpuUsageRatio : undefined));
         localDevices.setProperty(0, "gpuCoreClockHz", root.numberOrUnavailable(service ? service.gpuCoreClockHz : undefined));
         localDevices.setProperty(0, "gpuTemperatureCelsius", root.numberOrUnavailable(service ? service.gpuTemperatureCelsius : undefined));
@@ -150,7 +154,11 @@ ApplicationWindow {
             cpuFrequencyHz: -1
             memoryUsedBytes: -1
             swapUsedBytes: -1
+            diskUsedBytes: -1
+            diskTotalBytes: -1
+            diskUsageRatio: -1
             boardTemperatureCelsius: -1
+            gpuName: ""
             gpuUsageRatio: -1
             gpuCoreClockHz: -1
             gpuTemperatureCelsius: -1

@@ -8,6 +8,7 @@
 
 #include <memory>
 #include <stdexcept>
+#include <tuple>
 #include <utility>
 
 using dashboard::protocol::SystemInfo;
@@ -53,7 +54,21 @@ std::shared_ptr<FakePlatformAccess> completeGenericAccess() {
   auto access = std::make_shared<FakePlatformAccess>();
   access->platform_values = completeValues();
   access->files.insert(QStringLiteral("/proc/meminfo"), QByteArrayLiteral("MemTotal:       16384000 kB\n"));
+  access->files.insert(QStringLiteral("/proc/cpuinfo"),
+                       QByteArrayLiteral("vendor_id\t: GenuineIntel\nmodel name\t: Example Processor 9000\n"));
+  access->files.insert(QStringLiteral("/sys/class/dmi/id/sys_vendor"), QByteArrayLiteral("Example Systems\n"));
+  access->files.insert(QStringLiteral("/sys/class/dmi/id/product_name"), QByteArrayLiteral("Example Workstation\n"));
   return access;
+}
+
+void addTopology(const std::shared_ptr<FakePlatformAccess>& access, const QByteArray& online,
+                 const QList<std::tuple<quint32, quint32, quint32>>& cpus) {
+  access->files.insert(QStringLiteral("/sys/devices/system/cpu/online"), online);
+  for (const auto& [cpu_id, package, core] : cpus) {
+    const QString base = QStringLiteral("/sys/devices/system/cpu/cpu%1/topology/").arg(cpu_id);
+    access->files.insert(base + QStringLiteral("physical_package_id"), QByteArray::number(package));
+    access->files.insert(base + QStringLiteral("core_id"), QByteArray::number(core));
+  }
 }
 
 class SequenceCollector final : public SysInfoCollector {
@@ -104,6 +119,10 @@ class SystemInfoTest : public QObject {
   void collectsNormalizedGenericLinuxRecord();
   void enrichesRaspberryPiAndPreservesCompatibleOrder();
   void treatsInvalidAndMissingValuesAsAbsent();
+  void countsDistinctPhysicalCores();
+  void countsSparseOneThreadPerCoreTopology();
+  void rejectsInvalidPhysicalCoreTopology_data();  // NOLINT(readability-identifier-naming)
+  void rejectsInvalidPhysicalCoreTopology();
   void doesNotLeakSensitiveCpuInfo();
   void serviceCollectsAtStartupAndCoalescesRefresh();
   void serviceReportsPartialResult();
@@ -112,6 +131,45 @@ class SystemInfoTest : public QObject {
   void servicePreservesLastSuccessAfterFailure();
   void serviceRejectsNullCollectorAndReportsExceptions();
 };
+
+void SystemInfoTest::countsDistinctPhysicalCores() {  // NOLINT(readability-convert-member-functions-to-static)
+  auto access = completeGenericAccess();
+  addTopology(access, "0-3\n", {{0, 0, 0}, {1, 0, 0}, {2, 0, 1}, {3, 0, 1}});
+
+  QCOMPARE(LinuxSysInfoCollector(access).collect().info.cpu.physical_core_count, std::optional<quint32>(2));
+}
+
+void SystemInfoTest::countsSparseOneThreadPerCoreTopology() {  // NOLINT(readability-convert-member-functions-to-static)
+  auto access = completeGenericAccess();
+  addTopology(access, "0,2-3", {{0, 0, 0}, {2, 0, 2}, {3, 1, 0}});
+
+  QCOMPARE(LinuxSysInfoCollector(access).collect().info.cpu.physical_core_count, std::optional<quint32>(3));
+}
+
+void SystemInfoTest::rejectsInvalidPhysicalCoreTopology_data() {  // NOLINT(readability-identifier-naming,
+                                                                  // readability-convert-member-functions-to-static)
+  QTest::addColumn<QByteArray>("online");
+  QTest::newRow("missing") << QByteArray{};
+  QTest::newRow("malformed") << QByteArray("0-a");
+  QTest::newRow("duplicate") << QByteArray("0-2,2");
+  QTest::newRow("reversed") << QByteArray("3-1");
+  QTest::newRow("over-limit") << QByteArray("0-256");
+  QTest::newRow("oversized-id") << QByteArray("4096");
+  QTest::newRow("oversized-file") << QByteArray((64 * 1024) + 1, '0');
+}
+
+void SystemInfoTest::rejectsInvalidPhysicalCoreTopology() {  // NOLINT(readability-convert-member-functions-to-static)
+  QFETCH(QByteArray, online);
+  auto access = completeGenericAccess();
+  if (!online.isEmpty()) {
+    access->files.insert(QStringLiteral("/sys/devices/system/cpu/online"), online);
+  }
+
+  QVERIFY(!LinuxSysInfoCollector(access).collect().info.cpu.physical_core_count.has_value());
+
+  addTopology(access, "0-1", {{0, 0, 0}});
+  QVERIFY(!LinuxSysInfoCollector(access).collect().info.cpu.physical_core_count.has_value());
+}
 
 void SystemInfoTest::
     serviceRejectsNullCollectorAndReportsExceptions() {  // NOLINT(readability-convert-member-functions-to-static)
@@ -127,8 +185,11 @@ void SystemInfoTest::collectsNormalizedGenericLinuxRecord() {  // NOLINT(readabi
   QVERIFY(result.info.hasAllBaselineFields());
   QCOMPARE(result.info.os.os_family, QStringLiteral("linux"));
   QCOMPARE(result.info.cpu.architecture, QStringLiteral("x86_64"));
+  QCOMPARE(result.info.hardware.manufacturer, QStringLiteral("Example Systems"));
+  QCOMPARE(result.info.hardware.model, QStringLiteral("Example Workstation"));
+  QCOMPARE(result.info.cpu.vendor, QStringLiteral("GenuineIntel"));
+  QCOMPARE(result.info.cpu.model, QStringLiteral("Example Processor 9000"));
   QCOMPARE(result.info.memory.total_bytes, 16'777'216'000ULL);
-  QVERIFY(!result.info.hardware.manufacturer.has_value());
   QVERIFY(result.diagnostics.contains(QStringLiteral("Raspberry Pi Device Tree enrichment is unavailable")));
 }
 
@@ -165,6 +226,9 @@ void SystemInfoTest::
   access->platform_values.host_name.clear();
   access->platform_values.logical_cpu_count = 0;
   access->files.insert(QStringLiteral("/proc/meminfo"), QByteArrayLiteral("MemTotal: 18014398509481984 kB\n"));
+  access->files.insert(QStringLiteral("/proc/cpuinfo"), QByteArrayLiteral("vendor_id: unknown\nmodel name:\n"));
+  access->files.insert(QStringLiteral("/sys/class/dmi/id/sys_vendor"), QByteArrayLiteral("unknown\n"));
+  access->files.insert(QStringLiteral("/sys/class/dmi/id/product_name"), QByteArray((64 * 1024) + 1, 'x'));
 
   const SysInfoCollectionResult result = LinuxSysInfoCollector(access).collect();
 
@@ -173,6 +237,10 @@ void SystemInfoTest::
   QVERIFY(!result.info.host.host_name.has_value());
   QVERIFY(!result.info.cpu.architecture.has_value());
   QVERIFY(!result.info.cpu.logical_cpu_count.has_value());
+  QVERIFY(!result.info.hardware.manufacturer.has_value());
+  QVERIFY(!result.info.hardware.model.has_value());
+  QVERIFY(!result.info.cpu.vendor.has_value());
+  QVERIFY(!result.info.cpu.model.has_value());
   QVERIFY(!result.info.memory.total_bytes.has_value());
   QVERIFY(!result.diagnostics.isEmpty());
 }

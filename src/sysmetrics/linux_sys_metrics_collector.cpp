@@ -3,6 +3,7 @@
 #include <QDir>
 #include <QElapsedTimer>
 #include <QFile>
+#include <QSet>
 #include <QStorageInfo>
 
 #include <algorithm>
@@ -15,6 +16,7 @@ namespace {
 constexpr qsizetype kProcLimit = 1024 * 1024;
 constexpr qsizetype kSysfsLimit = 4096;
 constexpr quint64 kKib = 1024;
+constexpr qsizetype kMaximumStorageVolumes = 64;
 
 class NativeAccess final : public LinuxSysMetricsAccess {
  public:
@@ -63,6 +65,16 @@ std::optional<double> nonnegativeDouble(const QByteArray& bytes) {
   bool valid = false;
   const double value = bytes.trimmed().toDouble(&valid);
   return valid && std::isfinite(value) && value >= 0.0 ? std::optional<double>(value) : std::nullopt;
+}
+
+bool isV3dEntry(const QString& entry) {
+  const QString normalized = entry.toLower();
+  return normalized == QStringLiteral("v3d") || normalized.endsWith(QStringLiteral(".v3d"));
+}
+
+bool isGpuThermalZone(const QByteArray& type) {
+  const QByteArray normalized = type.trimmed().toLower();
+  return normalized == "gpu" || normalized == "gpu-thermal" || normalized == "gpu_thermal" || normalized == "v3d";
 }
 
 QHash<QString, LinuxSysMetricsCollector::Counters> parseCpu(const QByteArray& bytes, QStringList& diagnostics) {
@@ -201,18 +213,36 @@ SysMetricsCollectionResult LinuxSysMetricsCollector::collect() {
     }
   }
 
-  for (const auto& source : access_->storageVolumes()) {
+  QList<LinuxStorageVolume> volumes = access_->storageVolumes();
+  std::ranges::sort(volumes, [](const LinuxStorageVolume& left, const LinuxStorageVolume& right) {
+    const bool left_primary = left.mount_point == QStringLiteral("/");
+    const bool right_primary = right.mount_point == QStringLiteral("/");
+    return left_primary != right_primary ? left_primary : left.mount_point < right.mount_point;
+  });
+  QSet<QString> seen_mounts;
+  for (const auto& source : volumes) {
     if (!source.ready || source.total_bytes == 0 || source.available_bytes > source.total_bytes) {
       continue;
     }
+    const bool primary = source.mount_point == QStringLiteral("/");
+    if ((!primary && !source.device_name.startsWith(QStringLiteral("/dev/"))) || source.mount_point.isEmpty() ||
+        source.device_name.isEmpty() || source.mount_point.toUtf8().size() > 256 ||
+        source.device_name.toUtf8().size() > 256 || seen_mounts.contains(source.mount_point)) {
+      continue;
+    }
+    seen_mounts.insert(source.mount_point);
     metrics.storage_volumes.append({.mount_point = source.mount_point,
                                     .device_name = source.device_name,
-                                    .primary = source.mount_point == QStringLiteral("/"),
+                                    .primary = primary,
                                     .read_only = source.read_only,
                                     .total_bytes = source.total_bytes,
                                     .available_bytes = source.available_bytes});
+    if (metrics.storage_volumes.size() == kMaximumStorageVolumes) {
+      break;
+    }
   }
 
+  std::optional<double> gpu_temperature;
   for (const QString& zone : access_->directoryEntries(QStringLiteral("/sys/class/thermal"))) {
     if (!zone.startsWith(QStringLiteral("thermal_zone"))) {
       continue;
@@ -223,16 +253,22 @@ SysMetricsCollectionResult LinuxSysMetricsCollector::collect() {
       continue;
     }
     const QByteArray normalized = type->trimmed().toLower();
-    if (normalized != "cpu-thermal" && normalized != "cpu_thermal" && normalized != "soc_thermal") {
+    const bool cpu_zone = normalized == "cpu-thermal" || normalized == "cpu_thermal" || normalized == "soc_thermal";
+    const bool gpu_zone = isGpuThermalZone(normalized);
+    if (!cpu_zone && !gpu_zone) {
       continue;
     }
     if (const auto raw = access_->readFile(base + QStringLiteral("temp"), kSysfsLimit)) {
       const auto milli = nonnegativeDouble(*raw);
       if (milli) {
-        metrics.cpu.temperature_celsius = *milli / 1000.0;
+        if (cpu_zone && !metrics.cpu.temperature_celsius) {
+          metrics.cpu.temperature_celsius = *milli / 1000.0;
+        }
+        if (gpu_zone && !gpu_temperature) {
+          gpu_temperature = *milli / 1000.0;
+        }
       }
     }
-    break;
   }
 
   const double elapsed = previous_time_ms_ >= 0 && now_ms > previous_time_ms_
@@ -273,11 +309,28 @@ SysMetricsCollectionResult LinuxSysMetricsCollector::collect() {
   network_counters_ = std::move(next_network);
   previous_time_ms_ = now_ms;
 
-  const auto compatible = access_->readFile(QStringLiteral("/sys/firmware/devicetree/base/compatible"), kSysfsLimit);
-  if (compatible && compatible->contains("raspberrypi,")) {
-    diagnostics.append(QStringLiteral("Explicit Raspberry Pi GPU metrics are unavailable"));
+  bool v3d_found =
+      std::ranges::any_of(access_->directoryEntries(QStringLiteral("/sys/bus/platform/devices")), isV3dEntry);
+  protocol::SystemMetrics::Gpu gpu{.name = QStringLiteral("V3D"), .temperature_celsius = gpu_temperature};
+  for (const QString& entry : access_->directoryEntries(QStringLiteral("/sys/class/devfreq"))) {
+    if (!isV3dEntry(entry)) {
+      continue;
+    }
+    v3d_found = true;
+    if (const auto raw = access_->readFile(QStringLiteral("/sys/class/devfreq/%1/cur_freq").arg(entry), kSysfsLimit)) {
+      const auto frequency = unsignedValue(*raw);
+      if (frequency && *frequency > 0 && *frequency <= static_cast<quint64>(std::numeric_limits<qint64>::max())) {
+        gpu.core_clock_hz = *frequency;
+      } else {
+        diagnostics.append(QStringLiteral("V3D core frequency is invalid"));
+      }
+    }
+    break;
+  }
+  if (v3d_found) {
+    metrics.gpus.append(std::move(gpu));
   } else {
-    diagnostics.append(QStringLiteral("Raspberry Pi GPU enrichment is unavailable on this Linux host"));
+    diagnostics.append(QStringLiteral("V3D metrics are unavailable"));
   }
 
   if (!metrics.hasAllBaselineFields()) {
