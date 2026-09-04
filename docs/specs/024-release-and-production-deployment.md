@@ -49,6 +49,8 @@ to the production Raspberry Pi.
   `tag:ci` node may reach only TCP/22 on the tagged production Pi.
 - The archive checksum is verified on the runner and again on the Pi. The Pi builds and tests the
   Debug preset unprivileged, then builds and stages the Release preset unprivileged.
+- Tests shipped in the dashboard-only archive are self-contained and do not require the excluded
+  `daemon/` source tree.
 - The root-owned activation helper accepts only the documented runtime allowlist. It preserves
   `/usr/local/etc/xdg/rpi-dashboard/config.toml` and systemd encrypted credentials, snapshots the
   previous runtime, reloads systemd, and restarts the kiosk.
@@ -67,6 +69,8 @@ to the production Raspberry Pi.
   and regeneration; exercise publication guards and retry conflicts; reproduce byte-identical
   archives; reject tar failures and empty daemon archives; and verify checksums, staging,
   activation, rollback, and failed-first-install recovery.
+- A regression test extracts the dashboard-only release archive and runs its release-tool test,
+  proving that the deployment test phase does not depend on excluded daemon package files.
 - CI runs `dev`, `release`, `tidy`, `asan`, and `ubsan` as separately required checks.
 - CI also runs a separately required native daemon build and test check.
 - Both release daemon matrix entries run to completion independently, and each uploads its assets

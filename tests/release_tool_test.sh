@@ -3,7 +3,6 @@
 set -eu
 
 release_script=$1
-source_root=$(CDPATH= cd -- "$(dirname -- "$release_script")/.." && pwd)
 test_dir=$(mktemp -d "${TMPDIR:-/tmp}/rpi-dashboard-release-test-XXXXXX")
 trap 'rm -rf -- "$test_dir"' EXIT HUP INT TERM
 repo=$test_dir/repo
@@ -15,7 +14,9 @@ mkdir "$repo/daemon"
 printf '%s\n' 'project(DashboardDaemon VERSION 0.1.1 LANGUAGES CXX)' >"$repo/daemon/CMakeLists.txt"
 mkdir "$repo/daemon/package"
 printf '%s\n' daemon-only >"$repo/daemon/package/secret"
-cp "$source_root/daemon/package/config.toml" "$source_root/daemon/package/dashboard-daemon.service" "$source_root/daemon/package/install.sh" "$repo/daemon/package/"
+printf '%s\n' 'host = ""' >"$repo/daemon/package/config.toml"
+printf '%s\n' '[Service]' 'ExecStart=/usr/local/bin/dashboard-daemon' >"$repo/daemon/package/dashboard-daemon.service"
+printf '%s\n' '#!/bin/sh' 'package_arch=@PACKAGE_ARCH@' >"$repo/daemon/package/install.sh"
 printf '%s\n' '# Changelog' '' '## [0.1.1] - 2026-08-29' '' '- Split packages.' >"$repo/CHANGELOG.md"
 (cd "$repo" && git init -q && git add . && git -c user.name=test -c user.email=test@example.invalid commit -qm test)
 

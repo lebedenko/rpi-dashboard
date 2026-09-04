@@ -294,6 +294,14 @@ add_test(
 )
 
 add_test(
+    NAME dashboard_archive_release_tool_test
+    COMMAND
+        sh
+        ${CMAKE_CURRENT_SOURCE_DIR}/dashboard_archive_release_tool_test.sh
+        ${CMAKE_SOURCE_DIR}/scripts/release.sh
+)
+
+add_test(
     NAME release_workflow_test
     COMMAND
         sh
